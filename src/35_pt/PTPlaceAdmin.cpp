@@ -74,7 +74,7 @@ namespace synthese
 	namespace admin
 	{
 		template<> const string AdminInterfaceElementTemplate<PTPlaceAdmin>::ICON("building.png");
-		template<> const string AdminInterfaceElementTemplate<PTPlaceAdmin>::DEFAULT_TITLE("Arrêt");
+		template<> const string AdminInterfaceElementTemplate<PTPlaceAdmin>::DEFAULT_TITLE("ArrÃªt");
 	}
 
 	namespace pt
@@ -167,13 +167,13 @@ namespace synthese
 					AdminActionFunctionRequest<StopAreaNameUpdateAction,PTPlaceAdmin> updateRequest(request);
 					updateRequest.getAction()->setPlace(const_pointer_cast<PublicTransportStopZoneConnectionPlace>(_connectionPlace));
 
-					stream << "<h1>Propriétés</h1>";
+					stream << "<h1>PropriÃ©tÃ©s</h1>";
 
 					PropertiesHTMLTable t(updateRequest.getHTMLForm());
 					stream << t.open();
 					stream << t.title("Localisation");
-					stream << t.cell("Localité", _connectionPlace->getCity()->getName());
-					stream << t.cell("Localité", t.getForm().getTextInput(StopAreaNameUpdateAction::PARAMETER_CITY_ID, lexical_cast<string>(_connectionPlace->getCity()->getKey())));
+					stream << t.cell("LocalitÃ©", _connectionPlace->getCity()->getName());
+					stream << t.cell("LocalitÃ©", t.getForm().getTextInput(StopAreaNameUpdateAction::PARAMETER_CITY_ID, lexical_cast<string>(_connectionPlace->getCity()->getKey())));
 					stream << t.cell("Nom", t.getForm().getTextInput(StopAreaNameUpdateAction::PARAMETER_NAME, _connectionPlace->getName()));
 					stream << t.cell("Code import", t.getForm().getTextInput(StopAreaNameUpdateAction::PARAMETER_CODE, _connectionPlace->getCodeBySource()));
 					stream << t.title("Destination sur afficheur");
@@ -272,29 +272,29 @@ namespace synthese
 			{
 				if(_connectionPlace.get())
 				{
-					stream << "<h1>Propriétés</h1>";
+					stream << "<h1>PropriÃ©tÃ©s</h1>";
 
 					AdminActionFunctionRequest<StopAreaUpdateAction,PTPlaceAdmin> updateRequest(request);
 					updateRequest.getAction()->setPlace(const_pointer_cast<PublicTransportStopZoneConnectionPlace>(_connectionPlace));
 
 					PropertiesHTMLTable t(updateRequest.getHTMLForm());
 					stream << t.open();
-					stream << t.cell("Correspondance autorisée", t.getForm().getOuiNonRadioInput(StopAreaUpdateAction::PARAMETER_ALLOWED_CONNECTIONS, _connectionPlace->getAllowedConnection()));
-					stream << t.cell("Délai de correspondance par défaut (minutes)", t.getForm().getTextInput(StopAreaUpdateAction::PARAMETER_DEFAULT_TRANSFER_DURATION, lexical_cast<string>(_connectionPlace->getDefaultTransferDelay().total_seconds() / 60)));
+					stream << t.cell("Correspondance autorisÃ©e", t.getForm().getOuiNonRadioInput(StopAreaUpdateAction::PARAMETER_ALLOWED_CONNECTIONS, _connectionPlace->getAllowedConnection()));
+					stream << t.cell("DÃ©lai de correspondance par dÃ©faut (minutes)", t.getForm().getTextInput(StopAreaUpdateAction::PARAMETER_DEFAULT_TRANSFER_DURATION, lexical_cast<string>(_connectionPlace->getDefaultTransferDelay().total_seconds() / 60)));
 					stream << t.close();
 				}
 
 				stream << "<h1>Transferts internes (correspondances)</h1>";
 				{
 					HTMLTable::ColsVector c;
-					c.push_back("Quai départ");
-					c.push_back("Quai arrivée");
-					c.push_back("Durée");
+					c.push_back("Quai dÃ©part");
+					c.push_back("Quai arrivÃ©e");
+					c.push_back("DurÃ©e");
 					c.push_back("Action");
 					HTMLTable t(c, ResultHTMLTable::CSS_CLASS);
 					stream << t.open();
 					stream << t.row();
-					stream << t.col(2) << "<b>Valeur par défaut</b>";
+					stream << t.col(2) << "<b>Valeur par dÃ©faut</b>";
 					stream << t.col() << (_addressablePlace->getDefaultTransferDelay().total_seconds() / 60) << " min";
 					stream << t.col();
 
@@ -332,10 +332,10 @@ namespace synthese
 
 					HTMLTable::ColsVector c;
 					c.push_back("Quai");
-					c.push_back("Arrêt");
+					c.push_back("ArrÃªt");
 					c.push_back("Quai");
 					c.push_back("Longueur");
-					c.push_back("Durée");
+					c.push_back("DurÃ©e");
 					c.push_back("Action");
 
 					HTMLTable t(c, ResultHTMLTable::CSS_CLASS);
@@ -362,11 +362,11 @@ namespace synthese
 						stream << t.col() << junction->getEnd()->getName();
 						stream << t.col() << junction->getLength() << " m";
 						stream << t.col() << (junction->getDuration().total_seconds() / 60) << " min";
-						stream << t.col() << "Fusionner l'arrêt";
+						stream << t.col() << "Fusionner l'arrÃªt";
 					}
 
 					stream << t.row();
-					stream << t.col(6, string(), true) << "Jonctions au départ de " << _connectionPlace->getFullName();
+					stream << t.col(6, string(), true) << "Jonctions au dÃ©part de " << _connectionPlace->getFullName();
 					BOOST_FOREACH(shared_ptr<Junction> junction, startings)
 					{
 						if(junction->getBack())
@@ -385,7 +385,7 @@ namespace synthese
 						stream << t.col() << junction->getEnd()->getName();
 						stream << t.col() << junction->getLength() << " m";
 						stream << t.col() << (junction->getDuration().total_seconds() / 60) << " min";
-						stream << t.col() << "Fusionner l'arrêt";
+						stream << t.col() << "Fusionner l'arrÃªt";
 					}
 
 					stream << t.row();
@@ -409,7 +409,7 @@ namespace synthese
 						stream << t.col() << junction->getStart()->getName();
 						stream << t.col() << junction->getLength() << " m";
 						stream << t.col() << (junction->getDuration().total_seconds() / 60) << " min";
-						stream << t.col() << "Fusionner l'arrêt";
+						stream << t.col() << "Fusionner l'arrÃªt";
 					}
 
 					stream << t.close();
@@ -455,10 +455,10 @@ namespace synthese
 			const security::Profile& profile
 		) const	{
 			_tabs.clear();
-			_tabs.push_back(Tab("Propriétés", TAB_GENERAL, true));
+			_tabs.push_back(Tab("PropriÃ©tÃ©s", TAB_GENERAL, true));
 			if(_connectionPlace.get())
 			{
-				_tabs.push_back(Tab("Arrêts", TAB_STOPS, true));
+				_tabs.push_back(Tab("ArrÃªts", TAB_STOPS, true));
 			}
 			_tabs.push_back(Tab("Adresses", TAB_ADDRESSES, true));
 			_tabs.push_back(Tab("Transferts", TAB_TRANSFER, true));

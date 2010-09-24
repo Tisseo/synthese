@@ -1254,7 +1254,7 @@ namespace synthese
 						" level=\"interruption\"" <<
 						" startValidity=\"2000-01-01T00:00:07.0Z\"" <<
 						" endValidity=\"2099-12-31T23:59:00.0Z\"" <<
-					">SNCF en grève</alert>"
+					">SNCF en grÃ¨ve</alert>"
 				;
 			}
 			stream << "</connectionPlace>";

@@ -201,7 +201,7 @@ namespace synthese
 				CommercialLineTableSync::Search(env)
 			);
 
-			m.push_back(make_pair(string(), "--- Réseaux ---"));
+			m.push_back(make_pair(string(), "--- RÃ©seaux ---"));
 			BOOST_FOREACH(shared_ptr<TransportNetwork> network, networks)
 				m.push_back(make_pair(lexical_cast<string>(network->getKey()), network->getName() ));
 
@@ -282,7 +282,7 @@ namespace synthese
 		PTModule::Labels PTModule::GetPTUseRuleLabels()
 		{
 			Labels result;
-			result.push_back(make_pair(RegistryKeyType(0), "(non défini)"));
+			result.push_back(make_pair(RegistryKeyType(0), "(non dÃ©fini)"));
 
 			PTUseRuleTableSync::SearchResult rules(PTUseRuleTableSync::Search(Env::GetOfficialEnv()));
 			BOOST_FOREACH(const PTUseRuleTableSync::SearchResult::value_type& element, rules)

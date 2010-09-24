@@ -284,7 +284,7 @@ namespace synthese
 				stream <<
 					"<p>" << HTMLModule::getLinkButton(
 						searchRequest.getURL(),
-						"Jour précédent",
+						"Jour prÃ©cÃ©dent",
 						string(),
 						"resultset_previous.png"
 					) << " ";
@@ -294,7 +294,7 @@ namespace synthese
 					
 				stream << HTMLModule::getLinkButton(
 						searchRequest.getURL(),
-						_hideOldServices ? "Journée entière" : "Prochains services",
+						_hideOldServices ? "JournÃ©e entiÃ¨re" : "Prochains services",
 						string(),
 						_hideOldServices ? "stop_blue.png" : "stop_green.png"
 					) << " ";
@@ -312,7 +312,7 @@ namespace synthese
 					) << "</p>"
 				;
 				
-				stream << "<h1>Résultats</h1>";
+				stream << "<h1>RÃ©sultats</h1>";
 			}
 			else
 			{
@@ -321,11 +321,11 @@ namespace synthese
 				stream << "<h1>";
 				if (serviceSeatsNumber > 0)
 				{
-					stream << serviceSeatsNumber << " place" << plural << " réservée" << plural;
+					stream << serviceSeatsNumber << " place" << plural << " rÃ©servÃ©e" << plural;
 				}
 				else
 				{
-					stream << "Aucune réservation";
+					stream << "Aucune rÃ©servation";
 				}
 				stream << "</h1>";
 
@@ -335,15 +335,15 @@ namespace synthese
 				){
 					stream <<
 						"<p class=\"info\">" <<
-						"ATTENTION Cette liste de réservations est provisoire tant que le service est ouvert à la réservation." <<
+						"ATTENTION Cette liste de rÃ©servations est provisoire tant que le service est ouvert Ã  la rÃ©servation." <<
 						"</p>"
 					;
 					ptime deadLine(sortedServices[0]->getReservationDeadLine(_date));
 					stream <<
 						"<p class=\"info\">" <<
-						"Le service sera fermé à la réservation à partir du " <<
+						"Le service sera fermÃ© Ã  la rÃ©servation Ã  partir du " <<
 						deadLine.date() <<
-						" à " << deadLine.time_of_day() <<
+						" Ã  " << deadLine.time_of_day() <<
 						"</p>"
 					;
 				}
@@ -351,10 +351,10 @@ namespace synthese
 			
 			HTMLTable::ColsVector c;
 			c.push_back("Statut");
-			c.push_back("Heure départ");
-			c.push_back("Arrêt départ");
-			c.push_back("Arrêt arrivée");
-			c.push_back("Heure arrivée");
+			c.push_back("Heure dÃ©part");
+			c.push_back("ArrÃªt dÃ©part");
+			c.push_back("ArrÃªt arrivÃ©e");
+			c.push_back("Heure arrivÃ©e");
 			c.push_back("Places");
 			c.push_back("Client");
 			if (globalDeleteRight && !_serviceNumber)
@@ -387,19 +387,19 @@ namespace synthese
 							break;
 							
 						case UseRule::RESERVATION_COMPULSORY_POSSIBLE:
-							stream << HTMLModule::getHTMLImage("stop_blue.png", "Ouvert à la réservation");
+							stream << HTMLModule::getHTMLImage("stop_blue.png", "Ouvert Ã  la rÃ©servation");
 							break;
 							
 						case UseRule::RESERVATION_COMPULSORY_TOO_LATE:
-							stream << HTMLModule::getHTMLImage("tick.png", "Fermé à la réservation");
+							stream << HTMLModule::getHTMLImage("tick.png", "FermÃ© Ã  la rÃ©servation");
 							break;
 					}
 					
-					stream << t.col(6, string(), true) << "Service " << service->getServiceNumber() << " - départ de " <<
+					stream << t.col(6, string(), true) << "Service " << service->getServiceNumber() << " - dÃ©part de " <<
 						dynamic_cast<const NamedPlace*>(static_cast<const Line*>(service->getPath())->getEdge(0)->getHub())->getFullName() <<
-						" à " << Service::GetTimeOfDay(service->getDepartureSchedule(false, 0));
+						" Ã  " << Service::GetTimeOfDay(service->getDepartureSchedule(false, 0));
 					if (serviceSeatsNumber > 0)
-						stream << " - " << serviceSeatsNumber << " place" << plural << " réservée" << plural;
+						stream << " - " << serviceSeatsNumber << " place" << plural << " rÃ©servÃ©e" << plural;
 
 					printRequest.getPage()->setServiceNumber(service->getServiceNumber());
 
@@ -409,7 +409,7 @@ namespace synthese
 				if (serviceReservations.empty())
 				{
 					stream << t.row();
-					stream << t.col(8) << "Aucune réservation";
+					stream << t.col(8) << "Aucune rÃ©servation";
 				}
 				else
 				{
@@ -472,15 +472,15 @@ namespace synthese
 								switch(status)
 								{
 								case OPTION:
-									stream << HTMLModule::getLinkButton(cancelRequest.getURL(), "Annuler", "Etes-vous sûr de vouloir annuler la réservation ?", ResaModule::GetStatusIcon(CANCELLED));
+									stream << HTMLModule::getLinkButton(cancelRequest.getURL(), "Annuler", "Etes-vous sÃ»r de vouloir annuler la rÃ©servation ?", ResaModule::GetStatusIcon(CANCELLED));
 									break;
 
 								case TO_BE_DONE:
-									stream << HTMLModule::getLinkButton(cancelRequest.getURL(), "Annuler hors délai", "Etes-vous sûr de vouloir annuler la réservation (hors délai) ?", ResaModule::GetStatusIcon(CANCELLED_AFTER_DELAY));
+									stream << HTMLModule::getLinkButton(cancelRequest.getURL(), "Annuler hors dÃ©lai", "Etes-vous sÃ»r de vouloir annuler la rÃ©servation (hors dÃ©lai) ?", ResaModule::GetStatusIcon(CANCELLED_AFTER_DELAY));
 									break;
 
 								case AT_WORK:
-									stream << HTMLModule::getLinkButton(cancelRequest.getURL(), "Noter absence", "Etes-vous sûr de noter l'absence du client à l'arrêt ?", ResaModule::GetStatusIcon(NO_SHOW));
+									stream << HTMLModule::getLinkButton(cancelRequest.getURL(), "Noter absence", "Etes-vous sÃ»r de noter l'absence du client Ã  l'arrÃªt ?", ResaModule::GetStatusIcon(NO_SHOW));
 									break;
 								}
 							}
@@ -497,7 +497,7 @@ namespace synthese
 				stream << "<h1>Total</h1>";
 				stream <<
 					"<p class=\"info\">" <<
-					seatsNumber << " place" << plural << " réservée" << plural << " au total." <<
+					seatsNumber << " place" << plural << " rÃ©servÃ©e" << plural << " au total." <<
 					"</p>"
 				;
 			}
@@ -545,11 +545,11 @@ namespace synthese
 					s <<
 						"Ligne " << _line->getShortName() <<
 						" - service " << services[0]->getServiceNumber() <<
-						" - départ de " << dynamic_cast<const NamedPlace*>(
+						" - dÃ©part de " << dynamic_cast<const NamedPlace*>(
 								static_cast<const Line*>(services[0]->getPath())->getEdge(0)->getHub()
 							)->getFullName() <<
 						" le " << date.date() <<
-						" à " << date.time_of_day()
+						" Ã  " << date.time_of_day()
 					;
 				}
 				else

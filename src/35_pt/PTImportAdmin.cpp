@@ -125,10 +125,10 @@ namespace synthese
 				
 				PropertiesHTMLTable t(importRequest.getHTMLForm());
 				stream << t.open();
-				stream << t.title("Propriétés");
-				stream << t.cell("Source de données", t.getForm().getSelectInput(ImportFunction::PARAMETER_DATA_SOURCE, sources, optional<shared_ptr<DataSource> >()));
+				stream << t.title("PropriÃ©tÃ©s");
+				stream << t.cell("Source de donnÃ©es", t.getForm().getSelectInput(ImportFunction::PARAMETER_DATA_SOURCE, sources, optional<shared_ptr<DataSource> >()));
 				stream << t.cell("Effectuer import", t.getForm().getOuiNonRadioInput(ImportFunction::PARAMETER_DO_IMPORT, false));
-				stream << t.title("Données");
+				stream << t.title("DonnÃ©es");
 				stream << t.cell("Rues (streets)", t.getForm().getTextInput(ImportFunction::PARAMETER_PATH + NavteqWithProjectionFileFormat::FILE_STREETS, string()));
 				stream << t.cell("Noeuds (nodes)", t.getForm().getTextInput(ImportFunction::PARAMETER_PATH + NavteqWithProjectionFileFormat::FILE_NODES, string()));
 				stream << t.cell("Zones administratives (mtdarea)", t.getForm().getTextInput(ImportFunction::PARAMETER_PATH + NavteqWithProjectionFileFormat::FILE_MTDAREA, string()));
@@ -144,14 +144,14 @@ namespace synthese
 
 				PropertiesHTMLTable t(importRequest.getHTMLForm());
 				stream << t.open();
-				stream << t.title("Propriétés");
-				stream << t.cell("Source de données", t.getForm().getSelectInput(ImportFunction::PARAMETER_DATA_SOURCE, sources, optional<shared_ptr<DataSource> >()));
+				stream << t.title("PropriÃ©tÃ©s");
+				stream << t.cell("Source de donnÃ©es", t.getForm().getSelectInput(ImportFunction::PARAMETER_DATA_SOURCE, sources, optional<shared_ptr<DataSource> >()));
 				stream << t.cell("Effectuer import", t.getForm().getOuiNonRadioInput(ImportFunction::PARAMETER_DO_IMPORT, false));
-				stream << t.cell("Import arrêts", t.getForm().getOuiNonRadioInput(TridentFileFormat::PARAMETER_IMPORT_STOPS, false));
+				stream << t.cell("Import arrÃªts", t.getForm().getOuiNonRadioInput(TridentFileFormat::PARAMETER_IMPORT_STOPS, false));
 				stream << t.cell("Import transferts", t.getForm().getOuiNonRadioInput(TridentFileFormat::PARAMETER_IMPORT_JUNCTIONS, false));
-				stream << t.cell("Importer dates passées (nombre de jours)", t.getForm().getTextInput(TridentFileFormat::PARAMETER_WITH_OLD_DATES, "0"));
-				stream << t.cell("Temps de correspondance par défaut (minutes)", t.getForm().getTextInput(TridentFileFormat::PARAMETER_DEFAULT_TRANSFER_DURATION, "8"));
-				stream << t.title("Données");
+				stream << t.cell("Importer dates passÃ©es (nombre de jours)", t.getForm().getTextInput(TridentFileFormat::PARAMETER_WITH_OLD_DATES, "0"));
+				stream << t.cell("Temps de correspondance par dÃ©faut (minutes)", t.getForm().getTextInput(TridentFileFormat::PARAMETER_DEFAULT_TRANSFER_DURATION, "8"));
+				stream << t.title("DonnÃ©es");
 				stream << t.cell("Ligne", t.getForm().getTextInput(ImportFunction::PARAMETER_PATH, string()));
 				stream << t.close();
 			}

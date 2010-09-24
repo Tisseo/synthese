@@ -71,7 +71,7 @@ namespace synthese
 
 		std::string ForbiddenUseRule::getUseRuleName() const
 		{
-			return "Accès interdit";
+			return "AccÃ¨s interdit";
 		}
 	}
 }

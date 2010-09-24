@@ -3,7 +3,7 @@
 /****************************************************************************/
 /*
   
-    Copyright (C) 1997 Hervé GOURMELON, ENSSAT
+    Copyright (C) 1997 HervÃ© GOURMELON, ENSSAT
     gourmelon@enssat.fr
     http://www.enssat.fr
 

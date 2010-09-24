@@ -262,7 +262,7 @@ namespace synthese
 			{
 				if(value.is_not_a_date_time())
 				{
-					return "(indéfini)";
+					return "(indÃ©fini)";
 				}
 				return to_simple_string(value.date()) +" "+ to_simple_string(value.time_of_day());
 			}
@@ -299,7 +299,7 @@ namespace synthese
 				<< "/><span class=\"calendar_display\" id=\"" << spanId << "\">";
 			if(value.is_not_a_date_time())
 			{
-				s << "(indéfini)";
+				s << "(indÃ©fini)";
 			}
 			else
 			{
@@ -378,7 +378,7 @@ namespace synthese
 				<< "/><span class=\"calendar_display\" id=\"" << spanId << "\">";
 			if(value.is_not_a_date())
 			{
-				s << "(indéfini)";
+				s << "(indÃ©fini)";
 			}
 			else
 			{

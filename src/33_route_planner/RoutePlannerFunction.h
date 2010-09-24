@@ -70,58 +70,58 @@ namespace synthese
 		///	@ingroup m53Functions refFunctions
 		/// @author Hugues Romain
 		///
-		/// <h3>Requête</h3>
+		/// <h3>RequÃªte</h3>
 		/// <h4>Base parameters</h4>
 		///
 		/// <ul>
 		///		<li>fonction=<b>rp</b></li>
 		///		<li>si=<site id> : ID Site</li>
 		///		<li>[sid=<session id>] : ID de la session ouverte, issu du retour de la fonction de connexion
-		///		  d'utilisateur. Nécessaire uniquement pour faire appel au trajet favori de l'utilisateur (voir
+		///		  d'utilisateur. NÃ©cessaire uniquement pour faire appel au trajet favori de l'utilisateur (voir
 		///		  plus loin)</li>
 		/// </ul>
 		///
-		///	<h4>Paramètres de temps</h4>
+		///	<h4>ParamÃ¨tres de temps</h4>
 		/// <ul>
-		///		<li>Choix 1a : désignation de la plage de calcul par jour et période :</li>
-		///		<ul><li>dy=YYYY-MM-DD : date du calcul. YYYY=année, MM=mois, DD=jour. Si non fournie, la fiche
-		///			  horaire est calculée pour le jour même.</li>
-		///			<li>pi=<id période> : identificateur de la période dans la base de données. Doit correspondre à
-		///			  une période appartenant au site</li></ul>
-		///		<li>Choix 1b : désignation de la plage de calcul par bornage :</li>
-		///		<ul><li>[da=YYYY-MM-DD HH :MM] : heure de début de la fiche horaire (premier départ).
-		///			  HH=heures, MM=minutes. Si non fournie et si heure limite d'arrivée non fournie, la fiche
-		///			  horaire commence à la date et l'heure courante. Si non fournie et si heure limite d'arrivée
-		///			  fournie, prend la valeur de l'heure limite d'arrivée diminuée de 24 heures et de deux
-		///			  minutes par kilomètres à effectuer à vol d'oiseau</li>
-		///			<li>[ha=YYYY-MM-DD HH :MM] : heure limite de départ (fin de la fiche horaire). HH=heures,
-		///			  MM=minutes. Si non fournie, la fiche horaire stoppe 24 heures après l'heure de début de la
-		///			  fiche horaire. Si l'heure maximale est inférieure à l'heure minimale, alors elle est considérée
+		///		<li>Choix 1a : dÃ©signation de la plage de calcul par jour et pÃ©riode :</li>
+		///		<ul><li>dy=YYYY-MM-DD : date du calcul. YYYY=annÃ©e, MM=mois, DD=jour. Si non fournie, la fiche
+		///			  horaire est calculÃ©e pour le jour mÃªme.</li>
+		///			<li>pi=<id pÃ©riode> : identificateur de la pÃ©riode dans la base de donnÃ©es. Doit correspondre Ã 
+		///			  une pÃ©riode appartenant au site</li></ul>
+		///		<li>Choix 1b : dÃ©signation de la plage de calcul par bornage :</li>
+		///		<ul><li>[da=YYYY-MM-DD HH :MM] : heure de dÃ©but de la fiche horaire (premier dÃ©part).
+		///			  HH=heures, MM=minutes. Si non fournie et si heure limite d'arrivÃ©e non fournie, la fiche
+		///			  horaire commence Ã  la date et l'heure courante. Si non fournie et si heure limite d'arrivÃ©e
+		///			  fournie, prend la valeur de l'heure limite d'arrivÃ©e diminuÃ©e de 24 heures et de deux
+		///			  minutes par kilomÃ¨tres Ã  effectuer Ã  vol d'oiseau</li>
+		///			<li>[ha=YYYY-MM-DD HH :MM] : heure limite de dÃ©part (fin de la fiche horaire). HH=heures,
+		///			  MM=minutes. Si non fournie, la fiche horaire stoppe 24 heures aprÃ¨s l'heure de dÃ©but de la
+		///			  fiche horaire. Si l'heure maximale est infÃ©rieure Ã  l'heure minimale, alors elle est considÃ©rÃ©e
 		///			  comme correspondant au lendemain matin</li>
-		///			<li>[ia=YYYY-MM-DD HH :MM] : heure limite d'arrivée (fin de la fiche horaire). HH=heures,
-		///			  MM=minutes. Si non fournie, l'heure limite d'arrivée est égale à l'heure limite de départ. Si
-		///			  l'heure maximale est inférieure à l'heure minimale, alors elle est considérée comme
+		///			<li>[ia=YYYY-MM-DD HH :MM] : heure limite d'arrivÃ©e (fin de la fiche horaire). HH=heures,
+		///			  MM=minutes. Si non fournie, l'heure limite d'arrivÃ©e est Ã©gale Ã  l'heure limite de dÃ©part. Si
+		///			  l'heure maximale est infÃ©rieure Ã  l'heure minimale, alors elle est considÃ©rÃ©e comme
 		///			  correspondant au lendemain matin</li>
-		///			<li>[ii=YYYY-MM-DD HH :MM] : heure de début de la fiche horaire (première arrivée).
-		///			  HH=heures, MM=minutes. Si non fournie, la fiche horaire commence à l'heure limite
-		///			  d'arrivée diminuée de 24 heures, ou l'heure courante si la date correspond au jour même.</li></ul></ul>
+		///			<li>[ii=YYYY-MM-DD HH :MM] : heure de dÃ©but de la fiche horaire (premiÃ¨re arrivÃ©e).
+		///			  HH=heures, MM=minutes. Si non fournie, la fiche horaire commence Ã  l'heure limite
+		///			  d'arrivÃ©e diminuÃ©e de 24 heures, ou l'heure courante si la date correspond au jour mÃªme.</li></ul></ul>
 		/// <h4>Parameters de lieux</h4>
-		///		<ul><li>Choix 2a : désignation des lieux de départ et d'arrivée par texte :</li>
-		///			<ul><li>dct=<commune de départ> : commune de départ sous forme de texte</li>
-		///			<li>[dpt=<arrêt de départ>] : arrêt de départ sous forme de texte. Si non fourni, les arrêts
+		///		<ul><li>Choix 2a : dÃ©signation des lieux de dÃ©part et d'arrivÃ©e par texte :</li>
+		///			<ul><li>dct=<commune de dÃ©part> : commune de dÃ©part sous forme de texte</li>
+		///			<li>[dpt=<arrÃªt de dÃ©part>] : arrÃªt de dÃ©part sous forme de texte. Si non fourni, les arrÃªts
 		///			  principaux de la commune sont choisis.</li>
-		///			<li>act=<commune d'arrivée> : commune d'arrivée sous forme de texte</li>
-		///			<li>[apt=<arrêt d'arrivée>] : arrêt d'arrivée sous forme de texte. Si non fourni, les arrêts
+		///			<li>act=<commune d'arrivÃ©e> : commune d'arrivÃ©e sous forme de texte</li>
+		///			<li>[apt=<arrÃªt d'arrivÃ©e>] : arrÃªt d'arrivÃ©e sous forme de texte. Si non fourni, les arrÃªts
 		///			  principaux de la commune sont choisis.</li></ul>
-		///		<li>Choix 2b : désignation des lieux de départ et d'arrivée par pré-enregistrement</li>
-		///			<ul><li>fid=<id trajet favori> : identificateur de trajet favori de l'utilisateur connecté
-		///			  Paramètres</li></ul></ul>
-		/// <h4>Paramètres de calcul</h4>
-		///		<ul><li>[msn=<nombre de solutions maximum>] : si non fourni, le nombre de solutions calculées
-		///		  est illimité. msn doit être un nombre strictement supérieur à 0.</li>
-		///		<li>[ac=35001|35002|35003] : type d'utilisateur pour filtrer sur les règles d'accessibilité et
-		///		  appliquer les règles de réservation adéquates. 35001 = piéton, 35002 = PMR, 35003 = vélo.
-		///		  Si non fourni, le calcul s'effectue pour un utilisateur piéton.</li>
+		///		<li>Choix 2b : dÃ©signation des lieux de dÃ©part et d'arrivÃ©e par prÃ©-enregistrement</li>
+		///			<ul><li>fid=<id trajet favori> : identificateur de trajet favori de l'utilisateur connectÃ©
+		///			  ParamÃ¨tres</li></ul></ul>
+		/// <h4>ParamÃ¨tres de calcul</h4>
+		///		<ul><li>[msn=<nombre de solutions maximum>] : si non fourni, le nombre de solutions calculÃ©es
+		///		  est illimitÃ©. msn doit Ãªtre un nombre strictement supÃ©rieur Ã  0.</li>
+		///		<li>[ac=35001|35002|35003] : type d'utilisateur pour filtrer sur les rÃ¨gles d'accessibilitÃ© et
+		///		  appliquer les rÃ¨gles de rÃ©servation adÃ©quates. 35001 = piÃ©ton, 35002 = PMR, 35003 = vÃ©lo.
+		///		  Si non fourni, le calcul s'effectue pour un utilisateur piÃ©ton.</li>
 		///		<li>[tm=<id filtre mode de transport>] : identificateur de filtre</li></ul>
 		///
 		/// <h3>Response</h3>
@@ -133,212 +133,212 @@ namespace synthese
 		///
 		/// <h4>Racine</h4>
 		///
-		///	La réponse se sépare en trois parties :
+		///	La rÃ©ponse se sÃ©pare en trois parties :
 		///
 		/// @image html routeplanner_result_main.png
 		///
-		///	<ul><li>query : un rappel de la requête, permettant de remplir à nouveau un formulaire de re-interrogation du serveur</li>
-		/// <li>journeys : un descriptif de chaque solution, permettant de construire les feuilles de route détaillées</li>
-		/// <li>resultTable : une présentation des heures de passage par arrêt, organisées pour être affichées sous forme de tableau synthétique</li></ul>
+		///	<ul><li>query : un rappel de la requÃªte, permettant de remplir Ã  nouveau un formulaire de re-interrogation du serveur</li>
+		/// <li>journeys : un descriptif de chaque solution, permettant de construire les feuilles de route dÃ©taillÃ©es</li>
+		/// <li>resultTable : une prÃ©sentation des heures de passage par arrÃªt, organisÃ©es pour Ãªtre affichÃ©es sous forme de tableau synthÃ©tique</li></ul>
 		///	
-		/// <h4>Rappel de la requête</h4>
+		/// <h4>Rappel de la requÃªte</h4>
 		///
-		///	La requête (query) est définie comme suit :
+		///	La requÃªte (query) est dÃ©finie comme suit :
 		/// 
 		/// @image html xml_query.png
 		///
 		/// <ul><li>Attributs :</li><ul>
-		///		<li>siteId : identificateur du site demandé</li>
-		///		<li>userProfile : type d'utilisateur pour filtrer sur les règles d'accessibilité et appliquer les règles de réservation adéquates. 35001 = piéton, 35002 = PMR, 35003 = vélo. Si la valeur n'était pas fournie lors de la requête, le champ est renseigné par la valeur par défaut 35001 (piéton).</li>
-		///		<li>maxSolutions (optionnel) : nombre maximal de solutions. Si le nombre de solutions n'était pas limité, alors l'objet n'est pas fourni</li>
-		///		<li>sessionID (optionnel) : identificateur de la session fournie si validée</li></ul>
-		///	<li>Plage temporelle du calcul (objet timeBounds) telle que définie par les paramètres fournis ou résultant de l'application d'une période à une date :</li><ul>
-		///		<li>minDepartureHour : heure de départ minimale demandée (valeur du paramètre d'entrée hi, si non fourni initialement : contient la valeur par défaut qui a été affectée par le système) NB : Cette valeur peut être différente de l'heure de départ de la première solution trouvée</li>
-		///		<li>maxDepatureHour : heure de départ maximale demandée (valeur du paramètre ha, si non fourni initialement : contient la valeur par défaut qui a été affectée par le système). NB : Cette valeur peut être différente de l'heure de départ de la dernière solution trouvée</li>
-		///		<li>minArrivalHour : heure d'arrivée minimale demandée (valeur du paramètre ii, si non fourni initialement : contient la valeur par défaut qui a été affectée par le système) NB : Cette valeur peut être différente de l'heure d'arrivée de la première solution trouvée</li>
-		///		<li>maxArrivalHour : heure d'arrivée maximale demandée (valeur du paramètre ia, si non fourni initialement : contient la valeur par défaut qui a été affectée par le système). NB : Cette valeur peut être différente de l'heure d'arrivée de la dernière solution trouvée</li></ul>
-		///	<li>Période de calcul (optionnel : si effectivement utilisée par la requête) :</li><ul>
-		///		<li>date : date demandée (valeur du paramètre da, si non fourni initialement : contient la valeur par défaut qui a été affectée par le système)</li>
-		///		<li>id : id de la période dans la base de données</li>
-		///		<li>name : texte de libellé de la période</li></ul>
-		///	<li>Lieux de départ et d'arrivée (objet places) :</li>
-		///		<li>departureCity : commune de départ sous forme de texte</li>
-		///		<li>departureCityNameTrust : taux de confiance de l'interprétation du nom de commune entré (1 = correspondance exacte, 0 = champ commune vide)</li>
-		///		<li>departureStop (optionnel) : arrêt de départ sous forme de texte. Si le calcul d'effectue au départ d'une commune (calcul effectué au départ des lieux principaux de la commune) alors l'objet n'est pas fourni.</li>
-		///		<li>departureStopNameTrust : taux de confiance de l'interprétation du nom de l'arrêt entré (1 = correspondance exacte ou champ vide)</li>
-		///		<li>arrivalCity : commune d'arrivée sous forme de texte</li>
-		///		<li>arrivalCityNameTrust : taux de confiance de l'interprétation du nom de commune entré (1 = correspondance exacte, 0 = champ commune vide)</li>
-		///		<li>arrivalStop (optionnel) : arrêt d'arrivée sous forme de texte. Si le calcul d'effectue vers une commune (calcul effectué à l'arrivée des lieux principaux de la commune) alors l'objet n'est pas fourni.</li>
-		///		<li>arrivalStopNameTrust : taux de confiance de l'interprétation du nom de l'arrêt entré (1 = correspondance exacte ou champ vide)</li></ul>
-		///	<li>Trajet favori (objet favorite, optionnel : uniquement si fourni dans la requête) :</li><ul>
-		///		<li>id : identificateur du trajet favori demandé</li></ul>
+		///		<li>siteId : identificateur du site demandÃ©</li>
+		///		<li>userProfile : type d'utilisateur pour filtrer sur les rÃ¨gles d'accessibilitÃ© et appliquer les rÃ¨gles de rÃ©servation adÃ©quates. 35001 = piÃ©ton, 35002 = PMR, 35003 = vÃ©lo. Si la valeur n'Ã©tait pas fournie lors de la requÃªte, le champ est renseignÃ© par la valeur par dÃ©faut 35001 (piÃ©ton).</li>
+		///		<li>maxSolutions (optionnel) : nombre maximal de solutions. Si le nombre de solutions n'Ã©tait pas limitÃ©, alors l'objet n'est pas fourni</li>
+		///		<li>sessionID (optionnel) : identificateur de la session fournie si validÃ©e</li></ul>
+		///	<li>Plage temporelle du calcul (objet timeBounds) telle que dÃ©finie par les paramÃ¨tres fournis ou rÃ©sultant de l'application d'une pÃ©riode Ã  une date :</li><ul>
+		///		<li>minDepartureHour : heure de dÃ©part minimale demandÃ©e (valeur du paramÃ¨tre d'entrÃ©e hi, si non fourni initialement : contient la valeur par dÃ©faut qui a Ã©tÃ© affectÃ©e par le systÃ¨me) NB : Cette valeur peut Ãªtre diffÃ©rente de l'heure de dÃ©part de la premiÃ¨re solution trouvÃ©e</li>
+		///		<li>maxDepatureHour : heure de dÃ©part maximale demandÃ©e (valeur du paramÃ¨tre ha, si non fourni initialement : contient la valeur par dÃ©faut qui a Ã©tÃ© affectÃ©e par le systÃ¨me). NB : Cette valeur peut Ãªtre diffÃ©rente de l'heure de dÃ©part de la derniÃ¨re solution trouvÃ©e</li>
+		///		<li>minArrivalHour : heure d'arrivÃ©e minimale demandÃ©e (valeur du paramÃ¨tre ii, si non fourni initialement : contient la valeur par dÃ©faut qui a Ã©tÃ© affectÃ©e par le systÃ¨me) NB : Cette valeur peut Ãªtre diffÃ©rente de l'heure d'arrivÃ©e de la premiÃ¨re solution trouvÃ©e</li>
+		///		<li>maxArrivalHour : heure d'arrivÃ©e maximale demandÃ©e (valeur du paramÃ¨tre ia, si non fourni initialement : contient la valeur par dÃ©faut qui a Ã©tÃ© affectÃ©e par le systÃ¨me). NB : Cette valeur peut Ãªtre diffÃ©rente de l'heure d'arrivÃ©e de la derniÃ¨re solution trouvÃ©e</li></ul>
+		///	<li>PÃ©riode de calcul (optionnel : si effectivement utilisÃ©e par la requÃªte) :</li><ul>
+		///		<li>date : date demandÃ©e (valeur du paramÃ¨tre da, si non fourni initialement : contient la valeur par dÃ©faut qui a Ã©tÃ© affectÃ©e par le systÃ¨me)</li>
+		///		<li>id : id de la pÃ©riode dans la base de donnÃ©es</li>
+		///		<li>name : texte de libellÃ© de la pÃ©riode</li></ul>
+		///	<li>Lieux de dÃ©part et d'arrivÃ©e (objet places) :</li>
+		///		<li>departureCity : commune de dÃ©part sous forme de texte</li>
+		///		<li>departureCityNameTrust : taux de confiance de l'interprÃ©tation du nom de commune entrÃ© (1 = correspondance exacte, 0 = champ commune vide)</li>
+		///		<li>departureStop (optionnel) : arrÃªt de dÃ©part sous forme de texte. Si le calcul d'effectue au dÃ©part d'une commune (calcul effectuÃ© au dÃ©part des lieux principaux de la commune) alors l'objet n'est pas fourni.</li>
+		///		<li>departureStopNameTrust : taux de confiance de l'interprÃ©tation du nom de l'arrÃªt entrÃ© (1 = correspondance exacte ou champ vide)</li>
+		///		<li>arrivalCity : commune d'arrivÃ©e sous forme de texte</li>
+		///		<li>arrivalCityNameTrust : taux de confiance de l'interprÃ©tation du nom de commune entrÃ© (1 = correspondance exacte, 0 = champ commune vide)</li>
+		///		<li>arrivalStop (optionnel) : arrÃªt d'arrivÃ©e sous forme de texte. Si le calcul d'effectue vers une commune (calcul effectuÃ© Ã  l'arrivÃ©e des lieux principaux de la commune) alors l'objet n'est pas fourni.</li>
+		///		<li>arrivalStopNameTrust : taux de confiance de l'interprÃ©tation du nom de l'arrÃªt entrÃ© (1 = correspondance exacte ou champ vide)</li></ul>
+		///	<li>Trajet favori (objet favorite, optionnel : uniquement si fourni dans la requÃªte) :</li><ul>
+		///		<li>id : identificateur du trajet favori demandÃ©</li></ul>
 		///	<li>Filtre de mode transports (objet transportModeFilter, optionnel)</li><ul>
 		///		<li>id : identificateur du filtre</li>
 		///		<li>name : nom du filtre</li></ul></ul>
 		///
-		/// <h4>Itinéraires</h4>
-		///		Les solutions (journeys) sont une composition de solutions (journey). Si aucune solution n'a pu être trouvée, l'objet est vide. Le diagramme suivant montre la composition de chaque objet solution, décrite en trois parties :
+		/// <h4>ItinÃ©raires</h4>
+		///		Les solutions (journeys) sont une composition de solutions (journey). Si aucune solution n'a pu Ãªtre trouvÃ©e, l'objet est vide. Le diagramme suivant montre la composition de chaque objet solution, dÃ©crite en trois parties :
 		///
 		/// @image html xml_journeys.png
 		///
-		/// <ul><li>les attributs, qui donnent des informations de résumé sur le contenu des tronçons</li>
+		/// <ul><li>les attributs, qui donnent des informations de rÃ©sumÃ© sur le contenu des tronÃ§ons</li>
 		///		<ul>
-		///			<li>continuousServiceDuration (optionnel) : indique par sa présence que la solution est valable en continu pendant une plage horaire. L'attribut contient la durée de cette plage horaire. Les bornes effectives de la plage horaire sont définies par les heures de départ du premier tronçon de l'itinéraire (chunk). Si cet attribut n'est pas fourni, alors l'itinéraire définit une solution unique à heure fixe</li>
-		///			<li>hasAStopAlert (booléen) : si vrai, indique qu'au moins un itinéraire passe par au moins un arrêt ayant un message d'alerte valable à l'heure de passage de l'itinéraire.</li>
-		///			<li>hasALineAlert (booléen) : si vrai, indique qu'au moins un itinéraire utilise au moins une ligne ayant un message d'alerte valable à l'heure d'utilisation</li>
+		///			<li>continuousServiceDuration (optionnel) : indique par sa prÃ©sence que la solution est valable en continu pendant une plage horaire. L'attribut contient la durÃ©e de cette plage horaire. Les bornes effectives de la plage horaire sont dÃ©finies par les heures de dÃ©part du premier tronÃ§on de l'itinÃ©raire (chunk). Si cet attribut n'est pas fourni, alors l'itinÃ©raire dÃ©finit une solution unique Ã  heure fixe</li>
+		///			<li>hasAStopAlert (boolÃ©en) : si vrai, indique qu'au moins un itinÃ©raire passe par au moins un arrÃªt ayant un message d'alerte valable Ã  l'heure de passage de l'itinÃ©raire.</li>
+		///			<li>hasALineAlert (boolÃ©en) : si vrai, indique qu'au moins un itinÃ©raire utilise au moins une ligne ayant un message d'alerte valable Ã  l'heure d'utilisation</li>
 		///		</ul>
-		///		<li>l'objet reservation (optionnel) : indique par sa présence que l'itinéraire est soumis à une modalité de réservation des places, définie par une série d'attributs. L'absence d'objet indique que la réservation est impossible :</li>
+		///		<li>l'objet reservation (optionnel) : indique par sa prÃ©sence que l'itinÃ©raire est soumis Ã  une modalitÃ© de rÃ©servation des places, dÃ©finie par une sÃ©rie d'attributs. L'absence d'objet indique que la rÃ©servation est impossible :</li>
 		///		<ul>
-		///			<li>type : compulsory = réservation obligatoire des places, optional = réservation possible des places</li>
-		///			<li>deadLine : indique la date et l'heure limite de réservation. Au-delà de cette limite, la réservation devient impossible. Si elle est obligatoire, alors l'itinéraire n'est plus utilisable. Si elle est facultative, alors l'itinéraire reste utilisable mais n'est plus ouvert à la réservation des places</li>
-		///			<li>online  (booléen) : indique si la réservation des places est possible directement sur le serveur SYNTHESE</li>
-		///			<li>phoneNumber (optionnel) : indique le numéro de téléphone de la centrale de réservation téléphonique</li>
-		///			<li>openingHours (optionnel) : indique les horaires d'ouverture de la centrale de réservation téléphonique</li>
+		///			<li>type : compulsory = rÃ©servation obligatoire des places, optional = rÃ©servation possible des places</li>
+		///			<li>deadLine : indique la date et l'heure limite de rÃ©servation. Au-delÃ  de cette limite, la rÃ©servation devient impossible. Si elle est obligatoire, alors l'itinÃ©raire n'est plus utilisable. Si elle est facultative, alors l'itinÃ©raire reste utilisable mais n'est plus ouvert Ã  la rÃ©servation des places</li>
+		///			<li>online  (boolÃ©en) : indique si la rÃ©servation des places est possible directement sur le serveur SYNTHESE</li>
+		///			<li>phoneNumber (optionnel) : indique le numÃ©ro de tÃ©lÃ©phone de la centrale de rÃ©servation tÃ©lÃ©phonique</li>
+		///			<li>openingHours (optionnel) : indique les horaires d'ouverture de la centrale de rÃ©servation tÃ©lÃ©phonique</li>
 		///		</ul>
-		///		<li>l'objet chunks contient les tronçons qui décrivent l'itinéraire dans l'ordre chronologique d'utilisation. Chaque tronçon peut être de trois types différents :</li>
+		///		<li>l'objet chunks contient les tronÃ§ons qui dÃ©crivent l'itinÃ©raire dans l'ordre chronologique d'utilisation. Chaque tronÃ§on peut Ãªtre de trois types diffÃ©rents :</li>
 		///		<ul>
-		///			<li>street : marche à pied le long d'une rue désignée</li>
+		///			<li>street : marche Ã  pied le long d'une rue dÃ©signÃ©e</li>
 		///			<li>transport : utilisation d'une ligne de transport public</li>
-		///			<li>connection : transfert à pied d'un arrêt vers un autre différent, sans pour autant fournir le descriptif du trajet à emprunter</li>
+		///			<li>connection : transfert Ã  pied d'un arrÃªt vers un autre diffÃ©rent, sans pour autant fournir le descriptif du trajet Ã  emprunter</li>
 		///	</ul></ul>
 		///
-		///	<h4>Tronçon d'itinéraire à pied le long d'une rue</h4>
-		///		Un section de marche à pied le long d'une rue (street) est décrite comme suit :
+		///	<h4>TronÃ§on d'itinÃ©raire Ã  pied le long d'une rue</h4>
+		///		Un section de marche Ã  pied le long d'une rue (street) est dÃ©crite comme suit :
 		///
 		/// @image html routeplanner_result_street.png
 		///
-		///	<ul><li>departureTime : date/heure de départ. Si service continu, il s'agit du début de la plage horaire à l'arrivée du tronçon</li>
-		///		<li>endDepartureTime (optionnel, si service continu uniquement) : fin de la plage horaire de desserte au départ du tronçon</li>
-		///		<li>arrivalTime : date/heure d'arrivée. Si service continu, il s'agit du début de la plage horaire à l'arrivée du tronçon</li>
-		///		<li>endArrivalTime (optionnel, si service continu uniquement) : fin  de la plage horaire de desserte à l'arrivée du tronçon</li>
-		///		<li>length : longueur du tronçon en mètres</li>
-		///		<li>city : nom de la ville à laquelle appartient la rue utilisée</li>
-		///		<li>name : nom de la rue utilisée</li>
-		///		<li>startAddress : objet lieu de départ du tronçon (voir type PlaceType correspondant)</li>
-		///		<li>endAddress : objet lieu d'arrivée du tronçon (voir type PlaceType correspondant)</li></ul>
+		///	<ul><li>departureTime : date/heure de dÃ©part. Si service continu, il s'agit du dÃ©but de la plage horaire Ã  l'arrivÃ©e du tronÃ§on</li>
+		///		<li>endDepartureTime (optionnel, si service continu uniquement) : fin de la plage horaire de desserte au dÃ©part du tronÃ§on</li>
+		///		<li>arrivalTime : date/heure d'arrivÃ©e. Si service continu, il s'agit du dÃ©but de la plage horaire Ã  l'arrivÃ©e du tronÃ§on</li>
+		///		<li>endArrivalTime (optionnel, si service continu uniquement) : fin  de la plage horaire de desserte Ã  l'arrivÃ©e du tronÃ§on</li>
+		///		<li>length : longueur du tronÃ§on en mÃ¨tres</li>
+		///		<li>city : nom de la ville Ã  laquelle appartient la rue utilisÃ©e</li>
+		///		<li>name : nom de la rue utilisÃ©e</li>
+		///		<li>startAddress : objet lieu de dÃ©part du tronÃ§on (voir type PlaceType correspondant)</li>
+		///		<li>endAddress : objet lieu d'arrivÃ©e du tronÃ§on (voir type PlaceType correspondant)</li></ul>
 		///
-		///	<h4>Tronçon d'itinéraire sur ligne de transport public</h4>
+		///	<h4>TronÃ§on d'itinÃ©raire sur ligne de transport public</h4>
 		///
-		///	Une section utilisant une ligne de transport public (JourneyTransportType) est décrite comme suit :
+		///	Une section utilisant une ligne de transport public (JourneyTransportType) est dÃ©crite comme suit :
 		///
 		/// @image html routeplanner_result_journey.png
 		///
-		/// <ul><li>departureTime : date/heure de départ. Si service continu, il s'agit du début de la plage horaire à l'arrivée du tronçon</li>
-		///		<li>endDepartureTime (optionnel, si service continu uniquement) : fin de la plage horaire de desserte au départ du tronçon</li>
-		///		<li>arrivalTime : date/heure d'arrivée. Si service continu, il s'agit du début de la plage horaire à l'arrivée du tronçon</li>
-		///		<li>endArrivalTime (optionnel, si service continu uniquement) : fin  de la plage horaire de desserte à l'arrivée du tronçon</li>
-		///		<li>length : longueur du tronçon en mètres</li>
-		///		<li>possibleWaitingTime (optionnel) : indique par sa présence que le temps de parcours inclut une durée d'attente potentielle, qui peut faire l'objet d'une indication au client</li>
-		///		<li>startStopIsTerminus : indique si l'arrêt de départ du trajet est l'origine de la ligne utilisée</li>
-		///		<li>endStopIsTerminus : indique si l'arrêt d'arrivée du trajet est la destination de la ligne utilisée</li>
-		///		<li>destinationText : si présent, indique la destination affichée sur le véhicule à emprunter</li>
-		///		<li>startStop : arrêt physique de départ (type PhysicalStopType – voir plus bas)</li>
-		///		<li>endStop : arrêt physique d'arrivée (type PhysicalStopType – voir plus bas)</li>
-		///		<li>destinationStop : arrêt physique de destination du véhicule à emprunter</li>
-		///		<li>line : ligne utilisée, décrite par plusieurs attributs :</li>
-		///		<ul><li>id : identificateur de la ligne dans la base de données de SYNTHESE (pérenne)</li>
+		/// <ul><li>departureTime : date/heure de dÃ©part. Si service continu, il s'agit du dÃ©but de la plage horaire Ã  l'arrivÃ©e du tronÃ§on</li>
+		///		<li>endDepartureTime (optionnel, si service continu uniquement) : fin de la plage horaire de desserte au dÃ©part du tronÃ§on</li>
+		///		<li>arrivalTime : date/heure d'arrivÃ©e. Si service continu, il s'agit du dÃ©but de la plage horaire Ã  l'arrivÃ©e du tronÃ§on</li>
+		///		<li>endArrivalTime (optionnel, si service continu uniquement) : fin  de la plage horaire de desserte Ã  l'arrivÃ©e du tronÃ§on</li>
+		///		<li>length : longueur du tronÃ§on en mÃ¨tres</li>
+		///		<li>possibleWaitingTime (optionnel) : indique par sa prÃ©sence que le temps de parcours inclut une durÃ©e d'attente potentielle, qui peut faire l'objet d'une indication au client</li>
+		///		<li>startStopIsTerminus : indique si l'arrÃªt de dÃ©part du trajet est l'origine de la ligne utilisÃ©e</li>
+		///		<li>endStopIsTerminus : indique si l'arrÃªt d'arrivÃ©e du trajet est la destination de la ligne utilisÃ©e</li>
+		///		<li>destinationText : si prÃ©sent, indique la destination affichÃ©e sur le vÃ©hicule Ã  emprunter</li>
+		///		<li>startStop : arrÃªt physique de dÃ©part (type PhysicalStopType â€“ voir plus bas)</li>
+		///		<li>endStop : arrÃªt physique d'arrivÃ©e (type PhysicalStopType â€“ voir plus bas)</li>
+		///		<li>destinationStop : arrÃªt physique de destination du vÃ©hicule Ã  emprunter</li>
+		///		<li>line : ligne utilisÃ©e, dÃ©crite par plusieurs attributs :</li>
+		///		<ul><li>id : identificateur de la ligne dans la base de donnÃ©es de SYNTHESE (pÃ©renne)</li>
 		///			<li>color (optionnel) : couleur de la ligne au format RGB HTML (#RRGGBB)</li>
-		///			<li>imgURL (optionnel) : URL d'une image représentant le logo de la ligne. Par convention, cette URL peut être partielle pour permettre la mise à disposition de plusieurs versions d'images (ex : sncf-grand.png et sncf-petit.png)</li>
-		///			<li>cssClass (optionnel) : classe CSS définissant le graphisme du numéro de ligne dans un cartouche (couleur de fond, couleur de texte, style de caractères, etc.). Correspond en général à la représentation officielle de la ligne sur les divers supports</li>
-		///			<li>shortName (optionnel) : numéro de ligne</li>
-		///			<li>longName (optionnel) : texte désignant la ligne incluant l'article (ex. : la navette du cimetière)</li>
-		///			<li>alert (optionnel) : message d'alerte en cours de validité sur la ligne au moment du trajet (type AlertType – voir plus bas)</li></ul>
-		///		<li>vehicleType : mode de transport, décrit par plusieurs attributs :</li>
-		///		<ul><li>id : identificateur du mode de transport dans la base de données SYNTHESE (pérenne)</li>
+		///			<li>imgURL (optionnel) : URL d'une image reprÃ©sentant le logo de la ligne. Par convention, cette URL peut Ãªtre partielle pour permettre la mise Ã  disposition de plusieurs versions d'images (ex : sncf-grand.png et sncf-petit.png)</li>
+		///			<li>cssClass (optionnel) : classe CSS dÃ©finissant le graphisme du numÃ©ro de ligne dans un cartouche (couleur de fond, couleur de texte, style de caractÃ¨res, etc.). Correspond en gÃ©nÃ©ral Ã  la reprÃ©sentation officielle de la ligne sur les divers supports</li>
+		///			<li>shortName (optionnel) : numÃ©ro de ligne</li>
+		///			<li>longName (optionnel) : texte dÃ©signant la ligne incluant l'article (ex. : la navette du cimetiÃ¨re)</li>
+		///			<li>alert (optionnel) : message d'alerte en cours de validitÃ© sur la ligne au moment du trajet (type AlertType â€“ voir plus bas)</li></ul>
+		///		<li>vehicleType : mode de transport, dÃ©crit par plusieurs attributs :</li>
+		///		<ul><li>id : identificateur du mode de transport dans la base de donnÃ©es SYNTHESE (pÃ©renne)</li>
 		///			<li>name : nom du mode de transport incluant l'article (ex : le train)</li>
 		///	</ul></ul>
 		///
-		/// <h4>Arrêts physiques</h4>
+		/// <h4>ArrÃªts physiques</h4>
 		///
-		///	Un arrêt physique (PhysicalStopType) est décrit comme suit :
+		///	Un arrÃªt physique (PhysicalStopType) est dÃ©crit comme suit :
 		///
 		/// @image html routeplanner_result_stop.png
 		///
-		/// <ul><li>x, y : coordonnées de l'arrêt selon la projection Lambert II Etendu</li>
-		///		<li>latitude, longitude : coordonnées de l'arrêt selon le système WGS84</li>
-		///		<li>id : identificateur de l'arrêt dans la base de données de SYNTHESE (pérenne)</li>
-		///		<li>name (optionnel) : nom de l'arrêt permettant de le distinguer par rapport aux autres arrêts de la même zone d'arrêts (ex : quai 12)</li>
-		///		<li>connectionPlace : zone d'arrêt (ConnectionPlaceType – voir plus loin) à laquelle appartient l'arrêt</li>
+		/// <ul><li>x, y : coordonnÃ©es de l'arrÃªt selon la projection Lambert II Etendu</li>
+		///		<li>latitude, longitude : coordonnÃ©es de l'arrÃªt selon le systÃ¨me WGS84</li>
+		///		<li>id : identificateur de l'arrÃªt dans la base de donnÃ©es de SYNTHESE (pÃ©renne)</li>
+		///		<li>name (optionnel) : nom de l'arrÃªt permettant de le distinguer par rapport aux autres arrÃªts de la mÃªme zone d'arrÃªts (ex : quai 12)</li>
+		///		<li>connectionPlace : zone d'arrÃªt (ConnectionPlaceType â€“ voir plus loin) Ã  laquelle appartient l'arrÃªt</li>
 		///	</ul>
 		///
-		/// <h4>Tronçon d'itinéraire de jonction à pied</h4>
+		/// <h4>TronÃ§on d'itinÃ©raire de jonction Ã  pied</h4>
 		///
-		///	Un trajet à pied de liaison entre deux arrêts sans précision concernant les rues à emprunter (JourneyConnectionType) est décrit comme suit :
+		///	Un trajet Ã  pied de liaison entre deux arrÃªts sans prÃ©cision concernant les rues Ã  emprunter (JourneyConnectionType) est dÃ©crit comme suit :
 		///
 		/// @image html routeplanner_result_connect.png
 		///
-		/// <ul><li>departureTime : date/heure de départ. Si service continu, il s'agit du début de la plage horaire à l'arrivée du tronçon</li>
-		///		<li>endDepartureTime (optionnel, si service continu uniquement) : fin de la plage horaire de desserte au départ du tronçon</li>
-		///		<li>arrivalTime : date/heure d'arrivée. Si service continu, il s'agit du début de la plage horaire à l'arrivée du tronçon</li>
-		///		<li>endArrivalTime (optionnel, si service continu uniquement) : fin  de la plage horaire de desserte à l'arrivée du tronçon</li>
-		///		<li>length : longueur du tronçon en mètres</li>
-		///		<li>startStop : arrêt physique de départ (type PhysicalStopType – voir plus haut)</li>
-		///		<li>endStop : arrêt physique d'arrivée (type PhysicalStopType – voir plus haut)</li>
+		/// <ul><li>departureTime : date/heure de dÃ©part. Si service continu, il s'agit du dÃ©but de la plage horaire Ã  l'arrivÃ©e du tronÃ§on</li>
+		///		<li>endDepartureTime (optionnel, si service continu uniquement) : fin de la plage horaire de desserte au dÃ©part du tronÃ§on</li>
+		///		<li>arrivalTime : date/heure d'arrivÃ©e. Si service continu, il s'agit du dÃ©but de la plage horaire Ã  l'arrivÃ©e du tronÃ§on</li>
+		///		<li>endArrivalTime (optionnel, si service continu uniquement) : fin  de la plage horaire de desserte Ã  l'arrivÃ©e du tronÃ§on</li>
+		///		<li>length : longueur du tronÃ§on en mÃ¨tres</li>
+		///		<li>startStop : arrÃªt physique de dÃ©part (type PhysicalStopType â€“ voir plus haut)</li>
+		///		<li>endStop : arrÃªt physique d'arrivÃ©e (type PhysicalStopType â€“ voir plus haut)</li>
 		///	</ul>
 		///
-		/// <h4>Tableau des résultats</h4>
+		/// <h4>Tableau des rÃ©sultats</h4>
 		///
-		/// Le tableau des résultats trié par zone d'arrêt (type ResultTableType) est décrit comme suit :
+		/// Le tableau des rÃ©sultats triÃ© par zone d'arrÃªt (type ResultTableType) est dÃ©crit comme suit :
 		///
 		/// @image html xml_resulttable.png
 		///
-		/// Chaque rangée du tableau est représentée par un objet nommé row, contenant les éléments suivants (pas d'objet si aucune solution trouvée) :
-		/// <ul><li>type : type de rangée de tableau (departure (départ), connection (correspondance), ou arrival (arrivée))</li>
-		///		<li>place : lieu correspondant à la ligne du tableau (type PlaceType – voir plus bas)</li>
-		///		<li>cells : cellules de la rangée, composée d'objets cell :</li>
-		///		<ul><li>arrivalDateTime : date/heure d'arrivée, fourni uniquement si la colonne représente une solution qui dessert en arrivée l'arrêt représenté par la ligne</li>
-		///			<li>endArrivalDateTime : dernière date/heure d'arrivée dans un service continu, fourni uniquement si la colonne représente une solution qui dessert en arrivée l'arrêt représenté par la ligne, et dans le cas d'un service continu</li>
-		///			<li>departureDateTime : date/heure de départ, fourni uniquement si la colonne représente une solution qui dessert en départ l'arrêt représenté par la ligne</li>
-		///			<li>endDepartureDateTime : dernière date/heure de départ dans un service continu, fourni uniquement si la colonne représente une solution qui dessert en départ l'arrêt représenté par la ligne, et dans le cas d'un service continu</li>
-		///			<li>pedestrian : si présent, indique que la cellule est concernée par un trajet piéton, qui peut alors être affiché différemment. Les valeurs possibles de pedestrian sont :
-		///			<ul><li>departure : indique qu'un trajet piéton démarre à la cellule. Un pictogramme peut remplacer l'heure de départ si souhaité.</li>
-		///				<li>arrival : indique qu'un trajet piéton se termine sur la cellule. Un pictograme peut remplacer l'heure d'arrivée si souhaité.</li>
-		///				<li>traversal : indique qu'un trajet piéton a démarré avant cette cellule et se terminera après cette cellule (dans le sens de lecture de la colonne). Un pictogramme peut l'indiquer si souhaité.</li>
+		/// Chaque rangÃ©e du tableau est reprÃ©sentÃ©e par un objet nommÃ© row, contenant les Ã©lÃ©ments suivants (pas d'objet si aucune solution trouvÃ©e) :
+		/// <ul><li>type : type de rangÃ©e de tableau (departure (dÃ©part), connection (correspondance), ou arrival (arrivÃ©e))</li>
+		///		<li>place : lieu correspondant Ã  la ligne du tableau (type PlaceType â€“ voir plus bas)</li>
+		///		<li>cells : cellules de la rangÃ©e, composÃ©e d'objets cell :</li>
+		///		<ul><li>arrivalDateTime : date/heure d'arrivÃ©e, fourni uniquement si la colonne reprÃ©sente une solution qui dessert en arrivÃ©e l'arrÃªt reprÃ©sentÃ© par la ligne</li>
+		///			<li>endArrivalDateTime : derniÃ¨re date/heure d'arrivÃ©e dans un service continu, fourni uniquement si la colonne reprÃ©sente une solution qui dessert en arrivÃ©e l'arrÃªt reprÃ©sentÃ© par la ligne, et dans le cas d'un service continu</li>
+		///			<li>departureDateTime : date/heure de dÃ©part, fourni uniquement si la colonne reprÃ©sente une solution qui dessert en dÃ©part l'arrÃªt reprÃ©sentÃ© par la ligne</li>
+		///			<li>endDepartureDateTime : derniÃ¨re date/heure de dÃ©part dans un service continu, fourni uniquement si la colonne reprÃ©sente une solution qui dessert en dÃ©part l'arrÃªt reprÃ©sentÃ© par la ligne, et dans le cas d'un service continu</li>
+		///			<li>pedestrian : si prÃ©sent, indique que la cellule est concernÃ©e par un trajet piÃ©ton, qui peut alors Ãªtre affichÃ© diffÃ©remment. Les valeurs possibles de pedestrian sont :
+		///			<ul><li>departure : indique qu'un trajet piÃ©ton dÃ©marre Ã  la cellule. Un pictogramme peut remplacer l'heure de dÃ©part si souhaitÃ©.</li>
+		///				<li>arrival : indique qu'un trajet piÃ©ton se termine sur la cellule. Un pictograme peut remplacer l'heure d'arrivÃ©e si souhaitÃ©.</li>
+		///				<li>traversal : indique qu'un trajet piÃ©ton a dÃ©marrÃ© avant cette cellule et se terminera aprÃ¨s cette cellule (dans le sens de lecture de la colonne). Un pictogramme peut l'indiquer si souhaitÃ©.</li>
 		///			</ul>
 		/// </ul></ul>
 		///
-		/// <h4>Lieux (générique)</h4>
+		/// <h4>Lieux (gÃ©nÃ©rique)</h4>
 		///
-		///	Les lieux (PlaceType) peuvent être de trois types :
+		///	Les lieux (PlaceType) peuvent Ãªtre de trois types :
 		/// @image html xml_place.png
 		///
-		/// <ul><li>connectionPlace : Zones d'arrêt (ConnectionPlaceType), décrites comme suit :</li>
+		/// <ul><li>connectionPlace : Zones d'arrÃªt (ConnectionPlaceType), dÃ©crites comme suit :</li>
 		/// @image html routeplanner_result_stopare.png
 		///
-		///		<ul><li>x, y : coordonnées de la zone d'arrêt selon la projection Lambert II Etendu</li>
-		///			<li>latitude, longitude : coordonnées de la zone d'arrêt selon le système WGS84</li>
-		///			<li>id : identificateur de la zone d'arrêt dans la base de données de SYNTHESE (pérenne)</li>
-		///			<li>city : nom de la ville à laquelle appartient la zone d'arrêt</li>
-		///			<li>name : nom de la zone d'arrêt dans la ville</li>
-		///			<li>alert : message d'alerte valable dans au moins une des solutions utilisant la zone d'arrêt (type AlertType – voir plus bas)</li>
+		///		<ul><li>x, y : coordonnÃ©es de la zone d'arrÃªt selon la projection Lambert II Etendu</li>
+		///			<li>latitude, longitude : coordonnÃ©es de la zone d'arrÃªt selon le systÃ¨me WGS84</li>
+		///			<li>id : identificateur de la zone d'arrÃªt dans la base de donnÃ©es de SYNTHESE (pÃ©renne)</li>
+		///			<li>city : nom de la ville Ã  laquelle appartient la zone d'arrÃªt</li>
+		///			<li>name : nom de la zone d'arrÃªt dans la ville</li>
+		///			<li>alert : message d'alerte valable dans au moins une des solutions utilisant la zone d'arrÃªt (type AlertType â€“ voir plus bas)</li>
 		///		</ul>
-		///		<li>publicPlace : Lieux publics (PublicPlaceType) décrits comme suit :</li>
+		///		<li>publicPlace : Lieux publics (PublicPlaceType) dÃ©crits comme suit :</li>
 		/// @image html routeplanner_result_public.png
-		///		<ul><li>x, y : coordonnées du lieu public selon la projection Lambert II Etendu</li>
-		///			<li>latitude, longitude : coordonnées du lieu public selon le système WGS84</li>
-		///			<li>id : identificateur du lieu public dans la base de données de SYNTHESE (pérenne)</li>
-		///			<li>city : nom de la ville à laquelle appartient le lieu public</li>
+		///		<ul><li>x, y : coordonnÃ©es du lieu public selon la projection Lambert II Etendu</li>
+		///			<li>latitude, longitude : coordonnÃ©es du lieu public selon le systÃ¨me WGS84</li>
+		///			<li>id : identificateur du lieu public dans la base de donnÃ©es de SYNTHESE (pÃ©renne)</li>
+		///			<li>city : nom de la ville Ã  laquelle appartient le lieu public</li>
 		///			<li>name : nom du lieu public dans la ville</li>
 		///		</ul>
-		///		<li>address : Adresse (AddressType), décrites comme suit :</li>
+		///		<li>address : Adresse (AddressType), dÃ©crites comme suit :</li>
 		///	@image html xml_address.png
-		///		<ul><li>x, y : coordonnées du lieu public selon la projection Lambert II Etendu</li>
-		///			<li>latitude, longitude : coordonnées du lieu public selon le système WGS84</li>
-		///			<li>id : identificateur du lieu public dans la base de données de SYNTHESE (pérenne)</li>
-		///			<li>city : nom de la ville à laquelle appartient le lieu public</li>
-		///			<li>number : numéro de l'habitation. Optionnel : si non présent, l'objet représente la rue entière</li>
+		///		<ul><li>x, y : coordonnÃ©es du lieu public selon la projection Lambert II Etendu</li>
+		///			<li>latitude, longitude : coordonnÃ©es du lieu public selon le systÃ¨me WGS84</li>
+		///			<li>id : identificateur du lieu public dans la base de donnÃ©es de SYNTHESE (pÃ©renne)</li>
+		///			<li>city : nom de la ville Ã  laquelle appartient le lieu public</li>
+		///			<li>number : numÃ©ro de l'habitation. Optionnel : si non prÃ©sent, l'objet reprÃ©sente la rue entiÃ¨re</li>
 		///			<li>streetName : nom de la rue dans la ville</li>
 		///	</ul></ul>
 		///
 		/// <h4>Message d'alerte</h4>
 		///
-		/// Un message d'alerte (AlertType) se définit comme suit :
+		/// Un message d'alerte (AlertType) se dÃ©finit comme suit :
 		/// @image html xml_alert.png
 		///
 		/// <ul><li>contenu : texte du message d'alerte</li>
-		///		<li>id : identificateur de l'alerte dans la base de données SYNTHESE (pérenne)</li>
+		///		<li>id : identificateur de l'alerte dans la base de donnÃ©es SYNTHESE (pÃ©renne)</li>
 		///		<li>level : niveau d'alerte (info = information, warning = attention, interruption = interruption de service)</li>
-		///		<li>startValidity : date/heure de début d'application du message d'alerte</li>
+		///		<li>startValidity : date/heure de dÃ©but d'application du message d'alerte</li>
 		///		<li>endValidity : date/heure de fin d'application du message d'alerte</li>
 		///	</ul>
 		///

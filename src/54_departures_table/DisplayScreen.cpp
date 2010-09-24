@@ -108,7 +108,7 @@ namespace synthese
 		}
 
 
-		/** Modificateur du point d'arrêt.
+		/** Modificateur du point d'arrÃªt.
 		*/
 		void DisplayScreen::setLocalization(const PublicTransportStopZoneConnectionPlace* bp)
 		{

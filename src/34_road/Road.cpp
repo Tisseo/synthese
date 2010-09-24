@@ -182,7 +182,7 @@ namespace synthese
 
 		std::string Road::getRuleUserName() const
 		{
-			return "Route " + getRoadPlace()->getFullName() + " sens "+ (_reverseRoad ? "direct" : "opposÈ");
+			return "Route " + getRoadPlace()->getFullName() + " sens "+ (_reverseRoad ? "direct" : "oppos√©");
 		}
 	}
 }

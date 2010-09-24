@@ -124,7 +124,7 @@ namespace synthese
 			stream << "<p>" << HTMLModule::getLinkButton(viewRequest.getURL(), "Voir", string(), "page_go.png") << "</p>";
 
 
-			stream << "<h1>Propriétés</h1>";
+			stream << "<h1>PropriÃ©tÃ©s</h1>";
 
 			{
 				AdminActionFunctionRequest<WebPageUpdateAction, WebPageAdmin> updateRequest(_request);
@@ -133,9 +133,9 @@ namespace synthese
 				stream << t.open();
 				stream << t.cell("ID", lexical_cast<string>(_page->getKey()));
 				stream << t.cell("Titre", t.getForm().getTextInput(WebPageUpdateAction::PARAMETER_TITLE, _page->getName()));
-				stream << t.cell("Type MIME (défaut : text/html)", t.getForm().getTextInput(WebPageUpdateAction::PARAMETER_MIME_TYPE, _page->_getMimeType()));
+				stream << t.cell("Type MIME (dÃ©faut : text/html)", t.getForm().getTextInput(WebPageUpdateAction::PARAMETER_MIME_TYPE, _page->_getMimeType()));
 				stream << t.cell(
-					"Page supérieure",
+					"Page supÃ©rieure",
 					t.getForm().getSelectInput(
 						WebPageUpdateAction::PARAMETER_UP_ID,
 						WebPageTableSync::GetPagesList(_page->getRoot()->getKey(), "(racine)"),
@@ -152,7 +152,7 @@ namespace synthese
 				PropertiesHTMLTable t(contentUpdateRequest.getHTMLForm());
 				stream << t.open();
 				stream << t.cell("Contenu", t.getForm().getTextAreaInput(WebPageContentUpdateAction::PARAMETER_CONTENT1, _page->getContent(), 15, 60));
-				stream << t.cell("Résumé", t.getForm().getTextAreaInput(WebPageContentUpdateAction::PARAMETER_ABSTRACT, _page->getAbstract(), 5, 60));
+				stream << t.cell("RÃ©sumÃ©", t.getForm().getTextAreaInput(WebPageContentUpdateAction::PARAMETER_ABSTRACT, _page->getAbstract(), 5, 60));
 				stream << t.close();
 			}
 		}

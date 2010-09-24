@@ -171,7 +171,7 @@ namespace synthese
 						);
 
 						stream << t.col();
-						stream << "Zone d'arrêt";
+						stream << "Zone d'arrÃªt";
 						stream << t.col();
 						stream << HTMLModule::getHTMLLink(openPlaceRequest.getURL(), static_cast<const PublicTransportStopZoneConnectionPlace*>(place)->getName());
 					}
@@ -250,8 +250,8 @@ namespace synthese
 		) const	{
 			_tabs.clear();
 			_tabs.push_back(Tab("Carte", TAB_MAP, true));
-			_tabs.push_back(Tab("Détail", TAB_DETAIL, true));
-			_tabs.push_back(Tab("Propriétés", TAB_PROPERTIES, true));
+			_tabs.push_back(Tab("DÃ©tail", TAB_DETAIL, true));
+			_tabs.push_back(Tab("PropriÃ©tÃ©s", TAB_PROPERTIES, true));
 			_tabBuilded = true;
 		}
 

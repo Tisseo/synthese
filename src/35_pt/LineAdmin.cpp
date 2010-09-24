@@ -165,8 +165,8 @@ namespace synthese
 				HTMLTable::ColsVector v;
 				v.push_back("Rang");
 				v.push_back("Rang");
-				v.push_back("Localité");
-				v.push_back("Arrêt");
+				v.push_back("LocalitÃ©");
+				v.push_back("ArrÃªt");
 				v.push_back("Quai");
 				v.push_back("A");
 				v.push_back("D");
@@ -201,19 +201,19 @@ namespace synthese
 						lineStop->getPhysicalStop()->getConnectionPlace()->getName()
 					);
 					stream << t.col() << lineStop->getPhysicalStop()->getName();
-					stream << t.col() << (lineStop->isArrival() ? HTMLModule::getHTMLImage("bullet_green.png","Arrivée possible") : HTMLModule::getHTMLImage("bullet_white.png", "Arrivée impossible"));
-					stream << t.col() << (lineStop->isDeparture() ? HTMLModule::getHTMLImage("bullet_green.png", "Départ possible") : HTMLModule::getHTMLImage("bullet_white.png", "Départ impossible"));
-					stream << t.col() << (lineStop->getScheduleInput() ? HTMLModule::getHTMLImage("time.png", "Horaire fourni à cet arrêt") : HTMLModule::getHTMLImage("tree_vert.png", "Houraire non fourni à cet arrêt"));
+					stream << t.col() << (lineStop->isArrival() ? HTMLModule::getHTMLImage("bullet_green.png","ArrivÃ©e possible") : HTMLModule::getHTMLImage("bullet_white.png", "ArrivÃ©e impossible"));
+					stream << t.col() << (lineStop->isDeparture() ? HTMLModule::getHTMLImage("bullet_green.png", "DÃ©part possible") : HTMLModule::getHTMLImage("bullet_white.png", "DÃ©part impossible"));
+					stream << t.col() << (lineStop->getScheduleInput() ? HTMLModule::getHTMLImage("time.png", "Horaire fourni Ã  cet arrÃªt") : HTMLModule::getHTMLImage("tree_vert.png", "Houraire non fourni Ã  cet arrÃªt"));
 // 					if (reservation)
-// 						stream << t.col() << HTMLModule::getHTMLImage("resa_compulsory.png", "Réservation obligatoire au départ de cet arrêt");
-					stream << t.col() << HTMLModule::getLinkButton(lineStopRemoveAction.getURL(), "Supprimer", "Etes-vous sûr de vouloir supprimer l'arrêt ?");
+// 						stream << t.col() << HTMLModule::getHTMLImage("resa_compulsory.png", "RÃ©servation obligatoire au dÃ©part de cet arrÃªt");
+					stream << t.col() << HTMLModule::getLinkButton(lineStopRemoveAction.getURL(), "Supprimer", "Etes-vous sÃ»r de vouloir supprimer l'arrÃªt ?");
 				}
 
 				stream << t.row();
 				stream << t.col() << f.getRadioInput(LineStopAddAction::PARAMETER_RANK, optional<size_t>(_line->getEdges().size()), optional<size_t>());
 				stream << t.col() << _line->getEdges().size();
-				stream << t.col() << f.getTextInput(LineStopAddAction::PARAMETER_CITY_NAME, string(), "(localité)");
-				stream << t.col() << f.getTextInput(LineStopAddAction::PARAMETER_STOP_NAME, string(), "(arrêt)");
+				stream << t.col() << f.getTextInput(LineStopAddAction::PARAMETER_CITY_NAME, string(), "(localitÃ©)");
+				stream << t.col() << f.getTextInput(LineStopAddAction::PARAMETER_STOP_NAME, string(), "(arrÃªt)");
 				stream << t.col();
 				stream << t.col();
 				stream << t.col();
@@ -227,7 +227,7 @@ namespace synthese
 			// TAB SCHEDULED SERVICES
 			if (openTabContent(stream, TAB_SCHEDULED_SERVICES))
 			{
-				stream << "<h1>Services à horaire</h1>";
+				stream << "<h1>Services Ã  horaire</h1>";
 
 				ScheduledServiceTableSync::SearchResult sservices(
 					ScheduledServiceTableSync::Search(
@@ -253,10 +253,10 @@ namespace synthese
 
 				ActionResultHTMLTable::HeaderVector vs;
 				vs.push_back(make_pair(string(), "Num"));
-				vs.push_back(make_pair(string(), "Numéro"));
-				vs.push_back(make_pair(ScheduledServiceTableSync::COL_SCHEDULES, "Départ"));
-				vs.push_back(make_pair(string(), "Arrivée"));
-				vs.push_back(make_pair(string(), "Durée"));
+				vs.push_back(make_pair(string(), "NumÃ©ro"));
+				vs.push_back(make_pair(ScheduledServiceTableSync::COL_SCHEDULES, "DÃ©part"));
+				vs.push_back(make_pair(string(), "ArrivÃ©e"));
+				vs.push_back(make_pair(string(), "DurÃ©e"));
 				vs.push_back(make_pair(string(), "Dernier jour"));
 				vs.push_back(make_pair(string(), "Actions"));
 				vs.push_back(make_pair(string(), "Actions"));
@@ -303,7 +303,7 @@ namespace synthese
 				stream << ts.col() << ts.getActionForm().getTextInput(ServiceAddAction::PARAMETER_START_DEPARTURE_TIME, string());
 				stream << ts.col(3) << "cadence : " << ts.getActionForm().getSelectNumberInput(ServiceAddAction::PARAMETER_PERIOD, 0, 120, 0, 1, string(), "non") << " " <<
 					ts.getActionForm().getTextInput(ServiceAddAction::PARAMETER_END_DEPARTURE_TIME, string(), "(fin cadence)");
-				stream << ts.col(2) << ts.getActionForm().getSubmitButton("Créer");
+				stream << ts.col(2) << ts.getActionForm().getSubmitButton("CrÃ©er");
 
 				stream << ts.close();
 			}
@@ -335,13 +335,13 @@ namespace synthese
 
 				ActionResultHTMLTable::HeaderVector vc;
 				vc.push_back(make_pair(string(), "Num"));
-				vc.push_back(make_pair(ScheduledServiceTableSync::COL_SCHEDULES, "Départ premier"));
-				vc.push_back(make_pair(string(), "Départ dernier"));
-				vc.push_back(make_pair(string(), "Arrivée premier"));
-				vc.push_back(make_pair(string(), "Arrivée dernier"));
-				vc.push_back(make_pair(string(), "Durée"));
+				vc.push_back(make_pair(ScheduledServiceTableSync::COL_SCHEDULES, "DÃ©part premier"));
+				vc.push_back(make_pair(string(), "DÃ©part dernier"));
+				vc.push_back(make_pair(string(), "ArrivÃ©e premier"));
+				vc.push_back(make_pair(string(), "ArrivÃ©e dernier"));
+				vc.push_back(make_pair(string(), "DurÃ©e"));
 				vc.push_back(make_pair(string(), "Amplitude"));
-				vc.push_back(make_pair(string(), "Fréquence"));
+				vc.push_back(make_pair(string(), "FrÃ©quence"));
 				vc.push_back(make_pair(string(), "Dernier jour"));
 				vc.push_back(make_pair(string(), "Actions"));
 				vc.push_back(make_pair(string(), "Actions"));
@@ -391,7 +391,7 @@ namespace synthese
 				stream << tc.col() << tc.getActionForm().getTextInput(ServiceAddAction::PARAMETER_END_DEPARTURE_TIME, string());
 				stream << tc.col(4);
 				stream << tc.col() << tc.getActionForm().getSelectNumberInput(ServiceAddAction::PARAMETER_PERIOD, 1, 120, 5);
-				stream << tc.col(2) << tc.getActionForm().getSubmitButton("Créer");
+				stream << tc.col(2) << tc.getActionForm().getSubmitButton("CrÃ©er");
 
 				stream << tc.close();
 			}
@@ -400,7 +400,7 @@ namespace synthese
 			// TAB INDICES
 			if (openTabContent(stream, TAB_PROPERTIES))
 			{
-				stream << "<h1>Propriétés</h1>";
+				stream << "<h1>PropriÃ©tÃ©s</h1>";
 
 				map<optional<bool>, string> waybackMap;
 				waybackMap.insert(make_pair(false, "Aller"));
@@ -443,7 +443,7 @@ namespace synthese
 			{
 				stream << "<style>td.red {background-color:red;width:8px; height:8px; color:white; text-align:center; } td.green {background-color:#008000;width:10px; height:10px; color:white; text-align:center; } .mini {font-size:9px;}</style>"; 
 				HTMLTable::ColsVector cols;
-				cols.push_back("Arrêt");
+				cols.push_back("ArrÃªt");
 				cols.push_back("D/A");
 				for(int i(0); i<=23; ++i)
 				{
@@ -543,10 +543,10 @@ namespace synthese
 		) const {
 			_tabs.clear();
 
-			_tabs.push_back(Tab("Arrêts desservis", TAB_STOPS, true));
-			_tabs.push_back(Tab("Services à horaire", TAB_SCHEDULED_SERVICES, true, ServiceAdmin::ICON));
+			_tabs.push_back(Tab("ArrÃªts desservis", TAB_STOPS, true));
+			_tabs.push_back(Tab("Services Ã  horaire", TAB_SCHEDULED_SERVICES, true, ServiceAdmin::ICON));
 			_tabs.push_back(Tab("Services continus", TAB_CONTINUOUS_SERVICES, true, ServiceAdmin::ICON));
-			_tabs.push_back(Tab("Propriétés", TAB_PROPERTIES, true, "application_form.png"));
+			_tabs.push_back(Tab("PropriÃ©tÃ©s", TAB_PROPERTIES, true, "application_form.png"));
 			_tabs.push_back(Tab("Index", TAB_INDICES, true));
 
 			_tabBuilded = true;

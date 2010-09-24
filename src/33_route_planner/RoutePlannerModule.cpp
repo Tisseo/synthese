@@ -37,7 +37,7 @@ namespace synthese
 	
 	namespace server
 	{
-		template<> const string ModuleClassTemplate<RoutePlannerModule>::NAME("Calcul d'itinéraires");
+		template<> const string ModuleClassTemplate<RoutePlannerModule>::NAME("Calcul d'itinÃ©raires");
 		
 		template<> void ModuleClassTemplate<RoutePlannerModule>::PreInit()
 		{
