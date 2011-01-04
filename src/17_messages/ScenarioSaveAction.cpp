@@ -40,6 +40,7 @@
 #include "ScenarioTemplateInheritedTableSync.h"
 #include "AlarmObjectLinkTableSync.h"
 #include "AlarmTableSync.h"
+#include "MessagesTypes.h"
 
 #include <sstream>
 #include <boost/foreach.hpp>
@@ -152,7 +153,7 @@ namespace synthese
 					{	// Sent scenario creation
 
 						// Copy an other sent scenario
-						if(map.getOptional<RegistryKeyType>(PARAMETER_MESSAGE_TO_COPY))
+						if(map.getDefault<RegistryKeyType>(PARAMETER_MESSAGE_TO_COPY, 0))
 						{
 							try
 							{
@@ -170,7 +171,7 @@ namespace synthese
 								throw ActionException("scenario to copy", e, *this);
 							}
 						}
-						else if(map.isDefined(PARAMETER_TEMPLATE))
+						else if(map.getDefault<RegistryKeyType>(PARAMETER_TEMPLATE, 0))
 						{
 							// Copy of a template
 							try

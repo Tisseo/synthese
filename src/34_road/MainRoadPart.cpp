@@ -47,7 +47,8 @@ namespace synthese
 		MainRoadPart::MainRoadPart(
 			util::RegistryKeyType key /*= 0*/,
 			RoadType type /*= ROAD_TYPE_UNKNOWN */
-		): Registrable(key), Road(key, type)
+		):	Registrable(key),
+			Road(key, type)
 		{
 			_reverseRoad.reset(new ReverseRoadPart(*this));
 		}
