@@ -112,7 +112,6 @@ namespace synthese
 		const string BookReservationAction::PARAMETER_SEATS_NUMBER = Action_PARAMETER_PREFIX + "senu";
 
 
-
 		BookReservationAction::BookReservationAction():
 			util::FactorableTemplate<server::Action, BookReservationAction>(),
 			_createCustomer(false),
@@ -172,7 +171,32 @@ namespace synthese
 			return map;
 		}
 
-
+	    void BookReservationAction::setOriginDestinationPlace(
+	    		string origcity,
+	    		string origplace,
+	    		string destcity,
+	    		string destplace
+	    	)
+	    {
+			if(ResaModule::GetJourneyPlannerWebsite())
+			{
+				_originPlace = ResaModule::GetJourneyPlannerWebsite()->fetchPlace(origcity,origplace);
+				_destinationPlace = ResaModule::GetJourneyPlannerWebsite()->fetchPlace(destcity,destplace);
+			}
+			else
+			{
+				_originPlace = RoadModule::FetchPlace(
+					_site.get() ? _site->getCitiesMatcher() : GeographyModule::GetCitiesMatcher(),
+						origcity,
+						origplace
+				);
+				_destinationPlace = RoadModule::FetchPlace(
+					_site.get() ? _site->getCitiesMatcher() : GeographyModule::GetCitiesMatcher(),
+						destcity,
+						destplace
+				);
+			}
+	    }
 
 		void BookReservationAction::_setFromParametersMap(const ParametersMap& map)
 		{
@@ -247,18 +271,9 @@ namespace synthese
 				throw ActionException("Invalid seats number");
 
 			// Journey
-			_originPlace = RoadModule::FetchPlace(
-				_site.get() ? _site->getCitiesMatcher() : GeographyModule::GetCitiesMatcher(),
+			setOriginDestinationPlace(
 				map.get<string>(PARAMETER_ORIGIN_CITY),
-				map.get<string>(PARAMETER_ORIGIN_PLACE)
-			);
-			if(!_originPlace.get())
-			{
-				throw ActionException("Invalid origin place");
-			}
-
-			_destinationPlace = RoadModule::FetchPlace(
-				_site.get() ? _site->getCitiesMatcher() : GeographyModule::GetCitiesMatcher(),
+				map.get<string>(PARAMETER_ORIGIN_PLACE),
 				map.get<string>(PARAMETER_DESTINATION_CITY),
 				map.get<string>(PARAMETER_DESTINATION_PLACE)
 			);
@@ -266,6 +281,11 @@ namespace synthese
 			{
 				throw ActionException("Invalid destination place");
 			}
+			if(!_originPlace.get())
+			{
+				throw ActionException("Invalid origin place");
+			}
+
 			
 			// Departure date time
 			ptime departureDateTime(time_from_string(map.get<string>(PARAMETER_DATE_TIME)));
@@ -309,6 +329,7 @@ namespace synthese
 					AccessParameters accessParameters;
 					accessParameters = map.get<string>(PARAMETER_ACCESS_PARAMETERS);
 					_accessParameters.setMaxtransportConnectionsCount(accessParameters.getMaxtransportConnectionsCount());
+					_accessParameters.setApproachSpeed(accessParameters.getApproachSpeed());
 				}
 			}
 			else if(!map.getDefault<string>(PARAMETER_ACCESS_PARAMETERS).empty())
@@ -327,6 +348,8 @@ namespace synthese
 				_accessParameters,
 				DEPARTURE_FIRST
 			);
+
+
 			PTRoutePlannerResult jr(rp.run());
 
 			if (jr.getJourneys().empty())
