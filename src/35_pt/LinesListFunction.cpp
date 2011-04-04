@@ -146,9 +146,14 @@ namespace synthese
 						&& (otherNumber._numberType != beginIsInteger))//No number have form "12S"
 				{
 					if((_numberType == beginIsNotInteger)
-							|| (otherNumber._numberType == beginIsNotInteger))//At least one number have form "A"
+							&& (otherNumber._numberType == beginIsNotInteger))//They have both form "A"
 					{
 						return _value < otherNumber._value;
+					}
+					else if((_numberType == beginIsNotInteger)
+							|| (otherNumber._numberType == beginIsNotInteger))//One is "A" form, other is "23" form
+					{
+						return _value > otherNumber._value;//Force "T1" to appear before "23"
 					}
 					else//The two numbers have form 12
 					{
@@ -158,13 +163,13 @@ namespace synthese
 				else if(_begin != otherNumber._begin)//At least one number have form 12S, and the other one have a different begin (eg. 13)
 				{
 					if((_numberType == isAnInteger)
-							|| (otherNumber._numberType == isAnInteger))//The second number have 13 form
+							|| (otherNumber._numberType == isAnInteger))//here is a "13" type and an "12s" form
 					{
 						return _numericalValue < otherNumber._numericalValue;
 					}
-					else//The second number have A form
+					else//There is a "A" type and an "12s" form
 					{
-						return _value < otherNumber._value;
+						return _value > otherNumber._value;
 					}
 				}
 				else // Case 12/12s or 12s/12k : sort based on end
