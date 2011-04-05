@@ -335,8 +335,11 @@ namespace synthese
 				os << "<objectId>" << TridentId (peerid, "StopArea", *ps) << "</objectId>" << "\n";
 				os << "<creatorId>" << ps->getCodeBySources() << "</creatorId>" << "\n";
 
-				os << "<name>" << ps->getConnectionPlace ()->getName ();
-				if (!ps->getName().empty()) os << " (" + ps->getName () + ")";
+				os << "<name>";
+				if (ps->getName().empty())
+					os << ps->getConnectionPlace ()->getName ();
+				else
+					os << ps->getName ();
 				os << "</name>" << "\n";
 
 				set<const Edge*> edges;
@@ -633,9 +636,11 @@ namespace synthese
 
 
 				os << "<containedIn>" << TridentId (peerid, "StopArea", *ps) << "</containedIn>" << "\n";
-				os << "<name>" << ps->getConnectionPlace ()->getCity ()->getName () << " " << 
-					ps->getConnectionPlace ()->getName ();
-				if (ps->getName ().empty () == false) os << " (" + ps->getName () + ")";
+				os << "<name>";
+				if (ps->getName().empty ())
+					os << ps->getConnectionPlace ()->getName ();
+				else
+					os << ps->getName () ;
 				os << "</name>" << "\n";
 				
 				os << "<lineIdShortcut>" << TridentId (peerid, "Line", *_line) << "</lineIdShortcut>" << "\n";
