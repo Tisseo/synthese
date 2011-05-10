@@ -70,6 +70,7 @@ namespace synthese
 
 
 		const string ServerModule::MODULE_PARAM_PORT ("port");
+		const string ServerModule::MODULE_PARAM_TEMP_DIR ("tmp_dir");
 		const string ServerModule::MODULE_PARAM_NB_THREADS ("nb_threads");
 		const string ServerModule::MODULE_PARAM_LOG_LEVEL ("log_level");
 		const string ServerModule::MODULE_PARAM_SMTP_PORT ("smtp_port");
@@ -84,6 +85,7 @@ namespace synthese
 		template<> void ModuleClassTemplate<ServerModule>::PreInit()
 		{
 			RegisterParameter(ServerModule::MODULE_PARAM_PORT, "8080", &ServerModule::ParameterCallback);
+			RegisterParameter(ServerModule::MODULE_PARAM_TEMP_DIR, "/tmp", &ServerModule::ParameterCallback);
 			RegisterParameter(ServerModule::MODULE_PARAM_NB_THREADS, "5", &ServerModule::ParameterCallback);
 			RegisterParameter(ServerModule::MODULE_PARAM_LOG_LEVEL, "1", &ServerModule::ParameterCallback);
 			RegisterParameter(ServerModule::MODULE_PARAM_SMTP_SERVER, "smtp", &ServerModule::ParameterCallback);

@@ -119,6 +119,7 @@ namespace synthese
 
 		    //! DbModule parameters
 		    static const std::string MODULE_PARAM_PORT;
+		    static const std::string MODULE_PARAM_TEMP_DIR;
 		    static const std::string MODULE_PARAM_NB_THREADS;
 		    static const std::string MODULE_PARAM_LOG_LEVEL;
 			static const std::string MODULE_PARAM_SMTP_SERVER;

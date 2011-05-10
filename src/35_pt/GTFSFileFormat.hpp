@@ -26,12 +26,13 @@
 #include "FileFormatTemplate.h"
 #include "Calendar.h"
 #include "MultipleFileTypesImporter.hpp"
-#include "NoExportPolicy.hpp"
+#include "OneFileExporter.hpp"
 #include "ImportableTableSync.hpp"
 #include "StopPointTableSync.hpp"
 #include "TransportNetworkTableSync.h"
 #include "CommercialLineTableSync.h"
 #include "Calendar.h"
+
 
 #include <iostream>
 #include <map>
@@ -56,6 +57,7 @@ namespace synthese
 		class JourneyPattern;
 		class CommercialLine;
 		class ScheduledService;
+		class TransportNetwork;
 
 		//////////////////////////////////////////////////////////////////////////
 		/// GTFS file format.
@@ -197,7 +199,43 @@ namespace synthese
 				virtual db::SQLiteTransaction _save() const;
 			};
 
-			typedef impex::NoExportPolicy<GTFSFileFormat> Exporter_;
+			class Exporter_:
+				public impex::OneFileExporter<GTFSFileFormat>
+			{
+			private:				
+				boost::shared_ptr<const pt::TransportNetwork> _network;
+				
+				util::RegistryKeyType _gtfsKey(util::RegistryKeyType key,
+						                       util::RegistryKeyType suffix = 0) const;
+
+				std::string _gtfsStr(std::string str) const;
+
+			public:			
+				static const std::string PARAMETER_NETWORK_ID;				
+
+				Exporter_(){}
+
+				virtual server::ParametersMap getParametersMap() const;
+
+				virtual void setFromParametersMap(const server::ParametersMap& map);
+
+				/*
+				 *  -> ChouettePTNetwork
+				 */
+				virtual void build(std::ostream& os) const;
+
+				virtual std::string getOutputMimeType() const { return "application/zip"; }
+
+				/*
+				 * application/zip, application/x-zip, application/x-zip-compressed,
+				 * application/octet-stream, application/x-compress,
+				 * application/x-compressed, multipart/x-zip
+				 *
+				 */
+				//virtual std::string getOutputMimeType() const { return "multipart/x-zip"; }
+				//virtual std::string getOutputMimeType() const { return "text/plain"; }
+			};
+
 		};
 	}
 }
