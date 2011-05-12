@@ -921,13 +921,24 @@ namespace synthese
 			{
 				//﻿agency_id,agency_name,agency_url,agency_timezone,agency_phone,agency_lang
 
+				/*
+				os << "\n" << dst_zone_abbrev();
+				os << "\n" << std_zone_abbrev();
+				os << "\n" << dst_zone_name();
+				os << "\n" << std_zone_name();
+				os << "\n" << dst_zone_abbrev();
+				os << "\n" << dst_zone_abbrev();
+
+
+
+				*/
 				agency_txt  << "\n"
-							<< _gtfsKey(myAgency.first) << "," 				// ﻿agency_id
+							<< _gtfsKey(myAgency.first) << "," 						// ﻿agency_id
 							<< _gtfsStr(myAgency.second->getRuleUserName()) << "," 	// agency_name
-							<< "," 											// agency_url
-							<< ","											// agency_timezone
-							<< ","											// agency_phone
-							<< ",";											// agency_lang
+							<< "http://www.tisseo.fr/" 						<< ","	// agency_url
+							<< "Europe/Paris"								<< ","	// agency_timezone
+							<< "05 61 41 70 70"								<< ","	// agency_phone
+							<< "FR";												// agency_lang
 
 				agency_txt.close();
 			}
@@ -1073,46 +1084,143 @@ namespace synthese
 
 			// ------------------------ BEGIN	CALENDAR	&	TRIPS.TXT # SERVICES
 
+			list < pair<const Calendar *, RegistryKeyType> > calendarMap;
+			RegistryKeyType serviceKey;
 			BOOST_FOREACH(Registry<ScheduledService>::value_type itsdsrv, Env::GetOfficialEnv().getRegistry<ScheduledService>())
 			//BOOST_FOREACH(const Service* service, path->getServices())
 			{
-
 				const ScheduledService* sdService(itsdsrv.second.get());
-
-				boost::gregorian::date firstActiveDay;
-				boost::date_time::first_kday_after<date> fkda(Monday);
 
 				if(sdService)
 				{
-
-					// ------------------------ BEGIN	TRIPS.TXT
-					//trip_id,service_id,route_id,trip_headsign
-					trips_txt 		<< "\n"
-									<< _gtfsKey(sdService->getKey(),1) << ","	// trip_id
-									<< _gtfsKey(sdService->getKey()) << ","	// service_id
-									<< _gtfsKey(sdService->getRoute()->getCommercialLine()->getKey()) << ","					// route_id
-									<< _gtfsStr(sdService->getRoute()->getName());			// trip_head_sign
-					// ------------------------ END	TRIPS.TXT
-
-					// ------------------------ BEGIN	CALENDAR.TXT
-					//route_id,service_id,﻿trip_id,trip_headsign,direction_id,block_id,shape_id
-					firstActiveDay = sdService->getFirstActiveDate();
-					if(firstActiveDay.day_of_week().as_long_string()!="Mon")
+					const Calendar * currentCal = static_cast<const Calendar *>(sdService);
+					list < pair<const Calendar *, RegistryKeyType> >::iterator itCal = calendarMap.begin();
+					bool alreadyExist = false;
+					while(itCal != calendarMap.end())
 					{
-						firstActiveDay = fkda.get_date(firstActiveDay);
+						if(*(itCal->first) == *currentCal)
+						{
+							alreadyExist = true;
+							break;
+						}
+						itCal++;
 					}
 
-					calendar_txt 	<< "\n"
-									<< _gtfsKey(sdService->getKey()) << ",";
-
-					for(int i=0; i<7; i++)
+					//if(itCal == calendarMap.end())
+					if(!alreadyExist)
 					{
-						calendar_txt	<< (sdService->isActive(firstActiveDay + date_duration(i))? 1 : 0) << ","; //tuesday
+						boost::gregorian::date currentDay,firstActiveDay;
+						boost::gregorian::date lastActiveDay = sdService->getLastActiveDate();
+						bool weekDays [7];
+						currentDay = firstActiveDay = sdService->getFirstActiveDate();
+						boost::gregorian::date::day_of_week_type dayOfWeek=firstActiveDay.day_of_week();
+						unsigned int firstActiveDayIndex=(dayOfWeek+6)%7;
+						serviceKey = _gtfsKey(sdService->getKey());
+						calendarMap.push_back(make_pair(currentCal,serviceKey));
+
+						/*os  << "\n	_gtfsKey(serviceKey): "
+							<< serviceKey
+							<< ": added"
+							<< endl;*/
+
+						// ------------------------ BEGIN	TRIPS.TXT	1/2
+						//trip_id,service_id,route_id,trip_headsign
+						trips_txt 		<< "\n"
+								<<  _gtfsKey(sdService->getKey(),1) << ","	// trip_id
+								<<  serviceKey << ","	// service_id
+								<< _gtfsKey(sdService->getRoute()->getCommercialLine()->getKey()) << ","					// route_id
+								<< _gtfsStr(sdService->getRoute()->getName());			// trip_head_sign
+						// ------------------------ END	TRIPS.TXT
+
+
+						// ------------------------ BEGIN	CALENDAR.TXT
+						//route_id,service_id,﻿trip_id,trip_headsign,direction_id,block_id,shape_id
+
+						calendar_txt 	<< "\n"
+								<< serviceKey << ",";
+
+
+
+
+						/*
+						 * 1 -> Mon
+						 * 2 -> Tues
+						 * 3 -> Wed
+						 * ...
+						 * 0 -> Sun
+						 *
+						 */
+
+
+						for(int i=0; i<7; i++)
+						{
+							weekDays[(i+firstActiveDayIndex)%7] = (sdService->isActive(firstActiveDay + date_duration(i))? 1 : 0);
+						}
+
+						for(int i=0; i<7; i++)
+						{
+							calendar_txt	<< weekDays[i] << ",";
+						}
+
+
+						calendar_txt	<< to_iso_string(sdService->getFirstActiveDate()) << ","
+								<< to_iso_string(sdService->getLastActiveDate());
+						// ------------------------ END	CALENDAR.TXT
+
+
+
+						// ------------------------ BEGIN	CALENDAR_DATES.TXT
+
+						for(int i=0; currentDay <= lastActiveDay;i++)
+						{
+							bool isNormalyActive = weekDays[firstActiveDayIndex + i%7];
+							if(isNormalyActive != (sdService->isActive(currentDay)? 1 : 0))
+							{
+								if(isNormalyActive == true)
+								{
+									//service_id,date,exception_type
+									calendar_dates_txt << serviceKey << ","
+											<< to_iso_string(currentDay) << ","
+											<< 1
+											<< endl;
+								}
+								else
+								{
+									//service_id,date,exception_type
+									calendar_dates_txt << serviceKey << ","
+											<< to_iso_string(currentDay) << ","
+											<< 2
+											<< endl;
+								}
+							}
+							currentDay += date_duration(i);
+						}
+
+
+						// ------------------------ END	CALENDAR_DATES.TXT
+
+
+					}
+					else
+					{
+						serviceKey = itCal->second;
+						/*
+						os 	<< "\n	"
+							<< serviceKey
+							<< ": exits."
+							<< endl;
+						*/
+
+						//trip_id,service_id,route_id,trip_headsign
+						trips_txt 		<< "\n"
+								<< _gtfsKey(sdService->getKey(), 1) << ","	// trip_id
+								<<  serviceKey << ","	// service_id
+								<< _gtfsKey(sdService->getRoute()->getCommercialLine()->getKey()) << ","					// route_id
+								<< _gtfsStr(sdService->getRoute()->getName());			// trip_head_sign
+						// ------------------------ END	TRIPS.TXT
 					}
 
-					calendar_txt	<< to_iso_string(sdService->getFirstActiveDate()) << ","
-									<< to_iso_string(sdService->getLastActiveDate());
-					// ------------------------ END	CALENDAR.TXT
+
 
 
 				}
@@ -1122,6 +1230,197 @@ namespace synthese
 					break;
 				}
 			}
+
+			os << "\n---------------BOUCLE2---------------BOUCLE2---------------BOUCLE2---------------\n" << endl;
+
+
+
+
+			BOOST_FOREACH(Registry<ContinuousService>::value_type itcssrv, Env::GetOfficialEnv().getRegistry<ContinuousService>())
+			{
+				const ContinuousService* csService(itcssrv.second.get());
+
+				if(csService)
+				{
+
+
+					const Calendar * currentCal = static_cast<const Calendar *>(csService);
+					list < pair<const Calendar *, RegistryKeyType> >::iterator itCal = calendarMap.begin();
+					bool alreadyExist = false;
+					while(itCal != calendarMap.end())
+					{
+						if(*(itCal->first) == *currentCal)
+						{
+							alreadyExist = true;
+							break;
+						}
+						itCal++;
+					}
+
+					if(!alreadyExist)
+					//if(itCal==calendarMap.end())
+					{
+						boost::gregorian::date currentDay,firstActiveDay;
+						boost::gregorian::date lastActiveDay = csService->getLastActiveDate();
+						bool weekDays [7];
+						currentDay = firstActiveDay = csService->getFirstActiveDate();
+						boost::gregorian::date::day_of_week_type dayOfWeek=firstActiveDay.day_of_week();
+						unsigned int firstActiveDayIndex=(dayOfWeek+6)%7;
+						serviceKey = _gtfsKey(csService->getKey());
+						calendarMap.push_back(make_pair(currentCal,serviceKey));
+
+						/*os  << "\n	_gtfsKey(serviceKey): "
+							<< serviceKey
+							<< ": added"
+							<< endl;
+						*/
+
+						// ------------------------ BEGIN	CALENDAR.TXT
+						//route_id,service_id,﻿trip_id,trip_headsign,direction_id,block_id,shape_id
+
+						calendar_txt 	<< "\n"
+								<< serviceKey << ",";
+
+
+						for(int i=0; i<7; i++)
+						{
+							weekDays[(i+firstActiveDayIndex)%7] = (csService->isActive(firstActiveDay + date_duration(i))? 1 : 0);
+						}
+
+						for(int i=0; i<7; i++)
+						{
+							calendar_txt	<< weekDays[i] << ",";
+						}
+
+						calendar_txt		<< to_iso_string(csService->getFirstActiveDate()) << ","
+								<< to_iso_string(lastActiveDay);
+						// shape_id
+						// ------------------------ END	CALENDAR.TXT
+
+
+						// ------------------------ BEGIN	CALENDAR_DATES.TXT
+
+						firstActiveDay = csService->getFirstActiveDate();
+
+						/*
+						 * 0 -> Mon
+						 * 1 -> Tues
+						 * 2 -> Wed
+						 * ...
+						 * 6 -> Sun
+						 *
+						 */
+
+						for(int i=0; currentDay <= lastActiveDay;i++)
+						{
+							bool isNormalyActive = weekDays[firstActiveDayIndex + i%7];
+							if(isNormalyActive != (csService->isActive(currentDay)? 1 : 0))
+							{
+								if(isNormalyActive == true)
+								{
+									//service_id,date,exception_type
+									calendar_dates_txt << serviceKey << ","
+											<< to_iso_string(currentDay) << ","
+											<< 1
+											<< endl;
+								}
+								else
+								{
+									//service_id,date,exception_type
+									calendar_dates_txt << serviceKey << ","
+											<< to_iso_string(currentDay) << ","
+											<< 2
+											<< endl;
+								}
+							}
+							currentDay += date_duration(i);
+						}
+
+
+						// ------------------------ END	CALENDAR_DATES.TXT
+
+
+
+
+						// ------------------------ BEGIN	TRIPS.TXT	2/2
+						//trip_id,service_id,route_id,trip_headsign
+						trips_txt 		<< "\n"
+								<< _gtfsKey(csService->getKey(),1) << ","	// trip_id
+								<< serviceKey << ","				// service_id
+								<< _gtfsKey(static_cast<const JourneyPattern *>(&(*csService->getPath()))->getCommercialLine()->getKey())  << ","					// route_id
+								<< _gtfsStr(static_cast<const JourneyPattern *>(&(*csService->getPath()))->getName());			// trip_head_sign
+
+						// ------------------------ END	TRIPS.TXT
+
+
+					}
+					else
+					{
+						serviceKey = itCal->second;
+						/*
+						os 	<< "\n	"
+								<< serviceKey
+								<< ": exists."
+								<< endl;
+						*/
+
+						// ------------------------ BEGIN	TRIPS.TXT	2/2
+						//trip_id,service_id,route_id,trip_headsign
+						trips_txt 		<< "\n"
+								<< _gtfsKey(csService->getKey(),1) << ","	// trip_id
+								<< serviceKey << ","				// service_id
+								<< _gtfsKey(static_cast<const JourneyPattern *>(&(*csService->getPath()))->getCommercialLine()->getKey())  << ","					// route_id
+								<< _gtfsStr(static_cast<const JourneyPattern *>(&(*csService->getPath()))->getName());			// trip_head_sign
+
+						// ------------------------ END	TRIPS.TXT
+					}
+
+
+
+
+				}
+				else
+				{
+					cerr << "warning! unavailable Continuous Service" << endl;
+					break;
+				}
+
+			}
+
+			// ------------------------ END	CALENDAR	&	TRIPS.TXT # SERVICES
+
+			// ------------------------ BEGIN	CALENDAR_DATES.TXT
+
+
+
+			// ------------------------ END	CALENDAR_DATES.TXT
+
+			agency_txt.close();
+			routes_txt.close();
+			stops_txt.close();
+			trips_txt.close();
+			stop_times_txt.close();
+			calendar_txt.close();
+
+			//
+			//string 	commandeSyst  = "zip " + pathToZipFile + " " + pathToStopsFile + " " +  pathToRoutesFile + " " + pathToTripsFile + " " + pathToStopTimesFile + " " +  pathToCalendarFile + " " + pathToCalendarDatesFile;
+			string 	commandeSyst  = "cd " + tempDir.string() + "\n zip GTFS_Tisseo_3.2.1.zip agency.txt stops.txt routes.txt trips.txt stop_times.txt calendar.txt calendar_dates.txt";
+			//os 	<< "\n Commande externe à exécuter: " << commandeSyst
+			//	<< "\n Résultat de l'exécution: " << std::system(commandeSyst.c_str());
+			int sys = std::system(commandeSyst.c_str());
+				
+
+			//stringstream fileZIP ...
+			stringstream ZipFile	(pathToZipFile.c_str(), ios::out | ios::binary);
+
+			ZipFile.flush();
+			os 	<< ZipFile
+				<< flush;
+		}
+	}	
+}
+
+/*
 
 			BOOST_FOREACH(Registry<ContinuousService>::value_type itcssrv, Env::GetOfficialEnv().getRegistry<ContinuousService>())
 			{
@@ -1171,35 +1470,4 @@ namespace synthese
 
 			}
 
-			// ------------------------ END	CALENDAR	&	TRIPS.TXT # SERVICES
-
-			// ------------------------ BEGIN	CALENDAR_DATES.TXT
-
-
-
-			// ------------------------ END	CALENDAR_DATES.TXT
-
-			agency_txt.close();
-			routes_txt.close();
-			stops_txt.close();
-			trips_txt.close();
-			stop_times_txt.close();
-			calendar_txt.close();
-
-			//
-			//string 	commandeSyst  = "zip " + pathToZipFile + " " + pathToStopsFile + " " +  pathToRoutesFile + " " + pathToTripsFile + " " + pathToStopTimesFile + " " +  pathToCalendarFile + " " + pathToCalendarDatesFile;
-			string 	commandeSyst  = "cd " + tempDir.string() + "\n zip GTFS_Tisseo_3.2.1.zip agency.txt stops.txt routes.txt trips.txt stop_times.txt calendar.txt calendar_dates.txt";
-			//os 	<< "\n Commande externe à exécuter: " << commandeSyst
-			//	<< "\n Résultat de l'exécution: " << std::system(commandeSyst.c_str());
-			int sys = std::system(commandeSyst.c_str());
-				
-
-			//stringstream fileZIP ...
-			stringstream ZipFile	(pathToZipFile.c_str(), ios::out | ios::binary);
-
-			ZipFile.flush();
-			os 	<< ZipFile
-				<< flush;
-		}
-	}	
-}
+ */
