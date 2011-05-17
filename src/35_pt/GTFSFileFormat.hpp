@@ -209,9 +209,10 @@ namespace synthese
 						                       util::RegistryKeyType suffix = 0) const;
 
 				std::string _gtfsStr(std::string str) const;
+				static const std::string LABEL_TAD;
 
 			public:			
-				static const std::string PARAMETER_NETWORK_ID;				
+				static const std::string PARAMETER_NETWORK_ID;
 
 				Exporter_(){}
 
