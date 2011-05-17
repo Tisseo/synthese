@@ -425,7 +425,7 @@ namespace synthese
 				{
 					os << "<longitude>" << 0 << "</longitude>" << "\n";
 					os << "<latitude>" << 0 << "</latitude>" << "\n";
-					os << "<longLatType></longLatType>" << "\n";
+					os << "<longLatType>WGS84</longLatType>" << "\n";
 				}
 
 				// we do not provide full addresses right now.
@@ -639,7 +639,7 @@ namespace synthese
 				{
 					os << "<longitude>" << 0 << "</longitude>" << "\n";
 					os << "<latitude>" << 0 << "</latitude>" << "\n";
-					os << "<longLatType></longLatType>" << "\n";
+					os << "<longLatType>WGS84</longLatType>" << "\n";
 				}
 
 				os << "<address><countryCode>" << ps->getConnectionPlace()->getCity()->getCode() << "</countryCode></address>";
