@@ -106,6 +106,13 @@ namespace synthese
 			static const std::string PARAMETER_ARRIVAL_RANK;
 
 		private:
+			std::string _origcity;
+			std::string _origplace;
+			std::string _destcity;
+			std::string _destplace;
+			void updatePlace();
+
+
 			//! @name All reservation modes
 			//@{
 			boost::shared_ptr<security::User>	_customer;

@@ -144,7 +144,13 @@ namespace synthese
 			{
 				if (_journey.getOrigin())
 				{
-					const NamedPlace* place(GetPlaceFromOrigin(_journey, _originPlace));
+
+					map.insert(PARAMETER_ORIGIN_CITY,_origcity);
+					map.insert(PARAMETER_ORIGIN_PLACE,_origplace);
+
+
+
+					/*const NamedPlace* place(GetPlaceFromOrigin(_journey, _originPlace));
 					if(place)
 					{
 						map.insert(PARAMETER_ORIGIN_CITY, place->getCity()->getName());
@@ -153,10 +159,15 @@ namespace synthese
 					else if(dynamic_cast<City*>(_originPlace.get()))
 					{
 						map.insert(PARAMETER_ORIGIN_CITY, dynamic_cast<City*>(_originPlace.get())->getName());
-					}
+					}*/
 				}
 				if (_journey.getDestination())
 				{
+
+					map.insert(PARAMETER_DESTINATION_CITY,_destcity);
+					map.insert(PARAMETER_DESTINATION_PLACE,_destplace);
+
+					/*
 					const NamedPlace* place(GetPlaceFromDestination(_journey, _destinationPlace));
 					if(place)
 					{
@@ -167,6 +178,7 @@ namespace synthese
 					{
 						map.insert(PARAMETER_DESTINATION_CITY, dynamic_cast<City*>(_destinationPlace.get())->getName());
 					}
+					*/
 				}
 				if (!_journey.getFirstDepartureTime().is_not_a_date_time())
 				{
@@ -198,6 +210,22 @@ namespace synthese
 			string destcity,
 			string destplace
 		){
+			/*cerr << "origcity = " << origcity << endl;
+			cerr << "origplace = " << origplace << endl;
+			cerr << "destcity = " << destcity << endl;
+			cerr << "destplace = " << destplace << endl;
+
+			char * origcityS = origcity.c_str();
+			char * origplaceS = origplace.c_str();
+			char * destcityS = destcity.c_str();
+			char * destplaceS = destplace.c_str();*/
+
+			_origcity  = origcity;
+			_origplace = origplace;
+			_destcity  = destcity;
+			_destplace = destplace;
+
+			/*
 			if(ResaModule::GetJourneyPlannerWebsite())
 			{
 				_originPlace = ResaModule::GetJourneyPlannerWebsite()->fetchPlace(origcity,origplace);
@@ -216,7 +244,35 @@ namespace synthese
 					destplace
 					);
 			}
+			*/
 		}
+
+		void BookReservationAction::updatePlace()
+		{
+					/*cerr << "2 origcity = "  << _origcity << endl;
+					cerr << "2 origplace = " << _origplace << endl;
+					cerr << "2 destcity = "  << _destcity << endl;
+					cerr << "2 destplace = " << _destplace << endl;*/
+
+					if(ResaModule::GetJourneyPlannerWebsite())
+					{
+						_originPlace = ResaModule::GetJourneyPlannerWebsite()->fetchPlace(_origcity,_origplace);
+						_destinationPlace = ResaModule::GetJourneyPlannerWebsite()->fetchPlace(_destcity,_destplace);
+					}
+					else
+					{
+						_originPlace = RoadModule::FetchPlace(
+							_site.get() ? _site->getCitiesMatcher() : GeographyModule::GetCitiesMatcher(),
+							_origcity,
+							_origplace
+							);
+						_destinationPlace = RoadModule::FetchPlace(
+							_site.get() ? _site->getCitiesMatcher() : GeographyModule::GetCitiesMatcher(),
+							_destcity,
+							_destplace
+							);
+					}
+				}
 
 
 
@@ -377,6 +433,7 @@ namespace synthese
 					map.get<string>(PARAMETER_DESTINATION_CITY),
 					map.get<string>(PARAMETER_DESTINATION_PLACE)
 				);
+				updatePlace();
 				if(!_destinationPlace.get())
 				{
 					throw ActionException("Invalid destination place");
