@@ -92,6 +92,8 @@ namespace synthese
 		const string BookReservationAction::PARAMETER_ROLLING_STOCK_FILTER_ID = Action_PARAMETER_PREFIX + "tm";
 
 		const string BookReservationAction::PARAMETER_ACCESS_PARAMETERS(Action_PARAMETER_PREFIX + "ac");
+		const string BookReservationAction::PARAMETER_APPROACH_SPEED(Action_PARAMETER_PREFIX + "apsp");
+		const string BookReservationAction::PARAMETER_MAX_TRANSPORT_CONNECTION(Action_PARAMETER_PREFIX + "mtc");
 
 		const string BookReservationAction::PARAMETER_ORIGIN_CITY = Action_PARAMETER_PREFIX + "dct";
 		const string BookReservationAction::PARAMETER_ORIGIN_PLACE = Action_PARAMETER_PREFIX + "dpt";
@@ -188,6 +190,9 @@ namespace synthese
 				{
 					map.insert(PARAMETER_SITE, _site->getKey());
 					map.insert(PARAMETER_USER_CLASS_ID, static_cast<int>(_accessParameters.getUserClass()));
+					map.insert(PARAMETER_APPROACH_SPEED, static_cast<double>(_accessParameters.getApproachSpeed()));
+					if(_accessParameters.getMaxtransportConnectionsCount())
+						map.insert(PARAMETER_MAX_TRANSPORT_CONNECTION, static_cast<unsigned int>(*_accessParameters.getMaxtransportConnectionsCount()));
 					if(_rollingStockFilter)
 					{
 						map.insert(PARAMETER_ROLLING_STOCK_FILTER_ID, static_cast<int>(_rollingStockFilter->getRank()));
@@ -202,77 +207,39 @@ namespace synthese
 			return map;
 		}
 
-
-
 		void BookReservationAction::setOriginDestinationPlace(
 			string origcity,
 			string origplace,
 			string destcity,
 			string destplace
 		){
-			/*cerr << "origcity = " << origcity << endl;
-			cerr << "origplace = " << origplace << endl;
-			cerr << "destcity = " << destcity << endl;
-			cerr << "destplace = " << destplace << endl;
-
-			char * origcityS = origcity.c_str();
-			char * origplaceS = origplace.c_str();
-			char * destcityS = destcity.c_str();
-			char * destplaceS = destplace.c_str();*/
-
 			_origcity  = origcity;
 			_origplace = origplace;
 			_destcity  = destcity;
 			_destplace = destplace;
+		}
 
-			/*
+		void BookReservationAction::updatePlace()
+		{
 			if(ResaModule::GetJourneyPlannerWebsite())
 			{
-				_originPlace = ResaModule::GetJourneyPlannerWebsite()->fetchPlace(origcity,origplace);
-				_destinationPlace = ResaModule::GetJourneyPlannerWebsite()->fetchPlace(destcity,destplace);
+				_originPlace = ResaModule::GetJourneyPlannerWebsite()->fetchPlace(_origcity,_origplace);
+				_destinationPlace = ResaModule::GetJourneyPlannerWebsite()->fetchPlace(_destcity,_destplace);
 			}
 			else
 			{
 				_originPlace = RoadModule::FetchPlace(
 					_site.get() ? _site->getCitiesMatcher() : GeographyModule::GetCitiesMatcher(),
-					origcity,
-					origplace
-					);
+					_origcity,
+					_origplace
+				);
 				_destinationPlace = RoadModule::FetchPlace(
 					_site.get() ? _site->getCitiesMatcher() : GeographyModule::GetCitiesMatcher(),
-					destcity,
-					destplace
-					);
+					_destcity,
+					_destplace
+				);
 			}
-			*/
 		}
-
-		void BookReservationAction::updatePlace()
-		{
-					/*cerr << "2 origcity = "  << _origcity << endl;
-					cerr << "2 origplace = " << _origplace << endl;
-					cerr << "2 destcity = "  << _destcity << endl;
-					cerr << "2 destplace = " << _destplace << endl;*/
-
-					if(ResaModule::GetJourneyPlannerWebsite())
-					{
-						_originPlace = ResaModule::GetJourneyPlannerWebsite()->fetchPlace(_origcity,_origplace);
-						_destinationPlace = ResaModule::GetJourneyPlannerWebsite()->fetchPlace(_destcity,_destplace);
-					}
-					else
-					{
-						_originPlace = RoadModule::FetchPlace(
-							_site.get() ? _site->getCitiesMatcher() : GeographyModule::GetCitiesMatcher(),
-							_origcity,
-							_origplace
-							);
-						_destinationPlace = RoadModule::FetchPlace(
-							_site.get() ? _site->getCitiesMatcher() : GeographyModule::GetCitiesMatcher(),
-							_destcity,
-							_destplace
-							);
-					}
-				}
 
 
 
@@ -480,6 +447,13 @@ namespace synthese
 						map.getDefault<UserClassCode>(PARAMETER_USER_CLASS_ID, USER_PEDESTRIAN),
 						_rollingStockFilter.get() ? _rollingStockFilter->getAllowedPathClasses() : AccessParameters::AllowedPathClasses()
 					);
+
+
+					if(map.getOptional<double>(PARAMETER_APPROACH_SPEED))
+						_accessParameters.setApproachSpeed(map.get<double>(PARAMETER_APPROACH_SPEED));
+					if(map.getOptional<int>(PARAMETER_MAX_TRANSPORT_CONNECTION))
+						_accessParameters.setMaxtransportConnectionsCount(map.get<int>(PARAMETER_MAX_TRANSPORT_CONNECTION));
+
 				}
 				else if(!map.getDefault<string>(PARAMETER_ACCESS_PARAMETERS).empty())
 				{

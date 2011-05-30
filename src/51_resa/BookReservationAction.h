@@ -71,6 +71,8 @@ namespace synthese
 		
 			// Accessibility
 			static const std::string PARAMETER_ACCESS_PARAMETERS;
+			static const std::string PARAMETER_APPROACH_SPEED;
+			static const std::string PARAMETER_MAX_TRANSPORT_CONNECTION;
 
 			// Journey information
 			static const std::string PARAMETER_ORIGIN_CITY;
