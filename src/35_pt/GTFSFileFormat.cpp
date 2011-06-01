@@ -882,6 +882,16 @@
 					return str;
 				}
 
+				string GTFSFileFormat::Exporter_::_gtfsSubLine(string str)const
+				{
+					size_t lp=str.find(" (");
+
+					if(lp==string::npos)
+						return str;
+					return str.substr (0,lp);
+
+				}
+
 				// ------------------------ EXPORTER_::BUILD
 
 		void GTFSFileFormat::Exporter_::build(ostream& os) const
@@ -897,6 +907,9 @@
 			string pathToStopTimesFile 		= tempDir.string() + "/stop_times.txt";
 			string pathToCalendarFile 		= tempDir.string() + "/calendar.txt";
 			string pathToCalendarDatesFile	= tempDir.string() + "/calendar_dates.txt";
+			string pathToShapesFile			= tempDir.string() + "/shapes.txt";
+			string pathToFrequenciesFile	= tempDir.string() + "/frequencies.txt";
+			string pathToTransfersFile		= tempDir.string() + "/transfers.txt";
 			string pathToZipFile 			= tempDir.string() + "/GTFS_Tisseo_3.2.1.zip";
 
 			//Create or replace files
@@ -907,15 +920,22 @@
 			ofstream stop_times_txt		(pathToStopTimesFile.c_str(), ios::out);
 			ofstream calendar_txt		(pathToCalendarFile.c_str(), ios::out);
 			ofstream calendar_dates_txt	(pathToCalendarDatesFile.c_str(), ios::out);
+			ofstream shapes_txt			(pathToShapesFile.c_str(), ios::out);
+			ofstream frequencies_txt	(pathToFrequenciesFile.c_str(), ios::out);
+			ofstream transfers_txt		(pathToTransfersFile.c_str(), ios::out);
 
 			//add header line to each file
 			agency_txt  		<< "﻿agency_id,agency_name,agency_url,agency_timezone,agency_phone,agency_lang" << endl;
 			stops_txt 			<< "stop_id,stop_code,stop_name,stop_lat,stop_lon,location_type,parent_station" << endl;
 			routes_txt 			<< "route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color" << endl;
-			trips_txt 			<< "trip_id,service_id,route_id,trip_headsign" << endl;
+			trips_txt 			<< "trip_id,service_id,route_id,trip_headsign,shape_id" << endl;
 			stop_times_txt 		<< "﻿trip_id,stop_id,stop_sequence,arrival_time,departure_time,stop_headsign,pickup_type,drop_off_type,shape_dist_traveled" << endl;
 			calendar_txt 		<< "﻿service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date" << endl;
 			calendar_dates_txt 	<< "﻿service_id,date,exception_type" << endl;
+			shapes_txt 			<< "﻿trip_id,stop_id,stop_sequence,arrival_time,departure_time,stop_headsign,pickup_type,drop_off_type,shape_dist_traveled" << endl;
+			frequencies_txt 	<< "﻿service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date" << endl;
+			transfers_txt 		<< "﻿service_id,date,exception_type" << endl;
+
 
 			// ------------------------------------ BEGIN	AGENCY.TXT
 			BOOST_FOREACH(Registry<TransportNetwork>::value_type myAgency, Env::GetOfficialEnv().getRegistry<TransportNetwork>())
@@ -926,7 +946,7 @@
 							<< "http://www.tisseo.fr/" 						<< ","	// agency_url
 							<< "Europe/Paris"								<< ","	// agency_timezone
 							<< "05 61 41 70 70"								<< ","	// agency_phone
-							<< "FR"												// agency_lang
+							<< "fr"												// agency_lang
 							<< endl;
 
 				agency_txt.close();
@@ -1178,7 +1198,7 @@
 							trips_txt 	<<  _gtfsKey(sdService->getKey(),1) << ","	// trip_id
 										<<  serviceKey << ","	// service_id
 										<< _gtfsKey(sdService->getRoute()->getCommercialLine()->getKey()) << ","					// route_id
-										<< _gtfsStr(sdService->getRoute()->getName())			// trip_head_sign
+										<< _gtfsSubLine(_gtfsStr(sdService->getRoute()->getName())) << ","			// trip_head_sign
 										<< endl;
 							// ------------------------ END	TRIPS.TXT
 
@@ -1236,7 +1256,7 @@
 							trips_txt 	<< _gtfsKey(sdService->getKey(), 1) << ","	// trip_id
 										<<  serviceKey << ","	// service_id
 										<< _gtfsKey(sdService->getRoute()->getCommercialLine()->getKey()) << ","					// route_id
-										<< _gtfsStr(sdService->getRoute()->getName())			// trip_head_sign
+										<< _gtfsSubLine(_gtfsStr(sdService->getRoute()->getName())) << ","			// trip_head_sign
 										<< endl;
 							// ------------------------ END	TRIPS.TXT
 						}
@@ -1340,7 +1360,7 @@
 							trips_txt 	<< _gtfsKey(csService->getKey(),1) << ","	// trip_id
 										<< serviceKey << ","				// service_id
 										<< _gtfsKey(static_cast<const JourneyPattern *>(&(*csService->getPath()))->getCommercialLine()->getKey())  << ","					// route_id
-										<< _gtfsStr(static_cast<const JourneyPattern *>(&(*csService->getPath()))->getName())			// trip_head_sign
+										<< _gtfsSubLine(_gtfsStr(static_cast<const JourneyPattern *>(&(*csService->getPath()))->getName())) << ","			// trip_head_sign
 										<< endl;
 
 							// ------------------------ END	TRIPS.TXT
@@ -1356,7 +1376,7 @@
 							trips_txt 	<< _gtfsKey(csService->getKey(),1) << ","	// trip_id
 										<< serviceKey << ","				// service_id
 										<< _gtfsKey(static_cast<const JourneyPattern *>(&(*csService->getPath()))->getCommercialLine()->getKey())  << ","					// route_id
-										<< _gtfsStr(static_cast<const JourneyPattern *>(&(*csService->getPath()))->getName())			// trip_head_sign
+										<< _gtfsSubLine(_gtfsStr(static_cast<const JourneyPattern *>(&(*csService->getPath()))->getName())) << ","			// trip_head_sign
 										<< endl;
 
 							// ------------------------ END	TRIPS.TXT

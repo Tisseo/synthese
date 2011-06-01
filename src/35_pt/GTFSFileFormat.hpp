@@ -209,6 +209,8 @@ namespace synthese
 						                       util::RegistryKeyType suffix = 0) const;
 
 				std::string _gtfsStr(std::string str) const;
+				std::string _gtfsSubLine(std::string str) const;
+
 				static const std::string LABEL_TAD;
 
 			public:			
