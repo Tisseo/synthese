@@ -192,7 +192,7 @@ namespace synthese
 					map.insert(PARAMETER_USER_CLASS_ID, static_cast<int>(_accessParameters.getUserClass()));
 					map.insert(PARAMETER_APPROACH_SPEED, static_cast<double>(_accessParameters.getApproachSpeed()));
 					if(_accessParameters.getMaxtransportConnectionsCount())
-						map.insert(PARAMETER_MAX_TRANSPORT_CONNECTION, static_cast<unsigned int>(*_accessParameters.getMaxtransportConnectionsCount()));
+						map.insert(PARAMETER_MAX_TRANSPORT_CONNECTION, static_cast<int>(*_accessParameters.getMaxtransportConnectionsCount()));
 					if(_rollingStockFilter)
 					{
 						map.insert(PARAMETER_ROLLING_STOCK_FILTER_ID, static_cast<int>(_rollingStockFilter->getRank()));
