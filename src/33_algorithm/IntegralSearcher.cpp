@@ -40,6 +40,7 @@
 #include "RoadModule.h"
 #include "Service.h"
 #include "Log.h"
+#include "PTUseRule.h"
 
 #include <sstream>
 #include <limits>
@@ -193,7 +194,7 @@ namespace synthese
 						<< "<th colspan=\"7\">Journey</th>"
 						<< "</tr>"
 						;
-					
+
 					// Departure time
 					Journey::ServiceUses::const_iterator its(journey->getServiceUses().begin());
 
@@ -313,7 +314,7 @@ namespace synthese
 					// Initialization of loop local variables
 					const Vertex* origin(itVertex->first);
 
-					// TODO Ensure that this test is not useless
+					// Read only the vertices of the current graph
 					if(origin->getGraphType() != _graphToUse)
 						continue;
 
@@ -348,16 +349,41 @@ namespace synthese
 
 					BOOST_FOREACH(const Vertex::Edges::value_type& itEdge, edges)
 					{
+						// Getting the current path
 						const Path& path(*itEdge.first);
+
+						// Abort current path if the edge is at its end
+						assert(itEdge.second);
+						const Edge& edge(*itEdge.second);
+						PtrEdgeStep fineStep(
+							(_accessDirection == DEPARTURE_TO_ARRIVAL) ?
+							(&Edge::getFollowingArrivalForFineSteppingOnly) :
+							(&Edge::getPreviousDepartureForFineSteppingOnly)
+						);
+						if(!(edge.*fineStep)())
+						{
+							continue;
+						}
+
+						// Checks if the path properties are compliant with current filters
 						if(	!path.isCompatibleWith(_accessParameters) ||
 							!_accessParameters.isAllowedPathClass(path.getPathClass() ? path.getPathClass()->getIdentifier() : 0)
 						){
 							continue;
 						}
+						
+						// Getting the path traversal method
+						PtrEdgeStep step(
+							(_accessDirection == DEPARTURE_TO_ARRIVAL) ?
+							(	!_searchOnlyNodes || _destinationVam.needFineSteppingForArrival(&path) ?
+								(&Edge::getFollowingArrivalForFineSteppingOnly) :
+								(&Edge::getFollowingConnectionArrival)
+							):(	!_searchOnlyNodes || _destinationVam.needFineSteppingForDeparture(&path) ?
+								(&Edge::getPreviousDepartureForFineSteppingOnly) :
+								(&Edge::getPreviousConnectionDeparture)
+						)	);
 
-						assert(itEdge.second);
-						const Edge& edge(*itEdge.second);
-
+						// Loop on services
 						optional<Edge::DepartureServiceIndex::Value> departureServiceNumber;
 						optional<Edge::ArrivalServiceIndex::Value> arrivalServiceNumber;
 						set<const Edge*> nonServedEdges;
@@ -368,28 +394,29 @@ namespace synthese
 
 							// Reach of the next/previous service serving the edge
 							ServicePointer serviceInstance(
-								(_accessDirection == DEPARTURE_TO_ARRIVAL)
-								?	edge.getNextService(
-										_accessParameters.getUserClassRank(),
-										departureMoment,
-										correctedMinMaxDateTimeAtOrigin
-										, true
-										, departureServiceNumber
-										, _inverted
-									)
-								:	edge.getPreviousService(
-										_accessParameters.getUserClassRank(),
-										departureMoment,
-										correctedMinMaxDateTimeAtOrigin
-										, true
-										, arrivalServiceNumber
-										, _inverted
-									)
-							);
+								(_accessDirection == DEPARTURE_TO_ARRIVAL) ?
+								edge.getNextService(
+									_accessParameters.getUserClassRank(),
+									departureMoment,
+									correctedMinMaxDateTimeAtOrigin,
+									true,
+									departureServiceNumber,
+									_inverted
+								):
+								edge.getPreviousService(
+									_accessParameters.getUserClassRank(),
+									departureMoment,
+									correctedMinMaxDateTimeAtOrigin,
+									true,
+									arrivalServiceNumber,
+									_inverted
+							)	);
 
 							// If no service, advance to the next edge
 							if (!serviceInstance.getService())
+							{
 								break;
+							}
 
 							if(_accessDirection == DEPARTURE_TO_ARRIVAL)
 							{
@@ -404,28 +431,19 @@ namespace synthese
 
 							// Check for service compliance rules.
 							if (!serviceInstance.getService()->isCompatibleWith(_accessParameters))
+							{
 								continue;
-
-							PtrEdgeStep step(	
-								(_accessDirection == DEPARTURE_TO_ARRIVAL)
-								?(	!_searchOnlyNodes || _destinationVam.needFineSteppingForArrival (edge.getParentPath())
-									? (&Edge::getFollowingArrivalForFineSteppingOnly)
-									: (&Edge::getFollowingConnectionArrival)
-								):(	!_searchOnlyNodes || _destinationVam.needFineSteppingForDeparture (edge.getParentPath())
-									? (&Edge::getPreviousDepartureForFineSteppingOnly)
-									: (&Edge::getPreviousConnectionDeparture)
-								)
-							);
+							}
 
 							bool nonServedEdgesSearch(!nonServedEdges.empty());
 
 							// The path is traversed
-							for (const Edge* curEdge = (edge.*step) ();
-								curEdge != NULL; curEdge = (curEdge->*step) ())
+							for (const Edge* curEdge = (edge.*step)();
+								curEdge != NULL; curEdge = (curEdge->*step)())
 							{
 								this_thread::interruption_point();
 
-								// If the path traversal is only to find non served edges, analyse it only if
+								// If the path traversal is only to find non served edges, analyze it only if
 								// it belongs to the list
 								if(nonServedEdgesSearch)
 								{
@@ -439,8 +457,8 @@ namespace synthese
 
 								// The reached vertex is analyzed only in 3 cases :
 								//  - if the vertex belongs to the goal
-								//  - if the type of the vertex corresponds to the searched one (if 
-								//		the _searchOnlyNodes parameter is activated, the vertex must 
+								//  - if the type of the vertex corresponds to the searched one (if
+								//		the _searchOnlyNodes parameter is activated, the vertex must
 								//		also belong to a connection place)
 								//  - if the vertex belongs to a connection place
 								bool isGoalReached(
@@ -601,13 +619,13 @@ namespace synthese
 
 			assert(!journey.empty());
 
-			/// <h2>Control of the compliance with the maximal duration</h2>
+			/// <h2>Check of the compliance with the maximal duration</h2>
 			if(_maxDuration && journey.getDuration() > *_maxDuration)
 			{ /// TODO do the same think to all false,false returns
 				return _JourneyUsefulness(false, journey.getDuration() - (_accessDirection == DEPARTURE_TO_ARRIVAL ? journey.getEndApproachDuration() : journey.getStartApproachDuration()) <= *_maxDuration );
 			}
 
-			/// <h2>Control of the compliance with the current filters</h2>
+			/// <h2>Check of the compliance with the current filters</h2>
 			const ServicePointer& serviceUse( journey.getEndServiceUse());
 			const Vertex* reachedVertex(	(
 					_accessDirection == DEPARTURE_TO_ARRIVAL ?
@@ -640,9 +658,9 @@ namespace synthese
 				)
 			)	return _JourneyUsefulness(false, false);
 
-			/** - If the reached vertex does not belong to the goal, comparison with the known best time at the goal, to determinate 
+			/** - If the reached vertex does not belong to the goal, comparison with the known best time at the goal, to determinate
 				if there is any chance to reach the goal more efficiently by using this path
-				The time used for comparison corresponds to the minimal time to reach the goal from the vertex, constituted of : 
+				The time used for comparison corresponds to the minimal time to reach the goal from the vertex, constituted of :
 					-# the known time to reach the current vertex
 					-# the minimal time to do a transfer in the connecting place
 					-# the minimal travel time from the connecting place and the goal according to the current vmax
@@ -656,7 +674,7 @@ namespace synthese
 				ptime bestHopedGoalAccessDateTime (reachDateTime);
 				posix_time::time_duration minimalGoalReachDuration(
 					reachedVertex->getHub()->getMinTransferDelay()	// Minimal time to transfer
-					+ seconds(*journey.getDistanceToEnd() / _vmax)						// Minimal time to reach the goal
+					+ seconds(static_cast<long>(*journey.getDistanceToEnd() / _vmax))						// Minimal time to reach the goal
 				);
 
 				if (_accessDirection == DEPARTURE_TO_ARRIVAL)
