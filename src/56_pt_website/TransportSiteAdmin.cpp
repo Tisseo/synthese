@@ -335,7 +335,7 @@ namespace synthese
 					"Vitesse d'approche",
 					st.getForm().getTextInput(
 						RoutePlannerFunction::PARAMETER_APPROACH_SPEED,
-						lexical_cast<string>(_journeyPlanner.getAccessParameters().getApproachSpeed())
+						lexical_cast<string>(_journeyPlanner.getAccessParameters().getSpeed())
 				)	);
 				stream << st.close();
 
@@ -348,9 +348,11 @@ namespace synthese
 				else
 				{
 					// Route planning
+					AccessParameters::DistanceThresholds distance;
+					distance.push_back(30000);
 					AccessParameters ap(
 						USER_PEDESTRIAN,
-						false, false, 30000, posix_time::hours(5), 1.111,
+						false, false, distance, 1.111,
 						1000
 					);
 					RoadJourneyPlanner r(

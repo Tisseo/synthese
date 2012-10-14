@@ -255,9 +255,11 @@ namespace synthese
 			if(_startPlace.get())
 			{
 				// Access Parameter
+				AccessParameters::DistanceThresholds distance;
+				distance.push_back(1000);
 				AccessParameters accessParameter(
 					USER_PEDESTRIAN,
-					false, false, 1000, posix_time::minutes(23), 1.111,
+					false, false, distance, 1.111,
 					_maxConnections
 				);
 
@@ -314,6 +316,7 @@ namespace synthese
 						false,
 						false,
 						boost::optional<boost::posix_time::time_duration>(),
+						optional<long>(),
 						70.0,
 						false,
 						logger,
@@ -563,8 +566,9 @@ namespace synthese
 				maxTime,
 				direction == DEPARTURE_TO_ARRIVAL ? false : true,
 				false,
-				ap.getMaxApproachTime(),
-				ap.getApproachSpeed(),
+				optional<time_duration>(),
+				ap.getMaxDistanceThresholds().empty() ? optional<long>() : optional<long>(ap.getMaxDistanceThresholds().at(0)),
+				ap.getSpeed(),
 				false,
 				logger
 			);

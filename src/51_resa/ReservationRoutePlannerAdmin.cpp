@@ -385,9 +385,11 @@ namespace synthese
 
 
 				// Route planning
+				AccessParameters::DistanceThresholds distance;
+				distance.push_back(1000);
 				AccessParameters ap(
 					_disabledPassenger ? USER_HANDICAPPED : USER_PEDESTRIAN,
-					false, false, 1000, posix_time::minutes(23), 1.111)
+					false, false, distance, 1.111)
 				;
 				if(ResaModule::GetJourneyPlannerWebsite())
 				{
@@ -396,7 +398,7 @@ namespace synthese
 						AccessParameters::AllowedPathClasses()
 					);
 				}
-				ap.setApproachSpeed(_effectiveApproachSpeed);
+				ap.setSpeed(_effectiveApproachSpeed);
 
 				ap.setMaxtransportConnectionsCount(
 					_withoutTransfer ? 1 : optional<size_t>()

@@ -1,6 +1,6 @@
 
-/** PTServiceConfigTableSync class header.
-	@file PTServiceConfigTableSync.h
+/** AccessibilityProfileTableSync class header.
+	@file AccessibilityProfileTableSync.h
 
 	This file belongs to the SYNTHESE project (public transportation specialized software)
 	Copyright (C) 2002 Hugues Romain - RCSmobility <contact@rcsmobility.com>
@@ -20,11 +20,11 @@
 	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef SYNTHESE_PTWebSiteTableSync_H__
-#define SYNTHESE_PTWebSiteTableSync_H__
+#ifndef SYNTHESE_SiteTableSync_H__
+#define SYNTHESE_SiteTableSync_H__
 
 #include "DBRegistryTableSyncTemplate.hpp"
-#include "PTServiceConfig.hpp"
+#include "AccessibilityProfile.hpp"
 
 #include <string>
 #include <iostream>
@@ -39,8 +39,8 @@ namespace synthese
 		/// @author Hugues Romain
 		//////////////////////////////////////////////////////////////////////////
 		/// Table name : t086_pt_services_configurations
-		class PTServiceConfigTableSync:
-			public db::DBRegistryTableSyncTemplate<PTServiceConfigTableSync, PTServiceConfig>
+		class AccessibilityProfileTableSync:
+			public db::DBRegistryTableSyncTemplate<AccessibilityProfileTableSync, AccessibilityProfile>
 		{
 		public:
 			/** PT Service config search.

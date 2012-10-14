@@ -177,13 +177,16 @@ namespace synthese
 			}
 
 			_carTrip = map.getDefault<bool>(PARAMETER_CAR_TRIP, false);
+			AccessParameters::DistanceThresholds distance;
 			if(_carTrip)
 			{
-				_accessParameters = AccessParameters(USER_CAR, false, false, 300000, boost::posix_time::hours(5), 1000, 1000);
+				distance.push_back(300000);
+				_accessParameters = AccessParameters(USER_CAR, false, false, distance, 1000, 1000);
 			}
 			else
 			{
-				_accessParameters = AccessParameters(USER_PEDESTRIAN, false, false, 300000, boost::posix_time::hours(5), 1.111, 1000);
+				distance.push_back(300000);
+				_accessParameters = AccessParameters(USER_PEDESTRIAN, false, false, distance, 1.111, 1000);
 			}
 
 			try

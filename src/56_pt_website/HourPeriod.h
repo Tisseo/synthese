@@ -28,6 +28,11 @@
 
 namespace synthese
 {
+	namespace util
+	{
+		class ParametersMap;
+	}
+
 	namespace pt_website
 	{
 		/** ptime period in a day.
@@ -37,19 +42,22 @@ namespace synthese
 		*/
 		class HourPeriod
 		{
+		public:
+			static const std::string ATTR_CAPTION;
+			static const std::string ATTR_BEGIN_HOUR;
+			static const std::string ATTR_END_HOUR;
+
 		private:
-			boost::posix_time::time_duration	_startHour;	//!< Period start hour
+			boost::posix_time::time_duration	_beginHour;	//!< Period start hour
 			boost::posix_time::time_duration	_endHour;	//!< Period end hour
 			std::string	_caption;	//!< Period caption
 
 		public:
 			HourPeriod(
 				const std::string& caption
-				, const boost::posix_time::time_duration& startHour
+				, const boost::posix_time::time_duration& beginHour
 				, const boost::posix_time::time_duration& endHour
 			);
-//			HourPeriod();
-//			HourPeriod(const HourPeriod& period);
 			~HourPeriod ();
 
 			//! @name Getters/Setters
@@ -58,6 +66,10 @@ namespace synthese
 				const boost::posix_time::time_duration& getBeginHour() const;
 				const boost::posix_time::time_duration& getEndHour() const;
 			//@}
+
+			void toParametersMap(
+				util::ParametersMap& pm
+			) const;
 		};
 	}
 }

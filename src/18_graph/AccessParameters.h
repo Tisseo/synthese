@@ -61,11 +61,12 @@ namespace synthese
 		{
 		public:
 			typedef std::set<PathClass::Identifier> AllowedPathClasses;
-
+			typedef std::vector<long> DistanceThresholds;
+			
 		private:
-			double		_maxApproachDistance;
-			boost::posix_time::time_duration	_maxApproachTime;
-			double		_approachSpeed;
+
+			DistanceThresholds _maxDistanceThresholds;
+			double _speed;
 			boost::optional<size_t>		_maxTransportConnectionCount;
 			bool		_drtOnly;
 			bool		_withoutDrt;
@@ -88,25 +89,22 @@ namespace synthese
 				@author Hugues Romain
 			*/
 			AccessParameters(
-				UserClassCode	userClass = USER_PEDESTRIAN
-				, bool			drtOnly = false
-				, bool			withoutDrt = false
-				, double		maxApproachDistance = 1000
-				, boost::posix_time::time_duration maxApproachTime = boost::posix_time::minutes(23)
-				, double		approachSpeed = 1.111
-				, boost::optional<size_t>	maxTransportConnectionCount = boost::optional<size_t>(),
+				UserClassCode	userClass = USER_PEDESTRIAN,
+				bool			drtOnly = false,
+				bool			withoutDrt = false,
+				DistanceThresholds	maxDistanceThresholds = DistanceThresholds(),
+				double speed = 1.111,
+				boost::optional<size_t>	maxTransportConnectionCount = boost::optional<size_t>(),
 				AllowedPathClasses allowedPathClasses = AllowedPathClasses()
-			):	_maxApproachDistance(maxApproachDistance)
-				, _maxApproachTime(maxApproachTime)
-				, _approachSpeed(approachSpeed)
-				, _maxTransportConnectionCount(maxTransportConnectionCount)
-				, _drtOnly(drtOnly)
-				, _withoutDrt(withoutDrt),
+			):	_maxDistanceThresholds(maxDistanceThresholds),
+				_speed(speed),
+				_maxTransportConnectionCount(maxTransportConnectionCount),
+				_drtOnly(drtOnly),
+				_withoutDrt(withoutDrt),
 				_userClassRank(userClass - USER_CLASS_CODE_OFFSET),
 				_allowedPathClasses(allowedPathClasses)
-			{
+			{}
 
-			}
 
 
 			//////////////////////////////////////////////////////////////////////////
@@ -120,24 +118,48 @@ namespace synthese
 				boost::algorithm::split(elements, serialized, boost::algorithm::is_any_of(ACCESSPARAMETERS_SERIALIZATION_SEPARATOR));
 				std::vector<std::string>::const_iterator it(elements.begin());
 
-				_maxApproachDistance = boost::lexical_cast<double>(*it);
+				// Max distance thresholds
+				{
+					std::vector<std::string> elements2;
+					boost::algorithm::split(elements2, *it, boost::algorithm::is_any_of(ACCESSPARAMETERS_LIST_SEPARATOR));
+					BOOST_FOREACH(const std::string& element, elements2)
+					{
+						if(element.empty())
+						{
+							continue;
+						}
+						_maxDistanceThresholds.push_back(boost::lexical_cast<DistanceThresholds::value_type>(element));
+					}
+				}
+
+				// Here was the max approach time
 				++it;
-				_maxApproachTime = boost::posix_time::seconds(boost::lexical_cast<int>(*it));
+
+				// Speed
 				++it;
-				_approachSpeed = boost::lexical_cast<double>(*it);
+				_speed = boost::lexical_cast<double>(*it);
+
+				// Max transport connection count
 				++it;
 				if(boost::lexical_cast<std::size_t>(*it))
 				{
 					_maxTransportConnectionCount =  boost::lexical_cast<std::size_t>(*it);
 				}
+
+				// DRT only
 				++it;
 				_drtOnly = boost::lexical_cast<bool>(*it);
+
+				// Without DRT
 				++it;
 				_withoutDrt = boost::lexical_cast<bool>(*it);
+
+				// User class
 				++it;
 				_userClassRank = boost::lexical_cast<size_t>(*it);
-				++it;
 
+				// Transport modes
+				++it;
 				std::vector<std::string> elements2;
 				boost::algorithm::split(elements2, *it, boost::algorithm::is_any_of(ACCESSPARAMETERS_LIST_SEPARATOR));
 				BOOST_FOREACH(const std::string& element, elements2)
@@ -154,24 +176,24 @@ namespace synthese
 
 			//! @name Queries
 			//@{
-				/** Approach compatibility control.
+				/** Approach compatibility check.
 					@param distance length of the approach
-					@param duration duration of the approach
+					@param stage the stage of search
 					@return bool true if the approach is compatible with the current rules
 					@author Hugues Romain
 					@date 2008
 				*/
 				bool isCompatibleWithApproach(
 					double distance,
-					boost::posix_time::time_duration duration
+					size_t stage
 				) const {
-					return distance < _maxApproachDistance && duration < _maxApproachTime;
+					return distance < _maxDistanceThresholds[stage];
 				}
 
 
 
 				//////////////////////////////////////////////////////////////////////////
-				/// Controls if a path class is allowed by the object.
+				/// Checks if a path class is allowed by the object.
 				/// @param value the path class to control
 				/// @return true if the path class can be used
 				bool isAllowedPathClass(PathClass::Identifier value) const { return _allowedPathClasses.empty() || _allowedPathClasses.find(value) != _allowedPathClasses.end(); }
@@ -185,19 +207,33 @@ namespace synthese
 				std::string serialize() const
 				{
 					std::stringstream stream;
+
+					{ // Max approach distance
+						bool first(true);
+						BOOST_FOREACH(const DistanceThresholds::value_type& element, _maxDistanceThresholds)
+						{
+							stream << (first ? std::string() : ACCESSPARAMETERS_LIST_SEPARATOR) << element;
+					}	}
+					stream << ACCESSPARAMETERS_SERIALIZATION_SEPARATOR;
+
+					// Here was the max approach time
+					stream << ACCESSPARAMETERS_SERIALIZATION_SEPARATOR;
+
+					// Speed
 					stream <<
-						getMaxApproachDistance() << ACCESSPARAMETERS_SERIALIZATION_SEPARATOR <<
-						_maxApproachTime.total_seconds() << ACCESSPARAMETERS_SERIALIZATION_SEPARATOR <<
-						getApproachSpeed() << ACCESSPARAMETERS_SERIALIZATION_SEPARATOR <<
+						_speed << ACCESSPARAMETERS_SERIALIZATION_SEPARATOR <<
 						(getMaxtransportConnectionsCount() ? *getMaxtransportConnectionsCount() : double(0))  << ACCESSPARAMETERS_SERIALIZATION_SEPARATOR <<
 						getDRTOnly() << ACCESSPARAMETERS_SERIALIZATION_SEPARATOR <<
 						getWithoutDRT() << ACCESSPARAMETERS_SERIALIZATION_SEPARATOR <<
 						_userClassRank << ACCESSPARAMETERS_SERIALIZATION_SEPARATOR;
-					bool first(true);
-					BOOST_FOREACH(const AllowedPathClasses::value_type& element, getAllowedPathClasses())
-					{
-						stream << (first ? std::string() : ACCESSPARAMETERS_LIST_SEPARATOR) << element;
-					}
+
+					{ // Transport modes
+						bool first(true);
+						BOOST_FOREACH(const AllowedPathClasses::value_type& element, getAllowedPathClasses())
+						{
+							stream << (first ? std::string() : ACCESSPARAMETERS_LIST_SEPARATOR) << element;
+					}	}
+
 					return stream.str();
 				}
 
@@ -214,18 +250,17 @@ namespace synthese
 			//! @name Getters
 			//@{
 				std::size_t getUserClassRank() const { return _userClassRank; }
-				double	getApproachSpeed()	const {	return _approachSpeed;	}
+				double	getSpeed()	const {	return _speed;	}
+				const DistanceThresholds& getMaxDistanceThresholds() const { return _maxDistanceThresholds; }
 				boost::optional<size_t>	getMaxtransportConnectionsCount() const { return _maxTransportConnectionCount;}
 				bool getDRTOnly() const {	return _drtOnly;}
 				bool getWithoutDRT()	const { return _withoutDrt;	}
-				boost::posix_time::time_duration getMaxApproachTime() const {	return _maxApproachTime; }
-				double getMaxApproachDistance() const { return _maxApproachDistance; }
 				const AllowedPathClasses& getAllowedPathClasses() const { return _allowedPathClasses; }
 			//@}
 
 			//! @name Setters
 			//@{
-				void setApproachSpeed(double value){ _approachSpeed = value; }
+				void setSpeed(double value){ _speed = value; }
 				void setMaxtransportConnectionsCount(boost::optional<size_t> value){ _maxTransportConnectionCount = value;}
 			//@}
 		};

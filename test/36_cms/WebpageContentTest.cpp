@@ -618,6 +618,17 @@ BOOST_AUTO_TEST_CASE (WebpageContentTest)
 	}
 
 	{ // Equal test
+		string code("<@\"toto=tutu\"@>");
+		WebpageContent wpc(code);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), false);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "toto=tutu");
+		BOOST_CHECK_EQUAL(variables.getMap().size(), 3);
+	}
+
+	{ // Equal test
 		string code("<@variable!=\"OK1OK2\"@>");
 		WebpageContent wpc(code);
 		BOOST_CHECK_EQUAL(wpc.getCode(), code);

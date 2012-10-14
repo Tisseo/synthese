@@ -89,7 +89,7 @@ namespace synthese
 					result.insert(
 						_roadChunk->getFromVertex(),
 						VertexAccess(
-							seconds(static_cast<long>(distance / accessParameters.getApproachSpeed())),
+							seconds(static_cast<long>(distance / accessParameters.getSpeed())),
 							distance
 					)	);
 				}
@@ -103,7 +103,7 @@ namespace synthese
 					result.insert(
 						static_cast<MainRoadChunk*>(_roadChunk->getNext())->getReverseRoadChunk()->getFromVertex(),
 						VertexAccess(
-							seconds(static_cast<long>(distance / accessParameters.getApproachSpeed())),
+							seconds(static_cast<long>(distance / accessParameters.getSpeed())),
 							distance
 					)	);
 				}

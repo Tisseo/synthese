@@ -58,6 +58,8 @@ namespace synthese
 
 	namespace pt_website
 	{
+		class AccessibilityProfile;
+
 		FIELD_TYPE(OnlineBookingActivated, bool)
 		FIELD_TYPE(UseOldData, bool)
 		FIELD_TYPE(MaxConnections, size_t)
@@ -92,6 +94,8 @@ namespace synthese
 			public Object<PTServiceConfig, PTServiceConfigSchema>
 		{
 		public:
+			static const std::string TAG_ACCESSIBILITY_PROFILE;
+
 			typedef util::Registry<PTServiceConfig> Registry;
 
 
@@ -108,6 +112,7 @@ namespace synthese
 
 
 			typedef std::map<std::size_t,RollingStockFilter*> RollingStockFilters;
+			typedef std::map<util::RegistryKeyType, AccessibilityProfile*> AccessibilityProfiles;
 
 		private:
 			//! \name Environment
@@ -115,6 +120,7 @@ namespace synthese
 				std::set<pt::CommercialLine*>	_lines;
 				geography::GeographyModule::CitiesMatcher _citiesMatcher;
 				RollingStockFilters _rollingStockFilters;
+				mutable AccessibilityProfiles _accessibilityProfiles;
 			//@}
 
 		public:
@@ -133,11 +139,15 @@ namespace synthese
 				void addRollingStockFilter(RollingStockFilter& value);
 				void removeRollingStockFilter(RollingStockFilter& value);
 				void clearRollingStockFilters();
+				void addAccessibilityProfile(AccessibilityProfile& value);
+				void removeAccessibilityProfile(AccessibilityProfile& value);
+				void clearAccessibilityProfiles();
 			//@}
 
 			//! \name Services
 			//@{
 				const RollingStockFilters& getRollingStockFilters() const { return _rollingStockFilters; }
+				const AccessibilityProfiles& getAccessibilityProfiles() const { return _accessibilityProfiles; }
 
 				/** Access parameter generator.
 					@param parameter Access profile
@@ -145,6 +155,7 @@ namespace synthese
 					@author Hugues Romain
 					@date 2007
 					@todo Modify the generated object to avoid memory leaks due to the use of new operator
+					@deprecated
 
 					Default values :
 					<ul>
@@ -240,6 +251,18 @@ namespace synthese
 			//@}
 
 			virtual std::string getName() const { return get<Name>(); }
+
+
+
+			//////////////////////////////////////////////////////////////////////////
+			/// Adds parameters that are not intended to be saved (i.e. generated content).
+			/// The default implementation adds nothing. This method may be overloaded
+			/// @param map the map to populate
+			/// @param prefix prefix to add to the keys of the map items
+			virtual void addAdditionalParameters(
+				util::ParametersMap& map,
+				std::string prefix = std::string()
+			) const;
 		};
 }	}
 

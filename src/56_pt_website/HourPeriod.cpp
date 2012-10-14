@@ -22,35 +22,31 @@
 
 #include "HourPeriod.h"
 
+#include "ParametersMap.h"
+
 using namespace std;
 using namespace boost::posix_time;
 
 namespace synthese
 {
+	using namespace util;
+	
 	namespace pt_website
 	{
+		const std::string HourPeriod::ATTR_CAPTION = "caption";
+		const std::string HourPeriod::ATTR_BEGIN_HOUR = "begin_hour";
+		const std::string HourPeriod::ATTR_END_HOUR = "end_hour";
+
 		HourPeriod::HourPeriod (
 			const string& caption
-			, const time_duration& startHour
+			, const time_duration& beginHour
 			, const time_duration& endHour
-		)	: _startHour(startHour)
+		)	: _beginHour(beginHour)
 			, _endHour(endHour)
 			, _caption(caption)
 		{}
 
-/*		HourPeriod::HourPeriod()
-			: _startHour(TIME_UNKNOWN)
-			, _endHour(TIME_UNKNOWN)
-		{}
 
-		HourPeriod::HourPeriod( const HourPeriod& period )
-			: _caption(period._caption)
-			, _startHour(period._startHour)
-			, _endHour(period._endHour)
-		{
-
-		}
-*/
 		HourPeriod::~HourPeriod ()
 		{}
 
@@ -65,7 +61,7 @@ namespace synthese
 
 		const time_duration& HourPeriod::getBeginHour() const
 		{
-			return _startHour;
+			return _beginHour;
 		}
 
 
@@ -74,5 +70,19 @@ namespace synthese
 		{
 			return _endHour;
 		}
-	}
-}
+
+
+
+		void HourPeriod::toParametersMap( util::ParametersMap& pm ) const
+		{
+			pm.insert(ATTR_CAPTION, _caption);
+			if(!_beginHour.is_not_a_date_time())
+			{
+				pm.insert(ATTR_BEGIN_HOUR, to_simple_string(_beginHour));
+			}
+			if(!_endHour.is_not_a_date_time())
+			{
+				pm.insert(ATTR_END_HOUR, to_simple_string(_endHour));
+			}
+		}
+}	}

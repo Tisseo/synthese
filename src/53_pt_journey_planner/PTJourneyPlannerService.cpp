@@ -22,6 +22,7 @@
 
 #include "PTJourneyPlannerService.hpp"
 
+#include "AccessibilityProfile.hpp"
 #include "AccessParameters.h"
 #include "AlgorithmLogger.hpp"
 #include "Edge.h"
@@ -138,6 +139,9 @@ namespace synthese
 		const string PTJourneyPlannerService::PARAMETER_SRID = "srid";
 		const string PTJourneyPlannerService::PARAMETER_DEPARTURE_PLACE_XY = "departure_place_XY";
 		const string PTJourneyPlannerService::PARAMETER_ARRIVAL_PLACE_XY = "arrival_place_XY";
+		const string PTJourneyPlannerService::PARAMETER_BEFORE_ACCESSIBILITY_PROFILE_ID = "before_accessibility_profile_id";
+		const string PTJourneyPlannerService::PARAMETER_DURING_ACCESSIBILITY_PROFILE_ID = "during_accessibility_profile_id";
+		const string PTJourneyPlannerService::PARAMETER_AFTER_ACCESSIBILITY_PROFILE_ID = "after_accessibility_profile_id";
 
 		const string PTJourneyPlannerService::PARAMETER_OUTPUT_FORMAT = "output_format";
 		const string PTJourneyPlannerService::VALUE_ADMIN_HTML = "admin";
@@ -608,35 +612,98 @@ namespace synthese
 			_fareCalculation = map.getDefault<bool>(PARAMETER_FARE_CALCULATION,false);
 
 			// Accessibility
-			optional<unsigned int> acint(map.getOptional<unsigned int>(PARAMETER_ACCESSIBILITY));
-			if(_configuration.get())
-			{
-				_accessParameters = _configuration->getAccessParameters(
-					acint ? static_cast<UserClassCode>(*acint) : USER_PEDESTRIAN,
-					_rollingStockFilter.get() ? _rollingStockFilter->getAllowedPathClasses() : AccessParameters::AllowedPathClasses()
-				);
+			if(	_configuration.get() &&
+				(	map.isDefined(PARAMETER_BEFORE_ACCESSIBILITY_PROFILE_ID) ||
+					map.isDefined(PARAMETER_DURING_ACCESSIBILITY_PROFILE_ID) ||
+					map.isDefined(PARAMETER_AFTER_ACCESSIBILITY_PROFILE_ID)
+			)	){
+				if(map.getDefault<RegistryKeyType>(PARAMETER_BEFORE_ACCESSIBILITY_PROFILE_ID))
+				{
+					try
+					{
+						_beforeAccessibilityProfile = Env::GetOfficialEnv().get<AccessibilityProfile>(
+							map.get<RegistryKeyType>(PARAMETER_BEFORE_ACCESSIBILITY_PROFILE_ID)
+						);
+					}
+					catch(ObjectNotFoundException<AccessibilityProfile>&)
+					{
+					}
+				}
+				if(map.getDefault<RegistryKeyType>(PARAMETER_DURING_ACCESSIBILITY_PROFILE_ID))
+				{
+					try
+					{
+						_duringAccessibilityProfile = Env::GetOfficialEnv().get<AccessibilityProfile>(
+							map.get<RegistryKeyType>(PARAMETER_DURING_ACCESSIBILITY_PROFILE_ID)
+						);
+					}
+					catch(ObjectNotFoundException<AccessibilityProfile>&)
+					{
+					}
+				}
+				if(map.getDefault<RegistryKeyType>(PARAMETER_AFTER_ACCESSIBILITY_PROFILE_ID))
+				{
+					try
+					{
+						_afterAccessibilityProfile = Env::GetOfficialEnv().get<AccessibilityProfile>(
+							map.get<RegistryKeyType>(PARAMETER_AFTER_ACCESSIBILITY_PROFILE_ID)
+						);
+					}
+					catch(ObjectNotFoundException<AccessibilityProfile>&)
+					{
+					}
+				}
+				if(	!_duringAccessibilityProfile.get() &&
+					_afterAccessibilityProfile.get()
+				){
+					_duringAccessibilityProfile = _afterAccessibilityProfile;
+				}
+				if(!_beforeAccessibilityProfile.get() &&
+					_duringAccessibilityProfile.get()
+				){
+					_beforeAccessibilityProfile = _duringAccessibilityProfile;
+				}
+				if(	!_afterAccessibilityProfile.get() &&
+					_duringAccessibilityProfile.get()
+				){
+					_afterAccessibilityProfile = _duringAccessibilityProfile;
+				}
 			}
 			else
 			{
-				if(acint && *acint == USER_HANDICAPPED)
+				optional<unsigned int> acint(map.getOptional<unsigned int>(PARAMETER_ACCESSIBILITY));
+				if(_configuration.get())
 				{
-					_accessParameters = AccessParameters(
-						*acint, false, false, 300, posix_time::minutes(23), 0.556
-					);
-				}
-				else if(acint && *acint == USER_BIKE)
-				{
-					_accessParameters = AccessParameters(
-						*acint, false, false, 3000, posix_time::minutes(23), 4.167
+					_accessParameters = _configuration->getAccessParameters(
+						acint ? static_cast<UserClassCode>(*acint) : USER_PEDESTRIAN,
+						_rollingStockFilter.get() ? _rollingStockFilter->getAllowedPathClasses() : AccessParameters::AllowedPathClasses()
 					);
 				}
 				else
 				{
-					_accessParameters = AccessParameters(
-						USER_PEDESTRIAN, false, false, 1000, posix_time::minutes(23), 0.833
-					);
-				}
-			}
+					AccessParameters::DistanceThresholds distance;
+					if(acint && *acint == USER_HANDICAPPED)
+					{
+						distance.push_back(300);
+						_accessParameters = AccessParameters(
+							*acint, false, false, distance, 0.556
+						);
+					}
+					else if(acint && *acint == USER_BIKE)
+					{
+						distance.push_back(3000);
+						_accessParameters = AccessParameters(
+							*acint, false, false, distance, 4.167
+						);
+					}
+					else
+					{
+						distance.push_back(1000);
+						_accessParameters = AccessParameters(
+							USER_PEDESTRIAN, false, false, distance, 0.833
+						);
+					}
+			}	}
 
 			// Max depth
 			if(map.getOptional<size_t>(PARAMETER_MAX_DEPTH))
@@ -653,7 +720,7 @@ namespace synthese
 			// Approach speed
 			if(map.getOptional<double>(PARAMETER_APPROACH_SPEED))
 			{
-				_accessParameters.setApproachSpeed(*(map.getOptional<double>(PARAMETER_APPROACH_SPEED)));
+				_accessParameters.setSpeed(*(map.getOptional<double>(PARAMETER_APPROACH_SPEED)));
 			}
 
 			if(	!_departure_place.placeResult.value || !_arrival_place.placeResult.value
@@ -789,6 +856,21 @@ namespace synthese
 			// Journey planning
 
 			// Initialization
+			AccessParameters beforeAP(
+				_beforeAccessibilityProfile.get() ?
+				_beforeAccessibilityProfile->getAccessParameters() :
+				_accessParameters
+			);
+			AccessParameters duringAP(
+				_duringAccessibilityProfile.get() ?
+				_duringAccessibilityProfile->getAccessParameters() :
+				_accessParameters
+			);
+			AccessParameters afterAP(
+				_afterAccessibilityProfile.get() ?
+				_afterAccessibilityProfile->getAccessParameters() :
+				_accessParameters
+			);
 			PTTimeSlotRoutePlanner r(
 				_departure_place.placeResult.value.get(),
 				_arrival_place.placeResult.value.get(),
@@ -797,11 +879,13 @@ namespace synthese
 				startArrivalDate,
 				endArrivalDate,
 				_maxSolutionsNumber,
-				_accessParameters,
+				duringAP,
 				planningOrder,
 				false,
 				*_logger,
-				_maxTransferDuration
+				_maxTransferDuration,
+				beforeAP,
+				afterAP
 			);
 
 			// Computing

@@ -903,6 +903,160 @@ namespace synthese
 
 
 
+
+	//////////////////////////////////////////////////////////////////////////
+	/// Vector of long specialization
+	template<class C>
+	class ObjectField<C, std::vector<long> >:
+		public SimpleObjectFieldDefinition<C>
+	{
+	public:
+		typedef std::vector<long> Type;
+
+		static void LoadFromRecord(std::vector<long>& fieldObject, ObjectBase& object, const Record& record, const util::Env& env)
+		{
+			if(!record.isDefined(SimpleObjectFieldDefinition<C>::FIELD.name))
+			{
+				return;
+			}
+
+			fieldObject.clear();
+			std::string text(record.get<std::string>(SimpleObjectFieldDefinition<C>::FIELD.name));
+			if(text.empty())
+			{
+				return;
+			}
+			std::vector<std::string> s;
+			boost::algorithm::split(s, text, boost::is_any_of(","));
+			BOOST_FOREACH(const std::string& item, s)
+			{
+				try
+				{
+					fieldObject.push_back(
+						boost::lexical_cast<long>(item)
+					);
+				}
+				catch(boost::bad_lexical_cast&)
+				{
+					util::Log::GetInstance().warn(
+						"Data corrupted in the "+ SimpleObjectFieldDefinition<C>::FIELD.name +" field at the load of the "+
+						object.getClassName() +" object " + boost::lexical_cast<std::string>(object.getKey()) +" : " +
+						item + " is not a valid id."
+					);
+				}
+				catch(util::ObjectNotFoundException<long>&)
+				{
+					util::Log::GetInstance().warn(
+						"Data corrupted in the "+ SimpleObjectFieldDefinition<C>::FIELD.name +" field at the load of the "+
+						object.getClassName() +" object " + boost::lexical_cast<std::string>(object.getKey()) +" : item " +
+						item + " was not found."
+					);
+				}
+			}
+		}
+
+
+
+		static std::string Serialize(
+			const std::vector<long>& fieldObject,
+			util::ParametersMap::SerializationFormat format
+		){
+			std::stringstream s;
+			if(format == util::ParametersMap::FORMAT_SQL)
+			{
+				s << "'";
+			}
+			bool first(true);
+			BOOST_FOREACH(const long& ptr, fieldObject)
+			{
+				if(first)
+				{
+					first = false;
+				}
+				else
+				{
+					s << ",";
+				}
+				s << boost::lexical_cast<std::string>(ptr);
+			}
+			if(format == util::ParametersMap::FORMAT_SQL)
+			{
+				s << "'";
+			}
+			return s.str();
+		}
+
+
+
+		static void SaveToParametersMap(
+			const std::vector<long>& fieldObject,
+			util::ParametersMap& map,
+			const std::string& prefix
+		){
+			map.insert(
+				prefix + SimpleObjectFieldDefinition<C>::FIELD.name,
+				Serialize(fieldObject, map.getFormat())
+			);
+		}
+
+
+
+		static void SaveToParametersMap(
+			const std::vector<long>& fieldObject,
+			const ObjectBase& object,
+			util::ParametersMap& map,
+			const std::string& prefix,
+			boost::logic::tribool withFiles
+		){
+			if(	boost::logic::indeterminate(withFiles) ||
+				SimpleObjectFieldDefinition<C>::FIELD.exportOnFile == withFiles
+			){
+				SaveToParametersMap(fieldObject, map, prefix);
+			}
+		}
+
+
+
+		static void SaveToParametersMap(
+			const std::vector<long>& fieldObject,
+			util::ParametersMap& map
+		){
+			map.insert(
+				SimpleObjectFieldDefinition<C>::FIELD.name,
+				Serialize(fieldObject, map.getFormat())
+			);
+		}
+
+
+
+		static void SaveToParametersMap(
+			const std::vector<long>& fieldObject,
+			const ObjectBase& object,
+			util::ParametersMap& map
+		){
+			SaveToParametersMap(fieldObject, map);
+		}
+
+
+
+		static void SaveToFilesMap(
+			const std::vector<long>& fieldObject,
+			const ObjectBase& object,
+			FilesMap& map
+		){}
+
+
+
+		static void GetLinkedObjectsIds(
+			LinkedObjectsIds& list,
+			const Record& record
+		){
+		}
+	};
+
+
+
+
 	//////////////////////////////////////////////////////////////////////////
 	/// map V1->V2 specialization
 	template<class C, class V1, class V2>

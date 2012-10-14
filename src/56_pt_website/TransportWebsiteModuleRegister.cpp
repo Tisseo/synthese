@@ -10,9 +10,11 @@
 #include "CityListFunction.h"
 #include "PlacesListFunction.h"
 #include "PlacesListService.hpp"
+#include "PTServiceConfigsListService.hpp"
 #include "ServiceInformationsFunction.hpp"
 #include "UserBookmarksService.hpp"
 
+#include "AccessibilityProfileTableSync.hpp"
 #include "PTServiceConfigTableSync.hpp"
 #include "ObjectSiteLinkTableSync.h"
 #include "RollingStockFilterTableSync.h"
@@ -25,6 +27,7 @@
 #include "TransportWebsiteRight.h"
 
 // Registries
+#include "AccessibilityProfile.hpp"
 #include "ObjectSiteLink.h"
 #include "PTServiceConfig.hpp"
 #include "SiteCommercialLineLink.h"
@@ -40,7 +43,7 @@ void synthese::pt_website::moduleRegister()
 	synthese::pt_website::TransportSiteAdmin::integrate();
 
 	synthese::util::FactorableTemplate<synthese::db::DBTableSync,synthese::pt_website::PTServiceConfigTableSync>::integrate();
-
+	synthese::pt_website::AccessibilityProfileTableSync::integrate();
 	synthese::pt_website::ObjectSiteLinkTableSync::integrate();
 	synthese::pt_website::RollingStockFilterTableSync::integrate();
 	synthese::pt_website::UserFavoriteJourneyTableSync::integrate();
@@ -50,6 +53,7 @@ void synthese::pt_website::moduleRegister()
 	synthese::pt_website::CityListFunction::integrate();
 	synthese::pt_website::PlacesListFunction::integrate();
 	synthese::pt_website::PlacesListService::integrate();
+	synthese::pt_website::PTServiceConfigsListService::integrate();
 	synthese::pt_website::ServiceInformationsFunction::integrate();
 	synthese::pt_website::UserBookmarksService::integrate();
 
@@ -60,6 +64,7 @@ void synthese::pt_website::moduleRegister()
 	synthese::pt_website::TransportWebsiteRight::integrate();
 
 	// Registries
+	synthese::util::Env::Integrate<synthese::pt_website::AccessibilityProfile>();
 	synthese::util::Env::Integrate<synthese::pt_website::ObjectSiteLink>();
 	synthese::util::Env::Integrate<synthese::pt_website::PTServiceConfig>();
 	synthese::util::Env::Integrate<synthese::pt_website::SiteCommercialLineLink>();

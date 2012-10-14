@@ -354,6 +354,7 @@ namespace synthese
 				AlgorithmLogger logger;
 				BOOST_FOREACH(const TransferDestinationsList::mapped_type::value_type& it2, it->second)
 				{
+					AccessParameters::DistanceThresholds distance;
 					PTTimeSlotRoutePlanner rp(
 						_displayedPlace,
 						it2,
@@ -366,8 +367,7 @@ namespace synthese
 							USER_PEDESTRIAN,
 							false,
 							false,
-							0,
-							posix_time::minutes(0),
+							distance,
 							67,
 							approachJourney.size()+1
 						),

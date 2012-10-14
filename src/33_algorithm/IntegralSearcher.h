@@ -86,6 +86,7 @@ namespace synthese
 				const bool									_optim;
 				const AlgorithmLogger&						_logger;
 				boost::optional<boost::posix_time::time_duration>	_maxDuration;
+				boost::optional<long>						_maxDistance;
 				const double								_vmax;
 				bool										_ignoreReservation;
 			//@}
@@ -167,6 +168,7 @@ namespace synthese
 				bool												inverted,
 				bool												optim,
 				boost::optional<boost::posix_time::time_duration>	maxDuration,
+				boost::optional<long>								maxDistance,
 				double												vmax,
 				bool												ignoreReservation,
 				const AlgorithmLogger&								logger,

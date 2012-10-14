@@ -67,7 +67,9 @@ namespace synthese
 			const PlanningOrder planningOrder,
 			bool ignoreReservation,
 			const AlgorithmLogger& logger,
-			boost::optional<boost::posix_time::time_duration> maxTransferDuration
+			boost::optional<boost::posix_time::time_duration> maxTransferDuration,
+			boost::optional<const graph::AccessParameters> beforeAccessParameters,
+			boost::optional<const graph::AccessParameters> afterAccessParameters
 		):	TimeSlotRoutePlanner(
 				origin->getVertexAccessMap(
 					accessParameters, PTModule::GRAPH_ID, RoadModule::GRAPH_ID, 0
@@ -87,6 +89,16 @@ namespace synthese
 				ignoreReservation,
 				logger,
 				maxTransferDuration
+			),
+			_beforeAccessParameters(
+				beforeAccessParameters ?
+				*beforeAccessParameters :
+				accessParameters
+			),
+			_afterAccessParameters(
+				afterAccessParameters ?
+				*afterAccessParameters :
+				accessParameters
 			),
 			_departurePlace(origin),
 			_arrivalPlace(destination)
@@ -114,12 +126,14 @@ namespace synthese
 			}
 
 			// Search stops around the departure and arrival places using the road network
-			// FIXME: Need to handle approcahSpeed = 0 in IntegralSearcher himself
+			// FIXME: Need to handle approcahSpeed = 0 in IntegralSearcher itself
 			VertexAccessMap ovam, dvam;
-			if(_accessParameters.getApproachSpeed() != 0)
+
+			// Before
+			if(_beforeAccessParameters.getSpeed() != 0)
 			{
 				VAMConverter extenderToPhysicalStops(
-					_accessParameters,
+					_beforeAccessParameters,
 					_logger,
 					PTModule::GRAPH_ID,
 					RoadModule::GRAPH_ID,
@@ -133,11 +147,6 @@ namespace synthese
 					_destinationVam,
 					DEPARTURE_TO_ARRIVAL
 				);
-				dvam = extenderToPhysicalStops.run(
-					_destinationVam,
-					_originVam,
-					ARRIVAL_TO_DEPARTURE
-				);
 			}
 			else
 			{
@@ -150,6 +159,29 @@ namespace synthese
 						ovam.insert(vertex, itps.second);
 					}
 				}
+			}
+
+			// After
+			if(_afterAccessParameters.getSpeed() != 0)
+			{
+				VAMConverter extenderToPhysicalStops(
+					_afterAccessParameters,
+					_logger,
+					PTModule::GRAPH_ID,
+					RoadModule::GRAPH_ID,
+					getLowestDepartureTime(),
+					getHighestDepartureTime(),
+					getLowestArrivalTime(),
+					getHighestArrivalTime()
+				);
+				dvam = extenderToPhysicalStops.run(
+					_destinationVam,
+					_originVam,
+					ARRIVAL_TO_DEPARTURE
+				);
+			}
+			else
+			{
 				BOOST_FOREACH(const VertexAccessMap::VamMap::value_type& itps, _destinationVam.getMap())
 				{
 					const Vertex* vertex(itps.first);

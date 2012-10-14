@@ -51,6 +51,7 @@ namespace synthese
 			// Loop on destinations
 			BOOST_FOREACH(const DisplayedPlacesList::value_type& itDestination, _destinations)
 			{
+				AccessParameters::DistanceThresholds distance;
 				PTTimeSlotRoutePlanner rp(
 					&_origin,
 					itDestination.second,
@@ -63,8 +64,7 @@ namespace synthese
 						USER_PEDESTRIAN,
 						false,
 						false,
-						0,
-						posix_time::minutes(0),
+						distance,
 						67,
 						_withTransfer ? 2 : 1
 					),

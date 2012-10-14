@@ -196,19 +196,22 @@ namespace synthese
 
 			AccessParameters ap;
 			// Route planning
+			AccessParameters::DistanceThresholds distance;
 			if(_carTrip)
 			{
+				distance.push_back(300000);
 				ap = AccessParameters(
 					USER_CAR,
-					false, false, 300000, posix_time::hours(5), 1000,
+					false, false, distance, 1000,
 					1000
 				);
 			}
 			else
 			{
+				distance.push_back(30000);
 				ap = AccessParameters(
 					USER_PEDESTRIAN,
-					false, false, 30000, posix_time::hours(5), 1.111,
+					false, false, distance, 1.111,
 					1000
 				);
 			}

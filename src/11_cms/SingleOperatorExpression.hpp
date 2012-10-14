@@ -43,7 +43,8 @@ namespace synthese
 				NOT,
 				SQRT,
 				NEG,
-				GLOBAL
+				GLOBAL,
+				HTTP_REQUEST
 			};
 
 		private:

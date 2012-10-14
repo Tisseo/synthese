@@ -22,6 +22,7 @@
 
 #include "SingleOperatorExpression.hpp"
 
+#include "BasicClient.h"
 #include "ModuleClass.h"
 
 #include <cmath>
@@ -94,6 +95,56 @@ namespace synthese
 			case GLOBAL:
 				return ModuleClass::GetParameter(value);
 
+			case HTTP_REQUEST:
+				if(value.empty())
+				{
+					return string();
+				}
+				size_t p1(value.find_first_of("://"));
+				if(p1 == string::npos)
+				{
+					return string();
+				}
+				string uri(value.substr(p1+3));
+
+				size_t p2(uri.find_first_of("/"));
+				string hostPort(
+					p2 == string::npos ?
+					uri :
+					uri.substr(0, p2)
+				);
+				string parameters(
+					p2 == string::npos ?
+					"/" :
+					uri.substr(p2)
+				);
+
+				size_t p3(hostPort.find_first_of(":"));
+				string host(
+					p3 == string::npos ?
+					hostPort :
+					hostPort.substr(0, p3-1)
+				);
+				string port(
+					p3 == string::npos ?
+					"80" :
+					hostPort.substr(p3+1)
+				);
+
+				try
+				{
+					stringstream out;
+					BasicClient c(
+						host,
+						port
+					);
+					c.get(out, parameters);
+					return out.str();
+				}
+				catch(...)
+				{
+				}
+				return string();
 			}
 
 			return string();
@@ -121,6 +172,10 @@ namespace synthese
 			if(	CompareText(it, end, "~global"))
 			{
 				return GLOBAL;
+			}
+			if(	CompareText(it, end, "~http_request"))
+			{
+				return HTTP_REQUEST;
 			}
 			return optional<Operator>();
 		}

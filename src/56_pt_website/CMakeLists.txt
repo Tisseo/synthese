@@ -1,6 +1,10 @@
 set_source_groups()
 
 set(pt_website_SRCS
+AccessibilityProfile.cpp
+AccessibilityProfile.hpp
+AccessibilityProfileTableSync.cpp
+AccessibilityProfileTableSync.hpp
 AddUserFavoriteJourneyAction.cpp
 AddUserFavoriteJourneyAction.h
 CityListFunction.cpp
@@ -15,6 +19,8 @@ PlacesListFunction.cpp
 PlacesListFunction.h
 PlacesListService.cpp
 PlacesListService.hpp
+PTServiceConfigsListService.cpp
+PTServiceConfigsListService.hpp
 RollingStockFilter.cpp
 RollingStockFilter.h
 RollingStockFilterTableSync.cpp

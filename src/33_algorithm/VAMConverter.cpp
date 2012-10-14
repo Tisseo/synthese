@@ -82,26 +82,38 @@ namespace synthese
 			); // was optim=true
 
 			ptime highestArrivalTime(direction == DEPARTURE_TO_ARRIVAL ? _highestArrivalTime : _lowestDepartureTime);
-			IntegralSearcher iso(
-				direction,
-				_accessParameters,
-				_whatToSearch,
-				false,
-				_graphToUse,
-				resultJourneys,
-				bvrmd,
-				destinationVam,
-				direction == DEPARTURE_TO_ARRIVAL ? _lowestDepartureTime : _highestArrivalTime,
-				direction == DEPARTURE_TO_ARRIVAL ? _highestDepartureTime : _lowestArrivalTime,
-				highestArrivalTime,
-				direction == DEPARTURE_TO_ARRIVAL ? false : true,
-				false,
-				_accessParameters.getMaxApproachTime(),
-				_accessParameters.getApproachSpeed(),
-				false,
-				_logger
-			);
-			iso.integralSearch(vam, optional<size_t>(), optional<time_duration>());
+
+			// Loop on stages
+			for(size_t stage(0); stage < _accessParameters.getMaxDistanceThresholds().size(); ++stage)
+			{
+				IntegralSearcher iso(
+					direction,
+					_accessParameters,
+					_whatToSearch,
+					false,
+					_graphToUse,
+					resultJourneys,
+					bvrmd,
+					destinationVam,
+					direction == DEPARTURE_TO_ARRIVAL ? _lowestDepartureTime : _highestArrivalTime,
+					direction == DEPARTURE_TO_ARRIVAL ? _highestDepartureTime : _lowestArrivalTime,
+					highestArrivalTime,
+					direction == DEPARTURE_TO_ARRIVAL ? false : true,
+					false,
+					optional<time_duration>(),
+					_accessParameters.getMaxDistanceThresholds().at(stage),
+					_accessParameters.getSpeed(),
+					false,
+					_logger
+				);
+				iso.integralSearch(vam, optional<size_t>(), optional<time_duration>());
+				
+				// Don't go to the next stage if a result was found
+				if(!result.getMap().empty())
+				{
+					break;
+				}
+			}
 
 			// Include physical stops from originVam into result of integral search
 			// (cos not taken into account in returned journey vector).

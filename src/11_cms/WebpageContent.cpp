@@ -30,6 +30,7 @@
 #include "LabelNode.hpp"
 #include "Request.h"
 #include "ServiceExpression.hpp"
+#include "VariablesDebugExpression.hpp"
 #include "VariableUpdateNode.hpp"
 #include "Webpage.h"
 #include "WebPageDisplayFunction.h"
@@ -216,6 +217,19 @@ namespace synthese
 
 
 
+		bool WebpageContent::_canBePartOfAVariableName(
+			char c,
+			bool isAtBeginning
+		){
+			return
+				(c >= 'a' && c <= 'z') ||
+				(c >= 'A' && c <= 'Z') ||
+				(!isAtBeginning && c >= '0' && c <= '9') ||
+				(c == '_')
+			;
+		}
+
+
 
 		void WebpageContent::_parse(
 			std::string::const_iterator& it,
@@ -283,19 +297,60 @@ namespace synthese
 						currentText.clear();
 					}
 
+					// Debug expression
+					it += 2;
+					if(	it != end &&
+						it+1 != end &&
+						*it == '@' &&
+						*(it+1) == '>'
+					){
+						_nodes.push_back(
+							shared_ptr<Expression>(new VariablesDebugExpression)
+						);
+						it += 2;
+						continue;
+					}
+
+					// Useless spaces
+					for(;
+						it != end &&
+						(*it == ' ' || *it == '\r' || *it == '\n');
+						++it
+					) ;
+
 					// variable name
 					string parameter;
-					it += 2;
 					string::const_iterator it2;
+
+					bool setPossible(true);
+					size_t openBrackets(0);
 					for(it2 = it;
 						it2 != end && *it2 != '=' && *it2 != '@' && *it2 != '<';
 						++it2
 					){
+						if( *it2 == '[')
+						{
+							++openBrackets;
+						}
+						else if( openBrackets &&
+							*it2 == ']')
+						{
+							--openBrackets;
+						}
+						else if(	!openBrackets &&
+							!_canBePartOfAVariableName(*it2, it2==it) &&
+							*it2 != ' ' &&
+							*it2 != '.'
+						){
+							setPossible = false;
+							break;
+						}
 						parameter.push_back(*it2);
 					}
 
 					// Is a variable set ?
-					if(	it2 != end &&
+					if(	setPossible &&
+						it2 != end &&
 						*it2 == '=' &&
 						(it2+1 == end || *(it2+1) != '=') &&
 						(*(it2-1) != '!')
@@ -310,10 +365,7 @@ namespace synthese
 						for(string::const_iterator it3(parameter.begin()); it3!=parameter.end(); )
 						{
 							// Alphanum chars
-							if( (*it3 >= 'a' && *it <= 'z') ||
-								(*it3 >= 'A' && *it <= 'Z') ||
-								(*it3 >= '0' && *it <= '9') ||
-								*it3 == '_'
+							if( _canBePartOfAVariableName(*it3, it3==parameter.begin())
 							){
 								items.rbegin()->key.push_back(*it3);
 								++it3;

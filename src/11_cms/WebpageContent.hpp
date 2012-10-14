@@ -98,6 +98,20 @@ namespace synthese
 				std::set<std::string> termination
 			);
 
+
+
+			//////////////////////////////////////////////////////////////////////////
+			/// Checks if a character is accepted as a part of the name of a variable.
+			/// @param c the character to read
+			/// @param isAtBeginning shows if the character would be placed at the beginning
+			/// of the variable name
+			/// @return true if the character is valid
+			static bool _canBePartOfAVariableName(
+				char c,
+				bool isAtBeginning
+			);
+
+
 		public:
 			//////////////////////////////////////////////////////////////////////////
 			/// Default constructor.

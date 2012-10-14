@@ -77,6 +77,7 @@ namespace synthese
 			bool inverted,
 			bool optim,
 			optional<posix_time::time_duration> maxDuration,
+			optional<long> maxDistance,
 			double vmax,
 			bool ignoreReservation,
 			const AlgorithmLogger& logger,
@@ -96,6 +97,7 @@ namespace synthese
 			_inverted(inverted),
 			_optim(optim),
 			_maxDuration(maxDuration),
+			_maxDistance(maxDistance),
 			_vmax(vmax),
 			_logger(logger),
 			_totalDistance(totalDistance),
@@ -635,8 +637,11 @@ sqrt(
 				/** - If the edge is an address, the currentJourney necessarily contains
 					only road legs, filter approach (= walk distance and duration).
 				*/
-				if(!_accessParameters.isCompatibleWithApproach(journey.getDistance(), journey.getDuration()))
+				if(	_maxDistance && journey.getDistance() > *_maxDistance ||
+					_maxDuration && journey.getDuration() > *_maxDuration
+				){
 					return _JourneyUsefulness(false,false);
+				}
 			}
 
 			/// <h2>Determination of the usefulness to store the service use</h2>
@@ -647,7 +652,7 @@ sqrt(
 				serviceUse.getArrivalDateTime() :
 				serviceUse.getDepartureDateTime()
 			);
-			/* TODO : solve memory errors that makes _destinationVam.getVertexAccess(reachedVertex).approachTime having a wrong vaule (40000 hours !)
+			/* TODO : solve memory errors that makes _destinationVam.getVertexAccess(reachedVertex).approachTime having a wrong value (40000 hours !)
 			 * See https://extranet.rcsmobility.com/issues/19961
 			 * When solved, this code cold be uncommented
 			if(isGoalReached)

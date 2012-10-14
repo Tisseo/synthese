@@ -83,6 +83,8 @@ namespace synthese
 			public algorithm::TimeSlotRoutePlanner
 		{
 		private:
+			const graph::AccessParameters _beforeAccessParameters;
+			const graph::AccessParameters _afterAccessParameters;
 			const geography::Place* const _departurePlace;
 			const geography::Place* const _arrivalPlace;
 			bool _showFullRoadJourney;
@@ -120,7 +122,9 @@ namespace synthese
 				const algorithm::PlanningOrder		planningOrder,
 				bool								ignoreReservation,
 				const algorithm::AlgorithmLogger& algorithmLogger,
-				boost::optional<boost::posix_time::time_duration> maxTransferDuration = boost::optional<boost::posix_time::time_duration>()
+				boost::optional<boost::posix_time::time_duration> maxTransferDuration = boost::optional<boost::posix_time::time_duration>(),
+				boost::optional<const graph::AccessParameters> beforeAccessParameters = boost::optional<const graph::AccessParameters>(),
+				boost::optional<const graph::AccessParameters> afterAccessParameters = boost::optional<const graph::AccessParameters>()
 			);
 
 			PTRoutePlannerResult run() const;

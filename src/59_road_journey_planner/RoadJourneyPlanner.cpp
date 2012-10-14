@@ -77,7 +77,7 @@ namespace synthese
 				maxSolutionsNumber,
 				accessParameters,
 				planningOrder,
-				accessParameters.getApproachSpeed(),
+				accessParameters.getSpeed(),
 				true,
 				logger
 			),

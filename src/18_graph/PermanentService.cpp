@@ -76,13 +76,13 @@ namespace synthese
 					distance = -distance;
 				}
 
-				double speed(accessParameters.getApproachSpeed());
+				double speed(accessParameters.getSpeed());
 				if(accessParameters.getUserClass() == USER_CAR)
 				{
 					speed = static_cast<road::RoadChunk*>(const_cast<Edge*>(&edge))->getCarSpeed();
 					if(speed <= 0)
 					{
-						speed = accessParameters.getApproachSpeed();
+						speed = accessParameters.getSpeed();
 					}
 				}
 
@@ -144,13 +144,13 @@ namespace synthese
 				distance = -distance;
 			}
 
-			double speed(accessParameters.getApproachSpeed());
+			double speed(accessParameters.getSpeed());
 			if(accessParameters.getUserClass() == USER_CAR)
 			{
 				speed = static_cast<road::RoadChunk*>(const_cast<Edge*>(&edge))->getCarSpeed();
 				if(speed <= 0)
 				{
-					speed = accessParameters.getApproachSpeed();
+					speed = accessParameters.getSpeed();
 				}
 			}
 

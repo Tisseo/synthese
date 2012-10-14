@@ -676,22 +676,26 @@ namespace synthese
 			}
 			else
 			{
+				AccessParameters::DistanceThresholds distance;
 				if(acint && *acint == USER_HANDICAPPED)
 				{
+					distance.push_back(300);
 					_accessParameters = AccessParameters(
-						*acint, false, false, 300, posix_time::minutes(23), 0.556, boost::optional<size_t>(), allowedPathClasses
+						*acint, false, false, distance, 0.556, boost::optional<size_t>(), allowedPathClasses
 					);
 				}
 				else if(acint && *acint == USER_BIKE)
 				{
+					distance.push_back(3000);
 					_accessParameters = AccessParameters(
-						*acint, false, false, 3000, posix_time::minutes(23), 4.167, boost::optional<size_t>(), allowedPathClasses
+						*acint, false, false, distance, 4.167, boost::optional<size_t>(), allowedPathClasses
 					);
 				}
 				else
 				{
+					distance.push_back(1000);
 					_accessParameters = AccessParameters(
-						USER_PEDESTRIAN, false, false, 1000, posix_time::minutes(23), 0.833, boost::optional<size_t>(), allowedPathClasses
+						USER_PEDESTRIAN, false, false, distance, 0.833, boost::optional<size_t>(), allowedPathClasses
 					);
 				}
 			}
@@ -711,7 +715,7 @@ namespace synthese
 			// Approach speed
 			if(map.getOptional<double>(PARAMETER_APPROACH_SPEED))
 			{
-				_accessParameters.setApproachSpeed(*(map.getOptional<double>(PARAMETER_APPROACH_SPEED)));
+				_accessParameters.setSpeed(*(map.getOptional<double>(PARAMETER_APPROACH_SPEED)));
 			}
 
 			if(	!_departure_place.placeResult.value || !_arrival_place.placeResult.value

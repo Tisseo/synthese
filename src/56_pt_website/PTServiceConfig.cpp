@@ -22,6 +22,7 @@
 
 #include "PTServiceConfig.hpp"
 
+#include "AccessibilityProfile.hpp"
 #include "AccessParameters.h"
 #include "PTConstants.h"
 #include "PTModule.h"
@@ -56,6 +57,7 @@ namespace synthese
 	using namespace pt_website;
 
 	CLASS_DEFINITION(PTServiceConfig, "t086_pt_services_configurations", 86)
+	FIELD_DEFINITION_OF_OBJECT(PTServiceConfig, "config_id", "config_ids")
 	FIELD_DEFINITION_OF_TYPE(OnlineBookingActivated, "online_booking", SQL_BOOLEAN)
 	FIELD_DEFINITION_OF_TYPE(UseOldData, "use_old_data", SQL_BOOLEAN)
 	FIELD_DEFINITION_OF_TYPE(MaxConnections, "max_connections", SQL_INTEGER)
@@ -157,6 +159,8 @@ namespace synthese
 
 	namespace pt_website
 	{
+		const string PTServiceConfig::TAG_ACCESSIBILITY_PROFILE = "accessibility_profile";
+
 		const string PTServiceConfig::TEMPS_MIN_CIRCULATIONS ("r");
 		const string PTServiceConfig::TEMPS_MAX_CIRCULATIONS ("R");
 
@@ -219,22 +223,26 @@ namespace synthese
 			UserClassCode parameter,
 			const graph::AccessParameters::AllowedPathClasses& allowedPathClasses
 		) const	{
+			AccessParameters::DistanceThresholds distance;
 			switch(parameter)
 			{
 			case USER_HANDICAPPED:
+				distance.push_back(300);
 				return AccessParameters(
-					parameter, false, false, 300, posix_time::minutes(23), 0.556, get<MaxConnections>(), allowedPathClasses
+					parameter, false, false, distance, 0.556, get<MaxConnections>(), allowedPathClasses
 				);
 
 			case USER_BIKE:
+				distance.push_back(3000);
 				return AccessParameters(
-					parameter, false, false, 3000, posix_time::minutes(23), 4.167, get<MaxConnections>(), allowedPathClasses
+					parameter, false, false, distance, 4.167, get<MaxConnections>(), allowedPathClasses
 				);
 
 			case USER_PEDESTRIAN:
 			default:
+				distance.push_back(1000);
 				return AccessParameters(
-					USER_PEDESTRIAN, false, false, 1000, posix_time::minutes(23), 0.833, get<MaxConnections>(), allowedPathClasses
+					USER_PEDESTRIAN, false, false, distance, 0.833, get<MaxConnections>(), allowedPathClasses
 				);
 			}
 		}
@@ -370,6 +378,56 @@ namespace synthese
 				result.insert(make_pair(it.first, it.second->getName()));
 			}
 			return result;
+		}
+
+
+
+		void PTServiceConfig::addAccessibilityProfile( AccessibilityProfile& value )
+		{
+			_accessibilityProfiles.insert(
+				make_pair(
+					value.get<Key>(),
+					&value
+			)	);
+		}
+
+
+
+		void PTServiceConfig::removeAccessibilityProfile( AccessibilityProfile& value )
+		{
+			_accessibilityProfiles.erase(value.get<Key>());
+		}
+
+
+
+		void PTServiceConfig::clearAccessibilityProfiles()
+		{
+			_accessibilityProfiles.clear();
+		}
+
+
+
+		void PTServiceConfig::addAdditionalParameters(
+			util::ParametersMap& map,
+			std::string prefix /*= std::string() */
+		) const	{
+
+			// Replace the serialized string by tags
+			map.remove(prefix + Periods::FIELD.name);
+			BOOST_FOREACH(const HourPeriod& hourPeriod, get<Periods>())
+			{
+				shared_ptr<ParametersMap> hpMap(new ParametersMap);
+				hourPeriod.toParametersMap(*hpMap);
+				map.insert(prefix + Periods::FIELD.name, hpMap);
+			}
+
+			// Accessibility profiles
+			BOOST_FOREACH(const AccessibilityProfiles::value_type& it, _accessibilityProfiles)
+			{
+				shared_ptr<ParametersMap> apMap(new ParametersMap);
+				it.second->toParametersMap(*apMap);
+				map.insert(prefix + TAG_ACCESSIBILITY_PROFILE, apMap);
+			}
 		}
 
 
