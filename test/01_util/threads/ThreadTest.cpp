@@ -87,7 +87,9 @@ BOOST_AUTO_TEST_CASE (testStartPauseResumeStop)
       while (thread.getState () != Thread::INIT) Thread::Sleep (5);
 
       BOOST_REQUIRE_EQUAL (Thread::INIT, thread.getState ());
-      BOOST_REQUIRE_EQUAL (0, exec->getCalls ());
+	  // The following line can be false : State INIT is set before initialization is done, so
+	  // getCalls can return -1 or 0 at this moment
+      //BOOST_REQUIRE_EQUAL (0, exec->getCalls ());
 
       while (thread.getState () != Thread::READY) Thread::Sleep (5);
 
