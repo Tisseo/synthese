@@ -81,7 +81,7 @@ namespace synthese
 			_repo = SVNRepository(
 				map.getDefault<string>(
 					PARAMETER_SVN_URL,
-					"https://extranet.rcsmobility.com/svn/synthese3/trunk/sites"
+					"https://extranet.rcsmobility.com/svn/synthese3/branches/3.7/sites"
 			)	);
 			_svnUser = map.getDefault<string>(PARAMETER_SVN_USER);
 			_svnPassword = map.getDefault<string>(PARAMETER_SVN_PASSWORD);
