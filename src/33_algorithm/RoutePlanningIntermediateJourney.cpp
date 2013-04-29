@@ -333,6 +333,10 @@ namespace synthese
 					return distance1 < distance2;
 				}
 
+				// If range of this is less than range of other, prefer this
+				if (getContinuousServiceRange() < other.getContinuousServiceRange())
+					return true;
+
 				return this < &other;
 			}
 
@@ -349,6 +353,10 @@ namespace synthese
 			{
 				return _phase == DEPARTURE_TO_ARRIVAL ? getEndTime() < other.getEndTime() : other.getEndTime() < getEndTime();
 			}
+
+			// If range of this is less than range of other, prefer this
+			if (getContinuousServiceRange() < other.getContinuousServiceRange())
+				return true;
 
 			// Priority 4 : addresses order (to differentiate journeys in all cases)
 			return this < &other;
