@@ -597,9 +597,10 @@ namespace synthese
 			{
 				try
 				{
+					_rawSchedule = record.get<string>(ScheduledServiceTableSync::COL_SCHEDULES);
 					SchedulesBasedService::SchedulesPair value(
 						SchedulesBasedService::DecodeSchedules(
-							record.get<string>(ScheduledServiceTableSync::COL_SCHEDULES)
+							_rawSchedule
 					)	);
 					if(	getPath() &&
 						getPath()->getEdges().size() != value.second.size()

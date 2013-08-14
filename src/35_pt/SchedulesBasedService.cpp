@@ -476,7 +476,6 @@ namespace synthese
 		){
 			typedef tokenizer<char_separator<char> > tokenizer;
 
-			_rawSchedule = value;
 			if(!_path)
 			{
 				// No need to parse the data an complete our init
