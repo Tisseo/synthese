@@ -476,10 +476,10 @@ namespace synthese
 		){
 			typedef tokenizer<char_separator<char> > tokenizer;
 
-			if(!_path)
+//			if(!_path)
 			{
 				// No need to parse the data an complete our init
-				return;
+//				return;
 			}
 			// Parse all schedules arrival#departure,arrival#departure...
 			tokenizer schedulesTokens (value, char_separator<char>(","));
