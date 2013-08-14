@@ -60,6 +60,7 @@ namespace synthese
 			static const std::string TAG_VARIABLE;
 			static const std::string TAG_MESSAGE;
 			static const std::string TAG_SECTION;
+			static const std::string TAG_CALENDAR;
 
 			struct Variable
 			{
@@ -192,8 +193,11 @@ namespace synthese
 			/// @param pm the ParametersMap object to populate
 			/// @author Hugues Romain
 			/// @date 2012
-			void toParametersMap(
-				util::ParametersMap& pm
+			virtual void toParametersMap(
+				util::ParametersMap& pm,
+				bool withAdditionalParameters,
+				boost::logic::tribool withFiles = boost::logic::indeterminate,
+				std::string prefix = std::string()
 			) const;
 		};
 	}

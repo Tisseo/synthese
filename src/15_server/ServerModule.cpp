@@ -25,6 +25,9 @@
 #include "EMail.h"
 #include "Log.h"
 #include "15_server/version.h"
+#ifdef UNIX
+  #include "15_server/svnversion.h"
+#endif
 
 #include <iomanip>
 #include <boost/lexical_cast.hpp>
@@ -73,7 +76,6 @@ namespace synthese
 		boost::asio::ip::tcp::acceptor ServerModule::_acceptor(ServerModule::_io_service);
 		connection_ptr ServerModule::_new_connection(new HTTPConnection(ServerModule::_io_service, &ServerModule::HandleRequest));
 		ServerModule::Threads ServerModule::_threads;
-		size_t ServerModule::_waitingThreads(0);
 		recursive_mutex ServerModule::_threadManagementMutex;
 		time_duration ServerModule::_sessionMaxDuration(minutes(30));
 		string ServerModule::_autoLoginUser("");
@@ -102,6 +104,7 @@ namespace synthese
 
 		template<> const string ModuleClassTemplate<ServerModule>::NAME("Server kernel");
 
+		boost::shared_mutex ServerModule::baseWriterMutex;
 
 		template<> void ModuleClassTemplate<ServerModule>::PreInit()
 		{
@@ -137,7 +140,7 @@ namespace synthese
 				ServerModule::UpdateStartingTime();
 				ServerModule::_acceptor.async_accept(
 					ServerModule::_new_connection->socket(),
-					bind(&ServerModule::HandleAccept, asio::placeholders::error)
+					boost::bind(&ServerModule::HandleAccept, asio::placeholders::error)
 				);
 			}
 
@@ -349,8 +352,10 @@ namespace synthese
 					rep.headers.insert(make_pair("Cache-Control", "public, max-age="+
 												 lexical_cast<string>(request.getFunction()->getMaxAge().total_seconds())));
 				}
-
-				_SetCookieHeaders(rep, request.getCookiesMap());
+				else
+				{
+					_SetCookieHeaders(rep, request.getCookiesMap());
+				}
 
 				if(_httpTracePath)
 				{
@@ -426,7 +431,7 @@ namespace synthese
 			recursive_mutex::scoped_lock lock(_threadManagementMutex);
 			Threads::iterator it(_threads.find(key));
 			if(it == _threads.end()) return;
-			shared_ptr<thread> theThread(it->second.theThread);
+			boost::shared_ptr<thread> theThread(it->second.theThread);
 
 			_threads.erase(it);
 
@@ -493,7 +498,7 @@ namespace synthese
 		{
 			while(true)
 			{
-				shared_ptr<thread> theThread;
+				boost::shared_ptr<thread> theThread;
 				{
 					recursive_mutex::scoped_lock lock(_threadManagementMutex);
 					if(_threads.empty()) break;
@@ -509,13 +514,12 @@ namespace synthese
 		{
 			recursive_mutex::scoped_lock lock(_threadManagementMutex);
 
-			shared_ptr<thread> theThread(
+			boost::shared_ptr<thread> theThread(
 				AddThread(
-					bind(&asio::io_service::run, &ServerModule::_io_service),
+					boost::bind(&asio::io_service::run, &ServerModule::_io_service),
 					"HTTP",
 					true
 			)	);
-			++_waitingThreads;
 			return theThread->get_id();
 		}
 
@@ -531,12 +535,6 @@ namespace synthese
 				info.status = ThreadInfo::THREAD_ANALYSING_REQUEST;
 				info.queryString = queryString;
 				info.lastChangeTime = posix_time::microsec_clock::local_time();
-				--_waitingThreads;
-				if(_waitingThreads == 0)
-				{
-					AddHTTPThread();
-					Log::GetInstance ().info ("Raised HTTP threads number to "+ lexical_cast<string>(_threads.size()) +" due to pool saturation.");
-				}
 			}
 			catch (ThreadInfo::Exception&)
 			{
@@ -597,7 +595,6 @@ namespace synthese
 				if(info.status == ThreadInfo::THREAD_WAITING) return;
 				info.status = ThreadInfo::THREAD_WAITING;
 				info.lastChangeTime = posix_time::microsec_clock::local_time();
-				++_waitingThreads;
 			}
 			catch (ThreadInfo::Exception&)
 			{
@@ -665,4 +662,5 @@ namespace synthese
 		{
 			return _serverStartingTime;
 		}
+
 }	}

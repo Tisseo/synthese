@@ -57,7 +57,8 @@ namespace synthese
 			_transferTimetableAfter(NULL),
 			_withContinuousServices(true),
 			_env(env),
-			_mergeColsWithSameTimetables(true)
+			_mergeColsWithSameTimetables(true),
+			_compression(false)
 		{}
 
 
@@ -75,9 +76,8 @@ namespace synthese
 			}
 
 			bool result(false);
-			bool passageOk(false);
 			Path::Edges::const_iterator itEdge;
-			const Path::Edges& edges(journeyPattern.getEdges());
+			const Path::Edges& edges(journeyPattern.getAllEdges());
 
 			// JourneyPattern is authorized according to :
 			//  - authorized lines
@@ -115,8 +115,6 @@ namespace synthese
 							)
 						){
 							result = true;
-							if (itRow->getIsArrival() || itRow->getCompulsory() == TimetableRow::PassageSuffisant)
-								passageOk = true;
 							break;
 						}
 					}
@@ -177,6 +175,7 @@ namespace synthese
 				// A1: JourneyPattern selection : there must be at least a departure stop of the line in the departures rows
 				bool departureOK(false);
 				RowGroups::const_iterator itRowGroup;
+				Path::Edges::const_iterator firstIsForbidden(edges.end());
 				for(itRowGroup = _rowGroups.begin(); itRowGroup != _rowGroups.end(); ++itRowGroup)
 				{
 					const TimetableRowGroup& rowGroup(**itRowGroup);
@@ -191,8 +190,14 @@ namespace synthese
 					// Search for a matching edge / row pair
 					BOOST_FOREACH(const TimetableRowGroupItem* item, rowGroup.getItems())
 					{
+						bool forbiddenEdgeBefore(firstIsForbidden == edges.end());
 						for (itEdge = edges.begin(); itEdge != edges.end(); ++itEdge)
 						{
+							if(firstIsForbidden != edges.end() && itEdge == firstIsForbidden)
+							{
+								forbiddenEdgeBefore = true;
+							}
+
 							if(	(*itEdge)->isDeparture() &&
 								(itEdge+1) != edges.end() &&
 								(*itEdge)->getHub() &&
@@ -201,22 +206,37 @@ namespace synthese
 									_authorizedPhysicalStops.find(dynamic_cast<const StopPoint*>((*itEdge)->getFromVertex())) != _authorizedPhysicalStops.end()
 								)
 							){
+								// Avoid first is forbidden rows
+								if(!departureOK &&
+									rowGroup.get<TimetableRowRule>() == FirstIsForbidden
+								){
+									firstIsForbidden = itEdge;
+									break;
+								}
+
 								departureOK = true;
+								if(	firstIsForbidden != edges.end() &&
+									forbiddenEdgeBefore
+								){
+									return false;
+								}
+
+								firstIsForbidden = edges.end();
 								if(rowGroup.get<TimetableRowRule>() == SufficientRow)
 								{
-									result = true;
+									return true;
 								}
 								break;
 							}
 						}
 
-						if(departureOK)
+						if(departureOK || firstIsForbidden != edges.end())
 						{
 							break;
 						}
 					}
 
-					if (result || departureOK)
+					if (departureOK)
 					{
 						break;
 					}
@@ -227,10 +247,6 @@ namespace synthese
 				{
 					return false;
 				}
-				if(result)
-				{
-					return true;
-				}
 
 
 
@@ -240,6 +256,7 @@ namespace synthese
 				{
 					result = false;
 					const LineStop* departureLinestop(static_cast<const LineStop*>(*itEdge));
+					const Edge* firstIsForbidden(NULL);
 
 					for (++itRowGroup; itRowGroup != _rowGroups.end(); ++itRowGroup)
 					{
@@ -256,18 +273,38 @@ namespace synthese
 						bool arrivalOK(false);
 						BOOST_FOREACH(const TimetableRowGroupItem* item, rowGroup.getItems())
 						{
+							bool forbiddenEdgeBefore(!firstIsForbidden);
 							for(const Edge* arrivalLinestop(departureLinestop->getFollowingArrivalForFineSteppingOnly());
 								arrivalLinestop != NULL;
 								arrivalLinestop = arrivalLinestop->getFollowingArrivalForFineSteppingOnly()
 							){
+								if(firstIsForbidden && arrivalLinestop == firstIsForbidden)
+								{
+									forbiddenEdgeBefore = true;
+								}
+
 								if(	dynamic_cast<const StopArea*>(arrivalLinestop->getFromVertex()->getHub()) == &(*item->get<StopArea>())
 								){
+									// Avoid first is forbidden rows
+									if(!arrivalOK &&
+										rowGroup.get<TimetableRowRule>() == FirstIsForbidden
+									){
+										firstIsForbidden = arrivalLinestop;
+										break;
+									}
+
+									if(	firstIsForbidden &&
+										forbiddenEdgeBefore
+									){
+										return false;
+									}
+
 									arrivalOK = true;
 									break;
 								}
 							}
 
-							if (arrivalOK)
+							if (arrivalOK || firstIsForbidden)
 							{
 								break;
 							}
@@ -306,13 +343,13 @@ namespace synthese
 				}
 
 				// Insertion in the journey patterns list
-				if(_baseCalendar.hasAtLeastOneCommonDateWith(journeyPattern))
+				if(_baseCalendar.hasAtLeastOneCommonDateWith(journeyPattern.getCalendarCache()))
 				{
 					journeyPatterns.push_back(&journeyPattern);
 				}
 				BOOST_FOREACH(const JourneyPattern::SubLines::value_type& subline, journeyPattern.getSubLines())
 				{
-					if (!_baseCalendar.hasAtLeastOneCommonDateWith(*subline))
+					if (!_baseCalendar.hasAtLeastOneCommonDateWith(subline->getCalendarCache()))
 					{
 						continue;
 					}
@@ -425,7 +462,7 @@ namespace synthese
 				if(_transferTimetableBefore.get())
 				{
 					result.createBeforeTransfer();
-					TimetableResult beforeResult(_transferTimetableBefore->build(false, shared_ptr<TimetableResult::Warnings>()));
+					TimetableResult beforeResult(_transferTimetableBefore->build(false, boost::shared_ptr<TimetableResult::Warnings>()));
 
 					for(TimetableResult::Columns::const_iterator col(result.getColumns().begin()); col != result.getColumns().end(); ++col)
 					{
@@ -487,7 +524,7 @@ namespace synthese
 				if(_transferTimetableAfter.get())
 				{
 					result.createAfterTransfer();
-					TimetableResult afterResult(_transferTimetableAfter->build(false, shared_ptr<TimetableResult::Warnings>()));
+					TimetableResult afterResult(_transferTimetableAfter->build(false, boost::shared_ptr<TimetableResult::Warnings>()));
 
 					for(TimetableResult::Columns::const_reverse_iterator col(result.getColumns().rbegin()); col != result.getColumns().rend(); ++col)
 					{
@@ -552,6 +589,111 @@ namespace synthese
 					}
 				}
 
+				// Compression
+				if(_compression)
+				{
+					TimetableResult newResult(result.copy());
+					const TimetableResult::Columns& allColumns(result.getColumns());
+					pair<TimetableResult::Columns::const_iterator, TimetableResult::Columns::const_iterator> lastColSet(
+						make_pair(allColumns.end(), allColumns.end())
+					);
+					vector<size_t> sequence;
+					vector<TimetableColumn> standByColumns;
+
+					// Loop on columns
+					long nextHour(0);
+					for(TimetableResult::Columns::const_iterator itCol(allColumns.begin()); itCol != allColumns.end(); ++itCol)
+					{
+						// If no last col set, begin a new hour
+						if(lastColSet.first == allColumns.end())
+						{
+							lastColSet.first = itCol;
+							lastColSet.second = itCol;
+							newResult.getColumns().push_back(*itCol);
+							sequence.clear();
+							sequence.push_back(newResult.getColumns().size() - 1);
+							nextHour = itCol->getHour() + 1;
+							continue;
+			}
+
+						// Check if the current col is in the last col set
+						if(itCol->getHour() == lastColSet.first->getHour())
+						{
+							lastColSet.second = itCol;
+							newResult.getColumns().push_back(*itCol);
+							sequence.push_back(newResult.getColumns().size() - 1);
+							continue;
+						}
+
+						// We are in the next col set : search for repeated sequence
+						size_t repeats(0);
+						TimetableResult::Columns::const_iterator itColStart(itCol);
+						for(time_duration delta(hours(1)); ; delta += hours(1))
+						{
+							// The next sequence
+							TimetableResult::Columns::const_iterator seqEnd(allColumns.end());
+							for(TimetableResult::Columns::const_iterator itCol2(itColStart); itCol2 != allColumns.end() && itCol2->getHour() == nextHour; ++itCol2)
+							{
+								seqEnd = itCol2;
+							}
+
+							// Comparison of the sequence
+							if(	seqEnd != allColumns.end() &&
+								seqEnd - itColStart == lastColSet.second - lastColSet.first
+							){
+								bool ok(true);
+								for(size_t curSetColRank(0); curSetColRank<=seqEnd - itColStart; ++curSetColRank)
+								{
+									if(	!(itColStart+curSetColRank)->isLike(*(lastColSet.first + curSetColRank), delta)
+									){
+										ok = false;
+										break;
+									}
+								}
+
+								if(ok)
+								{
+									itColStart = seqEnd + 1;
+									++repeats;
+									++nextHour;
+								}
+								else
+								{
+									break;
+								}
+							}
+							else
+							{
+								break;
+							}
+						}
+
+						// If at least 4 repeats, then cut the result
+						if(repeats >= 3)
+						{
+							size_t compressionRank(0);
+							BOOST_FOREACH(size_t colRank, sequence)
+							{
+								newResult.getColumns().at(colRank).setCompression(
+									compressionRank++,
+									repeats
+								);
+							}
+							itCol += (repeats * sequence.size() - 1);
+						}
+						else
+						{
+							lastColSet = make_pair(allColumns.end(), allColumns.end());
+							--itCol;
+						}
+					
+						if(itCol == allColumns.end())
+						{
+							break;
+						}
+					}
+					return newResult;
+				}
 			}
 			return result;
 		}
@@ -632,7 +774,7 @@ namespace synthese
 			{
 				if(itCol->getCalendar() == _baseCalendar) continue;
 
-				shared_ptr<TimetableWarning> warn;
+				boost::shared_ptr<TimetableWarning> warn;
 				BOOST_FOREACH(const TimetableResult::Warnings::value_type& itWarn, result.getWarnings())
 				{
 					if(itWarn.second->getCalendar() == itCol->getCalendar())
@@ -650,7 +792,7 @@ namespace synthese
 					warn = result.getWarnings().insert(
 						make_pair(
 							nextNumber,
-							shared_ptr<TimetableWarning>(new TimetableWarning(
+							boost::shared_ptr<TimetableWarning>(new TimetableWarning(
 								itCol->getCalendar(),
 								nextNumber,
 								baseCalendar.second,

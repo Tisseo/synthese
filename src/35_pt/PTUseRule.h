@@ -26,7 +26,6 @@
 #include "UseRule.h"
 #include "Registrable.h"
 #include "Registry.h"
-#include "Named.h"
 #include "ParametersMap.h"
 
 #include <string>
@@ -35,10 +34,13 @@
 
 namespace synthese
 {
-	namespace pt
+	namespace fare
 	{
 		class Fare;
+	}
 
+	namespace pt
+	{
 		//////////////////////////////////////////////////////////////////////////
 		/// Public transportation use rule.
 		///	@ingroup m35
@@ -54,8 +56,7 @@ namespace synthese
 		///
 		class PTUseRule:
 			public util::Registrable,
-			public graph::UseRule,
-			public util::Named
+			public graph::UseRule
 		{
 		private:
 			static const std::string DATA_RESERVATION_POSSIBLE;
@@ -90,6 +91,8 @@ namespace synthese
 
 			//! @name Access
 			//@{
+				std::string _name;
+
 				//////////////////////////////////////////////////////////////////////////
 				/// Maximal person number which can be served
 				/// The undefined value of the attribute seems unlimited capacity
@@ -97,7 +100,7 @@ namespace synthese
 				AccessCapacity _accessCapacity;
 
 				/// Default fare
-				const Fare*	_defaultFare;
+				const fare::Fare*	_defaultFare;
 			//@}
 
 			//! @name Reservation
@@ -143,6 +146,7 @@ namespace synthese
 
 			//! @name Getters
 			//@{
+				virtual std::string getName() const { return _name; }
 				virtual AccessCapacity	getAccessCapacity()	const { return _accessCapacity; }
 				bool								getOriginIsReference()	const { return _originIsReference; }
 				const boost::posix_time::time_duration&	getHourDeadLine()				const { return _hourDeadLine; }
@@ -150,7 +154,7 @@ namespace synthese
 				boost::posix_time::time_duration					getMinDelayMinutes()			const { return _minDelayMinutes; }
 				const boost::optional<boost::gregorian::date_duration>&	getMaxDelayDays()		const { return _maxDelayDays; }
 				ReservationRuleType	getReservationType()			const { return _reservationType; }
-				const Fare*	getDefaultFare()				const { return _defaultFare; }
+				const fare::Fare*	getDefaultFare()				const { return _defaultFare; }
 				bool getForbiddenInDepartureBoards ()	const { return _forbiddenInDepartureBoards; }
 				bool getForbiddenInTimetables ()		const { return _forbiddenInTimetables; }
 				bool getForbiddenInJourneyPlanning ()	const { return _forbiddenInJourneyPlanning; }
@@ -172,12 +176,13 @@ namespace synthese
 				void setOriginIsReference (bool value){ _originIsReference = value; }
 				void setReservationType(ReservationRuleType value){ _reservationType = value; }
 				void setAccessCapacity(AccessCapacity value){ _accessCapacity = value; }
-				void setDefaultFare(const Fare* value){ _defaultFare = value; }
+				void setDefaultFare(const fare::Fare* value){ _defaultFare = value; }
 				void setForbiddenInDepartureBoards (bool value){ _forbiddenInDepartureBoards = value; }
 				void setForbiddenInJourneyPlanning (bool value){ _forbiddenInJourneyPlanning = value; }
 				void setForbiddenInTimetables (bool value){ _forbiddenInTimetables = value; }
 				void setReservationMinDepartureTime(const boost::posix_time::time_duration& value){ _reservationMinDepartureTime = value; }
 				void setReservationForbiddenDays(const std::set<boost::gregorian::date::day_of_week_type>& value){ _reservationForbiddenDays = value; }
+				void setName(const std::string& value){ _name = value; }
 			//@}
 
 			//! @name Service
@@ -308,8 +313,10 @@ namespace synthese
 				/// @author Hugues Romain
 				/// @since 3.3.0
 				/// @date 2011
-				void toParametersMap(
+				virtual void toParametersMap(
 					util::ParametersMap& pm,
+					bool withAdditionalParameters,
+					boost::logic::tribool withFiles = boost::logic::indeterminate,
 					std::string prefix = std::string()
 				) const;
 			//@}

@@ -70,6 +70,7 @@ namespace synthese
 			static const std::string COL_METRICOFFSET;
 			static const std::string COL_SCHEDULEINPUT;
 			static const std::string COL_INTERNAL_SERVICE;
+			static const std::string COL_RESERVATION_NEEDED;
 
 			/** LineStop search.
 				(other search parameters)
@@ -100,7 +101,8 @@ namespace synthese
 			/// @since 3.1.16
 			//////////////////////////////////////////////////////////////////////////
 			static void InsertStop(
-				LineStop& lineStop
+				LineStop& lineStop,
+				db::DBTransaction& transaction
 			);
 
 

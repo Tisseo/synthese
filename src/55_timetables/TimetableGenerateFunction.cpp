@@ -63,6 +63,7 @@ namespace synthese
 	using namespace util;
 	using namespace server;
 	using namespace security;
+	using namespace vehicle;
 	using namespace geography;
 	using namespace calendar;
 	using namespace graph;
@@ -158,7 +159,7 @@ namespace synthese
 			_warnings(new TimetableResult::Warnings),
 			_timetableRank(0)
 		{
-			setEnv(shared_ptr<Env>(new Env));
+			setEnv(boost::shared_ptr<Env>(new Env));
 		}
 
 
@@ -262,7 +263,7 @@ namespace synthese
 			else if(map.getOptional<string>(PARAMETER_DAY))
 			{
 				date curDate(from_string(map.get<string>(PARAMETER_DAY)));
-				_calendarTemplate = shared_ptr<CalendarTemplate>(new CalendarTemplate(curDate));
+				_calendarTemplate = boost::shared_ptr<CalendarTemplate>(new CalendarTemplate(curDate));
 			}
 
 			_ignorePastDates = map.getOptional<bool>(PARAMETER_IGNORE_PAST_DATES);
@@ -284,11 +285,11 @@ namespace synthese
 			}
 			else
 			{
-				shared_ptr<Timetable> timetable(new Timetable);
+				boost::shared_ptr<Timetable> timetable(new Timetable);
 				if(!_calendarTemplate.get())
 				{
 					date curDate(day_clock::local_day());
-					_calendarTemplate = shared_ptr<CalendarTemplate>(new CalendarTemplate(curDate));
+					_calendarTemplate = boost::shared_ptr<CalendarTemplate>(new CalendarTemplate(curDate));
 				}
 				if(!_calendarTemplate->isLimited())
 				{
@@ -329,7 +330,7 @@ namespace synthese
 				} // Way 4.1 : stop area timetable
 				if(decodeTableId(map.getDefault<RegistryKeyType>(Request::PARAMETER_OBJECT_ID)) == StopAreaTableSync::TABLE.ID)
 				{
-					shared_ptr<const StopArea> place;
+					boost::shared_ptr<const StopArea> place;
 					try
 					{
 						place = Env::GetOfficialEnv().get<StopArea>(map.get<RegistryKeyType>(Request::PARAMETER_OBJECT_ID));
@@ -350,7 +351,7 @@ namespace synthese
 				} // Way 4.2 : physical stop timetable
 				else if(decodeTableId(map.getDefault<RegistryKeyType>(Request::PARAMETER_OBJECT_ID)) == StopPointTableSync::TABLE.ID)
 				{
-					shared_ptr<const StopPoint> stop;
+					boost::shared_ptr<const StopPoint> stop;
 					try
 					{
 						stop = Env::GetOfficialEnv().get<StopPoint>(map.get<RegistryKeyType>(Request::PARAMETER_OBJECT_ID));
@@ -392,11 +393,11 @@ namespace synthese
 						// Timetable properties
 						timetable->setContentType(Timetable::CONTAINER);
 
-						shared_ptr<Timetable> tt1(new Timetable);
+						boost::shared_ptr<Timetable> tt1(new Timetable);
 						tt1->setBaseCalendar(timetable->getBaseCalendar());
 						AddLineDirectionToTimetable(*tt1, *_commercialLine, false);
 
-						shared_ptr<Timetable> tt2(new Timetable);
+						boost::shared_ptr<Timetable> tt2(new Timetable);
 						tt2->setBaseCalendar(timetable->getBaseCalendar());
 						AddLineDirectionToTimetable(*tt2, *_commercialLine, true);
 					}
@@ -567,7 +568,7 @@ namespace synthese
 			size_t rank
 		) const {
 			ParametersMap pm(getTemplateParameters());
-			shared_ptr<TimetableResult::Warnings> warnings;
+			boost::shared_ptr<TimetableResult::Warnings> warnings;
 
 			// Common parameters
 			pm.insert(DATA_GENERATOR_TYPE, GetTimetableTypeCode(object.getContentType()));
@@ -591,7 +592,7 @@ namespace synthese
 						stringstream content;
 						Env env;
 						warnings.reset(new TimetableResult::Warnings);
-						BOOST_FOREACH(const shared_ptr<Timetable>& tt, _containerContent)
+						BOOST_FOREACH(const boost::shared_ptr<Timetable>& tt, _containerContent)
 						{
 							try
 							{
@@ -612,8 +613,8 @@ namespace synthese
 								_display(
 									content,
 									pageForSubTimetable,
-									shared_ptr<const Webpage>(),
-									shared_ptr<const Webpage>(),
+									boost::shared_ptr<const Webpage>(),
+									boost::shared_ptr<const Webpage>(),
 									request,
 									*tt,
 									*g,
@@ -984,7 +985,7 @@ namespace synthese
 			pm.insert(DATA_CELL_RANK, colRank); //1
 			pm.insert(DATA_ROW_RANK, 0); //2
 			pm.insert(Request::PARAMETER_OBJECT_ID, object.getKey()); //3
-			object.toParametersMap(pm);
+			object.toParametersMap(pm, true);
 
 			_cellPage->display(stream, request, pm);
 		}
@@ -1221,8 +1222,8 @@ namespace synthese
 		void TimetableGenerateFunction::_displayRollingStockCell(
 			std::ostream& stream,
 			const server::Request& request,
-			const pt::RollingStock* object,
-			std::size_t colRank
+			const RollingStock* object,
+			size_t colRank
 		) const {
 			ParametersMap pm(getTemplateParameters());
 
@@ -1259,12 +1260,12 @@ namespace synthese
 				// Calendar check
 				if(timetable.getBaseCalendar()->isLimited())
 				{
-					bool result(jp->hasAtLeastOneCommonDateWith(timetable.getBaseCalendar()->getResult()));
+					bool result(jp->getCalendarCache().hasAtLeastOneCommonDateWith(timetable.getBaseCalendar()->getResult()));
 					if(!result)
 					{
 						BOOST_FOREACH(JourneyPatternCopy* subline, jp->getSubLines())
 						{
-							if(subline->hasAtLeastOneCommonDateWith(timetable.getBaseCalendar()->getResult()))
+							if(subline->getCalendarCache().hasAtLeastOneCommonDateWith(timetable.getBaseCalendar()->getResult()))
 							{
 								result = true;
 								break;
@@ -1358,7 +1359,7 @@ namespace synthese
 				)	);
 				if(ptUseRule)
 				{
-					ptUseRule->toParametersMap(pm);
+					ptUseRule->toParametersMap(pm, true);
 				}
 			}
 

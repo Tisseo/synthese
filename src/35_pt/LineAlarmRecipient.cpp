@@ -136,7 +136,7 @@ namespace synthese
 				// Loop on lines
 				for (CommercialLineTableSync::SearchResult::iterator dsit = dsv.begin(); dsit != dsv.end(); ++dsit)
 				{
-					shared_ptr<CommercialLine> ds = *dsit;
+					boost::shared_ptr<CommercialLine> ds = *dsit;
 
 					// Right check
 //					if(!getRight()->perimeterIncludes(lexical_cast<string>(ds->getKey()))
@@ -188,7 +188,7 @@ namespace synthese
 			);
 
 			stream << t.open();
-			BOOST_FOREACH(const shared_ptr<CommercialLine>& line, lines)
+			BOOST_FOREACH(const boost::shared_ptr<CommercialLine>& line, lines)
 			{
 				if (usedLines.find(line->getKey()) != usedLines.end())
 				{
@@ -214,7 +214,7 @@ namespace synthese
 		AlarmRecipientSearchFieldsMap LineAlarmRecipient::getSearchFields(HTMLForm& form, const ParametersMap& parameters) const
 		{
 			AlarmRecipientSearchFieldsMap map;
-/*			shared_ptr<const JourneyPattern> line;
+/*			boost::shared_ptr<const JourneyPattern> line;
 			Env env;
 			optional<RegistryKeyType> id(parameters.getOptional<RegistryKeyType>(PARAMETER_SEARCH_LINE));
 			if (id)
@@ -242,85 +242,6 @@ namespace synthese
 		{
 			TransportNetworkRight* result(new TransportNetworkRight);
 			result->setParameter(perimeter);
-			return shared_ptr<Right>(result);
-		}
-
-
-
-		AlarmRecipient::AvailableRecipients::Tree::value_type LineAlarmRecipient::getAvailableRecipients() const
-		{
-			// Root item
-			shared_ptr<AvailableRecipients> result(new AvailableRecipients);
-			result->id = 0;
-			result->name = "Toutes les lignes";
-
-			// Networks
-			BOOST_FOREACH(
-				const Registry<TransportNetwork>::value_type& item,
-				Env::GetOfficialEnv().getRegistry<TransportNetwork>()
-			){
-				result->tree.push_back(
-					_addNodeToAvailableRecipient(
-						*item.second
-				)	);
-			}
-
-			return result;
-		}
-
-
-
-		shared_ptr<LineAlarmRecipient::AvailableRecipients> LineAlarmRecipient::_addNodeToAvailableRecipient(
-			const TreeFolderUpNode& node
-		){
-			// The node
-			shared_ptr<AvailableRecipients> result(new AvailableRecipients);
-			result->id = node.getKey();
-			if(dynamic_cast<const TransportNetwork*>(&node))
-			{
-				result->name = static_cast<const TransportNetwork&>(node).getName();
-			}
-			else if(dynamic_cast<const TreeFolder*>(&node))
-			{
-				result->name = static_cast<const TreeFolder&>(node).getName();
-			}
-
-			// Folder loop
-			BOOST_FOREACH(
-				TreeFolder* folder,
-				node.getChildren<TreeFolder>()
-			){
-				result->tree.push_back(
-					_addNodeToAvailableRecipient(*folder)
-				);
-			}
-
-			// Lines loop
-			BOOST_FOREACH(
-				CommercialLine* line,
-				node.getChildren<CommercialLine>()
-			){
-				// Line node
-				shared_ptr<AvailableRecipients> lineObj(new AvailableRecipients);
-				lineObj->id = line->getKey();
-				lineObj->name = "Ligne "+ line->getShortName() + " (" + line->getLongName() + ")";
-				result->tree.push_back(lineObj);
-
-				// Direction 1
-				shared_ptr<AvailableRecipients> lineForward(new AvailableRecipients);
-				lineForward->id = line->getKey();
-				lineForward->parameter = "0";
-				lineForward->name = "Ligne "+ line->getShortName() + " sens aller";
-				lineObj->tree.push_back(lineForward);
-
-				// Direction 2
-				shared_ptr<AvailableRecipients> lineBackward(new AvailableRecipients);
-				lineBackward->id = line->getKey();
-				lineBackward->parameter = "1";
-				lineBackward->name = "Ligne "+ line->getShortName() + " sens retour";
-				lineObj->tree.push_back(lineBackward);
-			}
-
-			return result;
+			return boost::shared_ptr<Right>(result);
 		}
 }	}

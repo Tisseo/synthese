@@ -24,44 +24,21 @@
 
 #include "Import.hpp"
 #include "PTModule.h"
-#include "TransportNetwork.h"
 #include "TransportNetworkTableSync.h"
-#include "StopArea.hpp"
-#include "PTFileFormat.hpp"
 #include "JourneyPatternTableSync.hpp"
 #include "LineStopTableSync.h"
 #include "ScheduledServiceTableSync.h"
 #include "ImpExModule.h"
-#include "PropertiesHTMLTable.h"
-#include "DataSourceAdmin.h"
-#include "AdminFunctionRequest.hpp"
-#include "PropertiesHTMLTable.h"
-#include "DataSourceAdmin.h"
-#include "AdminFunctionRequest.hpp"
-#include "AdminActionFunctionRequest.hpp"
 #include "StopAreaTableSync.hpp"
 #include "StopPointTableSync.hpp"
-#include "PTPlaceAdmin.h"
-#include "StopPointAdmin.hpp"
-#include "StopAreaAddAction.h"
-#include "StopArea.hpp"
 #include "DataSource.h"
-#include "Importer.hpp"
-#include "AdminActionFunctionRequest.hpp"
-#include "HTMLModule.h"
-#include "HTMLForm.h"
 #include "DBModule.h"
-#include "HastusCSVFileFormat.hpp"
-#include "City.h"
-#include "PTFileFormat.hpp"
 #include "CityTableSync.h"
-#include "Junction.hpp"
 #include "JunctionTableSync.hpp"
 #include "DesignatedLinePhysicalStop.hpp"
 #include "PTUseRuleTableSync.h"
 #include "IConv.hpp"
 #include "CommercialLineTableSync.h"
-#include "RollingStock.hpp"
 #include "RollingStockTableSync.hpp"
 
 #include <fstream>
@@ -84,10 +61,9 @@ namespace synthese
 	using namespace db;
 	using namespace calendar;
 	using namespace graph;
-	using namespace html;
-	using namespace admin;
 	using namespace server;
 	using namespace geography;
+	using namespace vehicle;
 
 	namespace util
 	{
@@ -109,6 +85,7 @@ namespace synthese
 		const std::string HastusCSVFileFormat::Importer_::PARAMETER_STOP_AREA_DEFAULT_TRANSFER_DURATION("sadt");
 		const std::string HastusCSVFileFormat::Importer_::PARAMETER_DISPLAY_LINKED_STOPS("display_linked_stops");
 		const string HastusCSVFileFormat::Importer_::PARAMETER_HANDICAPPED_ALLOWED_USE_RULE = "handicapped_allowed_use_rule";
+		const string HastusCSVFileFormat::Importer_::PARAMETER_HANDICAPPED_FORBIDDEN_USE_RULE = "handicapped_forbidden_use_rule";
 	}
 
 	namespace impex
@@ -165,10 +142,14 @@ namespace synthese
 		HastusCSVFileFormat::Importer_::Importer_(
 			util::Env& env,
 			const impex::Import& import,
-			const impex::ImportLogger& logger
-		):	Importer(env, import, logger),
-			MultipleFileTypesImporter<HastusCSVFileFormat>(env, import, logger),
-			PTDataCleanerFileFormat(env, import, logger),
+			impex::ImportLogLevel minLogLevel,
+			const std::string& logPath,
+			boost::optional<std::ostream&> outputStream,
+			util::ParametersMap& pm
+		):	Importer(env, import, minLogLevel, logPath, outputStream, pm),
+			MultipleFileTypesImporter<HastusCSVFileFormat>(env, import, minLogLevel, logPath, outputStream, pm),
+			PTDataCleanerFileFormat(env, import, minLogLevel, logPath, outputStream, pm),
+			PTFileFormat(env, import, minLogLevel, logPath, outputStream, pm),
 			_importStopArea(false),
 			_interactive(false),
 			_displayLinkedStops(false),
@@ -179,8 +160,7 @@ namespace synthese
 
 		bool HastusCSVFileFormat::Importer_::_parse(
 			const boost::filesystem::path& filePath,
-			const std::string& key,
-			boost::optional<const server::Request&> request
+			const std::string& key
 		) const {
 			ifstream inFile;
 			inFile.open(filePath.file_string().c_str());
@@ -189,8 +169,7 @@ namespace synthese
 				throw Exception("Could no open the file " + filePath.file_string());
 			}
 			string line;
-			_log(
-				ImportLogger::DEBG,
+			_logDebug(
 				"Loading file "+ filePath.file_string() +" as "+ key
 			);
 
@@ -218,10 +197,10 @@ namespace synthese
 					);
 					if(cities.empty())
 					{
-						_log(
-							ImportLogger::WARN,
-							"City "+ cityCode +" not found"
+						_logError(
+							"ERR : City " + cityCode + " not found used by stopPoint : " + name + ",  " + code + ", " + x + ", " + y + "<br />"
 						);
+						continue;
 					}
 					else
 					{
@@ -229,7 +208,7 @@ namespace synthese
 					}
 
 					// Point
-					shared_ptr<geos::geom::Point> point;
+					boost::shared_ptr<geos::geom::Point> point;
 					if(!x.empty() && !y.empty())
 					{
 						try
@@ -245,16 +224,14 @@ namespace synthese
 						}
 						catch(boost::bad_lexical_cast&)
 						{
-							_log(
-								ImportLogger::WARN,
+							_logWarning(
 								"Stop "+ code +" has invalid coordinate"
 							);
 						}
 					}
 					else
 					{
-						_log(
-							ImportLogger::WARN,
+						_logWarning(
 							"Stop "+ code +" has invalid coordinate"
 						);
 					}
@@ -269,7 +246,7 @@ namespace synthese
 					RuleUser::Rules handicappedForbiddenRules;
 					handicappedForbiddenRules.push_back(NULL);
 					handicappedForbiddenRules.push_back(NULL);
-					handicappedForbiddenRules.push_back(NULL);
+					handicappedForbiddenRules.push_back(_handicappedForbiddenUseRule.get());
 					handicappedForbiddenRules.push_back(NULL);
 
 					optional<const RuleUser::Rules&> handicappedUseRule(
@@ -279,7 +256,7 @@ namespace synthese
 					);
 
 					// Stop creation // AJOUTER PRISE EN CHARGE _importStopArea
-					PTFileFormat::CreateOrUpdateStopWithStopAreaAutocreation(
+					_createOrUpdateStopWithStopAreaAutocreation(
 						_stopPoints,
 						code,
 						name,
@@ -287,8 +264,6 @@ namespace synthese
 						*cityForStopAreaAutoGeneration,
 						_stopAreaDefaultTransferDuration,
 						dataSource,
-						_env,
-						_logger,
 						handicappedUseRule
 					);
 				}
@@ -399,8 +374,7 @@ namespace synthese
 					// Line
 					if(!lines.contains(trip.lineCode))
 					{
-						_log(
-							ImportLogger::WARN,
+						_logWarning(
 							"inconsistent line id "+ trip.lineCode +" in the trip "+ trip.code
 						);
 						continue;
@@ -411,7 +385,7 @@ namespace synthese
 
 					// Route
 					JourneyPattern* route(
-						PTFileFormat::CreateOrUpdateRoute(
+						_createOrUpdateRoute(
 							line,
 							trip.routeCode,
 							tripValues.routeName,
@@ -422,15 +396,14 @@ namespace synthese
 							tripValues.rollingStock,
 							tripValues.stops,
 							dataSource,
-							_env,
-							_logger,
 							true,
-							true
+							true,
+                            true,
+                            true
 					)	);
 					if(route == NULL)
 					{
-						_log(
-							ImportLogger::WARN,
+						_logWarning(
 							"Failure at route creation ("+ trip.lineCode +" / "+ trip.routeCode +"/"+ trip.code +")"
 						);
 						continue;
@@ -443,10 +416,12 @@ namespace synthese
 					handicappedRules.push_back(NULL);
 					handicappedRules.push_back(_handicappedAllowedUseRule.get());
 					handicappedRules.push_back(NULL);
+					handicappedRules.push_back(NULL);
 
 					RuleUser::Rules handicappedForbiddenRules;
 					handicappedForbiddenRules.push_back(NULL);
 					handicappedForbiddenRules.push_back(NULL);
+					handicappedForbiddenRules.push_back(_handicappedForbiddenUseRule.get());
 					handicappedForbiddenRules.push_back(NULL);
 					handicappedForbiddenRules.push_back(NULL);
 
@@ -457,14 +432,12 @@ namespace synthese
 					);
 
 					ScheduledService* service(
-						PTFileFormat::CreateOrUpdateService(
+						_createOrUpdateService(
 							*route,
 							tripValues.schedules,
 							tripValues.schedules,
 							trip.code,
 							dataSource,
-							_env,
-							_logger,
 							optional<const string&>(trip.team),
 							handicappedUseRule
 					)	);
@@ -475,57 +448,6 @@ namespace synthese
 				}
 			}
 			return true;
-		}
-
-
-
-		void HastusCSVFileFormat::Importer_::displayAdmin(
-			std::ostream& stream,
-			const server::Request& request
-		) const	{
-			stream << "<h1>Fichiers</h1>";
-
-			AdminFunctionRequest<DataSourceAdmin> reloadRequest(request);
-			PropertiesHTMLTable t(reloadRequest.getHTMLForm());
-			t.getForm().addHiddenField(PARAMETER_FROM_TODAY, string("1"));
-			stream << t.open();
-			stream << t.title("Mode");
-			stream << t.cell("Effectuer import", t.getForm().getOuiNonRadioInput(DataSourceAdmin::PARAMETER_DO_IMPORT, false));
-			stream << t.cell("Effacer données anciennes", t.getForm().getOuiNonRadioInput(PARAMETER_CLEAN_OLD_DATA, false));
-			stream << t.cell("Effacer arrêts inutilisés", t.getForm().getOuiNonRadioInput(PTDataCleanerFileFormat::PARAMETER_CLEAN_UNUSED_STOPS, _cleanUnusedStops));
-			stream << t.title("Fichiers");
-			stream << t.cell("Fichier arrêts", t.getForm().getTextInput(_getFileParameterName(FILE_ARRETS), _pathsMap[FILE_ARRETS].file_string()));
-			stream << t.cell("Fichier itinéraires", t.getForm().getTextInput(_getFileParameterName(FILE_ITINERAIRES), _pathsMap[FILE_ITINERAIRES].file_string()));
-			stream << t.cell("Fichier voyages", t.getForm().getTextInput(_getFileParameterName(FILE_VOYAGES), _pathsMap[FILE_VOYAGES].file_string()));
-			stream << t.title("Paramètres");
-			stream << t.cell("Affichage arrêts liés", t.getForm().getOuiNonRadioInput(PARAMETER_DISPLAY_LINKED_STOPS, _displayLinkedStops));
-			stream << t.cell("Import zones d'arrêt", t.getForm().getOuiNonRadioInput(PARAMETER_IMPORT_STOP_AREA, _importStopArea));
-			stream << t.cell("Réseau (ID)", t.getForm().getTextInput(PARAMETER_NETWORK_ID, _network.get() ? lexical_cast<string>(_network->getKey()) : string()));
-			string rollingStockA;
-			if((_rollingStocks.find("A") != _rollingStocks.end()) && _rollingStocks.find("A")->second.get())
-				rollingStockA = lexical_cast<string>(_rollingStocks.find("A")->second->getKey());
-			stream << t.cell("Mode de transport Bus (A) (ID)", t.getForm().getTextInput(PARAMETER_ROLLING_STOCK_ID_A, rollingStockA));
-
-			string rollingStockT;
-			if((_rollingStocks.find("T") != _rollingStocks.end()) && _rollingStocks.find("T")->second.get())
-				rollingStockT = lexical_cast<string>(_rollingStocks.find("T")->second->getKey());
-			stream << t.cell("Mode de transport Tram (T) (ID)", t.getForm().getTextInput(PARAMETER_ROLLING_STOCK_ID_T, rollingStockT));
-
-			stream << t.cell("Mode de transport par défaut (ID)", t.getForm().getTextInput(PARAMETER_ROLLING_STOCK_ID_DEFAULT, _defaultRollingStock.get() ? lexical_cast<string>(_defaultRollingStock->getKey()) : string()));
-			stream << t.cell("Temps de transfert par défaut (min)", t.getForm().getTextInput(PARAMETER_STOP_AREA_DEFAULT_TRANSFER_DURATION, lexical_cast<string>(_stopAreaDefaultTransferDuration.total_seconds() / 60)));
-
-			// Handicapped use rule
-			stream <<
-				t.cell(
-					"ID règle accessibilité arrêt",
-					t.getForm().getSelectInput(
-						PARAMETER_HANDICAPPED_ALLOWED_USE_RULE,
-						PTModule::GetPTUseRuleLabels(),
-						boost::optional<util::RegistryKeyType>()
-				)	)
-			;
-
-			stream << t.close();
 		}
 
 
@@ -622,6 +544,12 @@ namespace synthese
 				map.insert(PARAMETER_HANDICAPPED_ALLOWED_USE_RULE, _handicappedAllowedUseRule->getKey());
 			}
 
+			// Handicapped forbidden use rule
+			if(_handicappedForbiddenUseRule.get())
+			{
+				map.insert(PARAMETER_HANDICAPPED_FORBIDDEN_USE_RULE, _handicappedForbiddenUseRule->getKey());
+			}
+
 			return map;
 		}
 
@@ -665,6 +593,19 @@ namespace synthese
 			catch(ObjectNotFoundException<PTUseRule>&)
 			{
 				throw Exception("No such handicapped use rule");
+			}
+
+			// Handicapped PT forbidden use rule
+			RegistryKeyType handicappedPTForbiddenUseRuleId(
+				map.getDefault<RegistryKeyType>(PARAMETER_HANDICAPPED_FORBIDDEN_USE_RULE)
+			);
+			if(handicappedPTForbiddenUseRuleId) try
+			{
+				_handicappedForbiddenUseRule = PTUseRuleTableSync::GetEditable(handicappedPTForbiddenUseRuleId, _env);
+			}
+			catch(ObjectNotFoundException<PTUseRule>&)
+			{
+				throw Exception("No such handicapped forbidden use rule");
 			}
 		}
 }	}

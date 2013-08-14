@@ -85,7 +85,7 @@ namespace synthese
 
 			BOOST_FOREACH(const Items::value_type& it, _items)
 			{
-				shared_ptr<ParametersMap> itemPM(new ParametersMap);
+				boost::shared_ptr<ParametersMap> itemPM(new ParametersMap);
 
 				it->toParametersMap(*itemPM);
 
@@ -100,7 +100,6 @@ namespace synthese
 			const InterSYNTHESEContent& content,
 			boost::optional<db::DBTransaction&> transaction
 		) const {
-			boost::mutex::scoped_lock(_configMutex);
 			// Avoid useless check if no slave
 			if(_slaves.empty())
 			{
@@ -108,20 +107,23 @@ namespace synthese
 			}
 
 			// Check if the content must be sent to the slaves
-			bool mustBeEnqueued(false);
-			BOOST_FOREACH(const Items::value_type& item, _items)
 			{
-				if(item->mustBeEnqueued(
-					content.getType(),
-					content.getPerimeter()
-				)	){
-					mustBeEnqueued = true;
-					break;
+				bool mustBeEnqueued(false);
+				boost::recursive_mutex::scoped_lock lock(_configMutex);
+				BOOST_FOREACH(const Items::value_type& item, _items)
+				{
+					if(item->mustBeEnqueued(
+						content.getType(),
+						content.getPerimeter()
+					)	){
+						mustBeEnqueued = true;
+						break;
+					}
 				}
-			}
-			if(!mustBeEnqueued)
-			{
-				return;
+				if(!mustBeEnqueued)
+				{
+					return;
+				}
 			}
 
 			// Enqueue in all slaves

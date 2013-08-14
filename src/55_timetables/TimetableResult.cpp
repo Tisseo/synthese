@@ -178,8 +178,24 @@ namespace synthese
 
 		TimetableResult::TimetableResult(
 			boost::shared_ptr<Warnings> warnings
-		):	_warnings(warnings.get() ? warnings : shared_ptr<Warnings>(new Warnings))
+		):	_warnings(warnings.get() ? warnings : boost::shared_ptr<Warnings>(new Warnings))
 		{}
+
+
+
+		TimetableResult TimetableResult::copy() const
+		{
+			TimetableResult result(_warnings);
+			if(_beforeTransfers.get())
+			{
+				result._beforeTransfers.reset(new TimetableResult(_beforeTransfers->_warnings));
+			}
+			if(_afterTransfers.get())
+			{
+				result._afterTransfers.reset(new TimetableResult(_afterTransfers->_warnings));
+			}
+			return result;
+		}
 
 
 

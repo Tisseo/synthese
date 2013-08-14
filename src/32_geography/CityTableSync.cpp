@@ -78,18 +78,7 @@ namespace synthese
 			Env& env,
 			LinkLevel linkLevel
 		){
-			// Name
-		    object->setName(rows->getText ( CityTableSync::TABLE_COL_NAME));
-
-			// Code
-		    object->setCode(rows->getText ( CityTableSync::TABLE_COL_CODE));
-
-			// Lexical matchers
-			if (linkLevel == ALGORITHMS_OPTIMIZATION_LOAD_LEVEL)
-			{
-				// Add to cities and all places matcher
-				GeographyModule::AddToCitiesMatchers(Env::GetOfficialEnv().getEditableSPtr(object));
-			}
+			object->loadFromRecord(*rows, env);
 		}
 
 
@@ -105,7 +94,7 @@ namespace synthese
 					Env::GetOfficialEnv(),
 					obj->getName()
 			)	);
-			BOOST_FOREACH(shared_ptr<City> other, others)
+			BOOST_FOREACH(boost::shared_ptr<City> other, others)
 			{
 				if(other->getKey() != obj->getKey())
 				{
@@ -213,8 +202,8 @@ namespace synthese
 					0, 1, false, false,
 					FIELDS_ONLY_LOAD_LEVEL
 			)	);
-			if(cities.empty()) return shared_ptr<City>();
-			shared_ptr<const City> result(cities.front());
+			if(cities.empty()) return boost::shared_ptr<City>();
+			boost::shared_ptr<const City> result(cities.front());
 			return GetEditable(result->getKey(), environment, linkLevel);
 		}
 	}

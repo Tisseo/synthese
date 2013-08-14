@@ -136,6 +136,12 @@ namespace synthese
 			static const std::string REVISION;
 			static const std::string BUILD_DATE;
 
+			// SYNTHESE is not lock protected against changing the base content
+			// while reading or writing it. Take this mutex if you change the base
+			// in a service.
+			// @FIXME This should be used by all services appropriately.
+			static boost::shared_mutex baseWriterMutex;
+
 		private:
 
 			/// The io_service used to perform asynchronous operations.
@@ -149,7 +155,6 @@ namespace synthese
 
 			// Threads
 			static Threads _threads;
-			static std::size_t _waitingThreads;
 			static boost::recursive_mutex _threadManagementMutex;
 			static boost::posix_time::time_duration _sessionMaxDuration;
 			static std::string _autoLoginUser;
@@ -157,10 +162,9 @@ namespace synthese
 			static boost::optional<boost::filesystem::path> _httpTracePath;
 			static bool _forceGZip;
 
-
 		public:
 			static boost::thread::id AddHTTPThread();
-
+			
 			template<class Callable>
 			static boost::shared_ptr<boost::thread> AddThread(
 				Callable func,

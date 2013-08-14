@@ -31,7 +31,7 @@
 #include "StringField.hpp"
 
 #include <boost/date_time/gregorian/gregorian.hpp>
-#include <boost/thread/mutex.hpp>
+#include "boost/thread/recursive_mutex.hpp"
 
 namespace synthese
 {
@@ -69,6 +69,7 @@ namespace synthese
 			public Object<InterSYNTHESESlave, InterSYNTHESESlaveRecord>
 		{
 			static const std::string TAG_QUEUE_ITEM;
+			static const std::string TAG_QUEUE_SIZE;
 		public:
 		
 			/// Chosen registry class.
@@ -87,15 +88,25 @@ namespace synthese
 		private:
 			mutable Queue _queue;
 			mutable QueueRange _lastSentRange;
-			mutable boost::mutex _queueMutex;
+			mutable boost::recursive_mutex _queueMutex;
+			mutable boost::recursive_mutex _slaveChangeMutex;
 		
+			// Keep the previous config at unlink time and use it at link
+			// time only if it has changed. Don't forget to unlink it in
+			// our destructor
+			InterSYNTHESEConfig *_previousConfig;
+
 		public:
 			InterSYNTHESESlave(util::RegistryKeyType id = 0);
+			~InterSYNTHESESlave();
 
 			//! @name Services
 			//@{
+				void markAsUpToDate();
 				bool isObsolete() const;
 
+				bool fullUpdateNeeded() const;
+				void processFullUpdate() const;
 				QueueRange getQueueRange() const;
 
 				void enqueue(

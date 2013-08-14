@@ -134,7 +134,7 @@ namespace synthese
 			return _passwordHash;
 		}
 
-		const std::string& User::getName() const
+		std::string User::getName() const
 		{
 			return _name;
 		}
@@ -262,8 +262,12 @@ namespace synthese
 
 
 
-		void User::toParametersMap( util::ParametersMap& pm ) const
-		{
+		void User::toParametersMap(
+			util::ParametersMap& pm,
+			bool withAdditionalParameters,
+			boost::logic::tribool withFiles,
+			std::string prefix
+		) const	{
 			pm.insert("id", getKey());
 			pm.insert(DATA_NAME, _name);
 			pm.insert(DATA_SURNAME, _surname);
@@ -273,6 +277,7 @@ namespace synthese
 			pm.insert("address", _address);
 			pm.insert("postcode", _postCode);
 			pm.insert("cityText", _cityText);
+			pm.insert("country", _country);
 			pm.insert("is_connection_allowed", _isConnectionAllowed);
 			if(_profile)
 			{

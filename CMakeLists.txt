@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8.4)
 # Version:
 set(VERSION_MAJOR 3)
 set(VERSION_MINOR 8)
-set(VERSION_REV 0)
+set(VERSION_REV beta1)
 set(SYNTHESE_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REV}")
 
 # See http://www.cmake.org/Wiki/CMake_FAQ#Make_Override_Files
@@ -37,6 +37,7 @@ if(WIN32)
   set(Boost_USE_STATIC_RUNTIME ON)
 else()
   add_definitions(-DBOOST_ALL_DYN_LINK)
+  add_definitions(-DPNG_NO_MMX_CODE)
 endif()
 
 add_definitions(-DFUSION_MAX_VECTOR_SIZE=30)
@@ -134,16 +135,16 @@ endif()
 if (NOT WIN32)
   # TODO: not adding svn revision on Windows. It expects a native svn, and fails
   # if Cygwin svn is found instead.
-  find_package(Subversion)
-  if (SUBVERSION_FOUND)
-    Subversion_WC_INFO(${PROJECT_SOURCE_DIR} Synthese)
-    set(SYNTHESE_REVISION "${Synthese_WC_REVISION}")
-  endif (SUBVERSION_FOUND)
 
-  exec_program("date"
-    ARGS "'+%Y%m%d %H:%M'"
-    OUTPUT_VARIABLE DATE)
-  set(SYNTHESE_BUILD_DATE "${DATE}")
+  # A custom target that is always built
+  add_custom_target(revisiontag ALL)
+
+  # Creates svnversion.h using cmake script
+  add_custom_command(TARGET revisiontag COMMAND ${CMAKE_COMMAND}
+    -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/getsvn.cmake)
+else (NOT WIN32)
+  file(WRITE svnversion.h "#define SYNTHESE_REVISION \"\"\n")
 endif (NOT WIN32)
 
 # Note: this is using a .h file and not defines, otherwise everything gets
@@ -174,11 +175,31 @@ include(global_vars.cmake)
 
 add_subdirectory(3rd)
 add_subdirectory(src)
+
+OPTION(WITH_TEST "Build and install test" ON)
+if(WITH_TEST)
+  add_subdirectory(test)
+endif()
+
+OPTION(WITH_PACKAGES "Build and install packages" OFF)
+if(WITH_PACKAGES)
 add_subdirectory(packages)
+endif()
+
+OPTION(WITH_PROJECTS "Build and install projects" OFF)
+if(WITH_PROJECTS)
 add_subdirectory(projects)
+endif()
+
+OPTION(WITH_TOOLS "Build and install tools" OFF)
+if(WITH_TOOLS)
 add_subdirectory(tools)
-add_subdirectory(test)
+endif()
+
+OPTION(WITH_UTILS "Build and install utils" OFF)
+if(WITH_UTILS)
 add_subdirectory(utils)
+endif()
 
 # build a CPack driven installer package
 #include(InstallRequiredSystemLibraries)

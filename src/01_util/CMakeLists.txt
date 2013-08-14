@@ -3,6 +3,8 @@ set_source_groups()
 set(util_SRCS
 alphanum.hpp
 AlphanumericFilter.h
+Base64.cpp
+Base64.hpp
 ConcurrentQueue.hpp
 ConstantReturner.h
 Conversion.cpp
@@ -31,7 +33,6 @@ MimeType.cpp
 MimeType.hpp
 MimeTypes.cpp
 MimeTypes.hpp
-Named.h
 ObjectNotFoundException.h
 ObjectNotFoundInRegistryException.h
 ParametersMap.cpp

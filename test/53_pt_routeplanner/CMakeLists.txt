@@ -22,6 +22,7 @@ include_directories("${PROJECT_SOURCE_DIR}/src/31_calendar")
 include_directories("${PROJECT_SOURCE_DIR}/src/32_geography")
 include_directories("${PROJECT_SOURCE_DIR}/src/33_algorithm")
 include_directories("${PROJECT_SOURCE_DIR}/src/34_road")
+include_directories("${PROJECT_SOURCE_DIR}/src/38_vehicle")
 include_directories("${PROJECT_SOURCE_DIR}/src/35_pt")
 include_directories("${PROJECT_SOURCE_DIR}/src/51_resa")
 include_directories("${PROJECT_SOURCE_DIR}/src/53_pt_journey_planner")
@@ -35,6 +36,8 @@ set(DEPS
   11_cms # from 53_pt_journey_planner > 35_pt
   54_departure_boards
   61_data_exchange
+  37_pt_operation
+  38_vehicle
 )
 
 boost_test(IntegralSearch "${DEPS}" "RoutePlannerTestData.inc.hpp;RoutePlannerTestData.hpp")

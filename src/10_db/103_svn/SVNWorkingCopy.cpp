@@ -216,7 +216,7 @@ namespace synthese
 					//////////////////////////////////////////////////////////////////////////
 					/// Transforming into object
 					RegistryTableType classId(decodeTableId(key));
-					shared_ptr<DBTableSync> tableSync(DBModule::GetTableSync(classId));
+					boost::shared_ptr<DBTableSync> tableSync(DBModule::GetTableSync(classId));
 					if(!dynamic_cast<DBDirectTableSync*>(tableSync.get()))
 					{
 						throw synthese::Exception("Bad table");
@@ -224,7 +224,7 @@ namespace synthese
 					DBDirectTableSync& directTableSync(dynamic_cast<DBDirectTableSync&>(*tableSync));
 
 					// Update or creation
-					shared_ptr<Registrable> rObject;
+					boost::shared_ptr<Registrable> rObject;
 					if(directTableSync.contains(key))
 					{
 						rObject = directTableSync.getEditableRegistrable(
@@ -243,7 +243,7 @@ namespace synthese
 						rObject->setKey(key);
 						_env.addRegistrable(rObject);
 					}
-					shared_ptr<ObjectBase> object(dynamic_pointer_cast<ObjectBase, Registrable>(rObject));
+					boost::shared_ptr<ObjectBase> object(dynamic_pointer_cast<ObjectBase, Registrable>(rObject));
 
 
 					//////////////////////////////////////////////////////////////////////////
@@ -267,18 +267,18 @@ namespace synthese
 					const RegistryBase& registry(directTableSync.getRegistry(Env::GetOfficialEnv()));
 					if( registry.contains(object->getKey()))
 					{
-						shared_ptr<ObjectBase> mObject(
+						boost::shared_ptr<ObjectBase> mObject(
 							dynamic_pointer_cast<ObjectBase, Registrable>(
 								registry.getEditableObject(object->getKey())
 						)	);
 						if(mObject.get())
 						{
-							BOOST_FOREACH(ObjectBase* subObject, mObject->getSubObjects())
+							BOOST_FOREACH(Registrable* subObject, mObject->getSubObjects())
 							{
 								if(subObjects.find(subObject->getKey()) == subObjects.end())
 								{
 									RegistryTableType classId(decodeTableId(subObject->getKey()));
-									shared_ptr<DBTableSync> tableSync(DBModule::GetTableSync(classId));
+									boost::shared_ptr<DBTableSync> tableSync(DBModule::GetTableSync(classId));
 									tableSync->deleteRecord(NULL, subObject->getKey(), transaction, false);
 								}
 							}
@@ -320,8 +320,9 @@ namespace synthese
 
 
 			void SVNWorkingCopy::_export(
-				const ObjectBase& object,
-				const boost::filesystem::path& dirPath
+				const Registrable& object,
+				const boost::filesystem::path& dirPath,
+				const bool noCommit
 			) const	{
 
 				RegistryKeyType key(object.getKey());
@@ -336,7 +337,10 @@ namespace synthese
 				// Field names
 				ParametersMap attributesMap;
 				object.toParametersMap(attributesMap, false, false);
-				ofstream dumpStream(dumpFilePath.file_string().c_str());
+				ofstream dumpStream(
+					dumpFilePath.file_string().c_str(),
+					std::ios_base::out | std::ios_base::binary
+				);
 				dumpStream << object.getTableName() << "(";
 				bool first(true);
 				BOOST_FOREACH(const ParametersMap::Map::value_type& item, attributesMap.getMap())
@@ -376,7 +380,7 @@ namespace synthese
 				dumpStream.close();
 
 				// If creation, svn add
-				if(creation)
+				if(creation && !noCommit)
 				{
 					_svnAdd(dumpFilePath);
 				}
@@ -399,7 +403,7 @@ namespace synthese
 							it->path().filename().substr(0, fileNameMainPart.size()) == fileNameMainPart
 						){
 							creation = false;
-							if(it->path().filename() != fileNameWithExtension)
+							if(it->path().filename() != fileNameWithExtension && !noCommit)
 							{
 								_svnMove(it->path(), filePath);
 							}
@@ -413,7 +417,7 @@ namespace synthese
 					fileStream.close();
 
 					// If creation, svn add
-					if(creation)
+					if(creation && !noCommit)
 					{
 						_svnAdd(filePath);
 					}
@@ -449,7 +453,8 @@ namespace synthese
 						string fileName(it->path().filename());
 						if(	(fileName.size() >= commonFileName.size() + nameExtension.size()) &&
 							fileName.substr(0, commonFileName.size()) == commonFileName &&
-							fileName.substr(fileName.size() - nameExtension.size()) == nameExtension
+							fileName.substr(fileName.size() - nameExtension.size()) == nameExtension &&
+							!noCommit
 						){
 							_svnMove(it->path(), namePath);
 							break;
@@ -459,10 +464,16 @@ namespace synthese
 					// Creation if the fake file if necessary
 					if(creation)
 					{
-						ofstream nameStream(namePath.file_string().c_str());
+						ofstream nameStream(
+							namePath.file_string().c_str(),
+							std::ios_base::out | std::ios_base::binary
+						);
 						nameStream << endl;
 						nameStream.close();
-						_svnAdd(namePath);
+						if (!noCommit)
+						{
+							_svnAdd(namePath);
+						}
 					}
 				}
 
@@ -503,7 +514,7 @@ namespace synthese
 						existingIds.insert(subObject->getKey());
 
 						// Export of the object (recursion)
-						_export(*subObject, subdirPath);
+						_export(*subObject, subdirPath, noCommit);
 					}
 
 					// Loop on existing files in the path and remove files that correspond
@@ -544,7 +555,7 @@ namespace synthese
 
 
 
-			void SVNWorkingCopy::_exportToWC() const
+			void SVNWorkingCopy::_exportToWC(const bool noCommit) const
 			{
 				// Check if the object is defined
 				if(!_object)
@@ -552,19 +563,31 @@ namespace synthese
 					return;
 				}
 
-				_export(*_object, _path);
+				_export(*_object, _path, noCommit);
 			}
 
 
 
 			void SVNWorkingCopy::create(
 				const std::string& user,
-				const std::string& password
+				const std::string& password,
+				const bool noCommit
 			) const	{
-				_repo.mkdir(user, password);
-				_repo.checkout(user, password, _path);
-				_exportToWC();
-				_svnCommit("Object creation", user, password, _path);
+				if (!noCommit)
+				{
+					_repo.mkdir(user, password);
+					_repo.checkout(user, password, _path);
+				}
+				else
+				{
+					// Creation of the local repository
+					create_directory(_path);
+				}
+				_exportToWC(noCommit);
+				if (!noCommit)
+				{
+					_svnCommit("Object creation", user, password, _path);
+				}
 			}
 
 
@@ -574,13 +597,19 @@ namespace synthese
 			/// @param message the message to attach to the commit
 			/// @param user valid login on the server
 			/// @param password password corresponding to the login
+			/// @param noCommit to avoid commit (will only save to the working copy)
 			void SVNWorkingCopy::commit(
 				const std::string& message,
 				const std::string& user,
-				const std::string& password
+				const std::string& password,
+				const bool noCommit,
+				const bool noUpdate
 			){
-				update(user, password);
-				_svnCommit(message, user, password,	_path);
+				update(user, password, noUpdate, false /* Save to WC */);
+				if(!noCommit)
+				{
+					_svnCommit(message, user, password,	_path);
+				}
 			}
 
 
@@ -623,12 +652,20 @@ namespace synthese
 
 			void SVNWorkingCopy::update(
 				const std::string& user,
-				const std::string& password
+				const std::string& password,
+				bool noUpdate,
+				bool noWCSave
 			){
 				if(exists(_path))
 				{
-					_exportToWC();
-					_svnUpdate(user, password, _path);
+					if(!noWCSave)
+					{
+						_exportToWC(false);
+					}
+					if(!noUpdate)
+					{
+						_svnUpdate(user, password, _path);
+					}
 				}
 				else
 				{
@@ -651,20 +688,28 @@ namespace synthese
 
 
 
-			void SVNWorkingCopy::from_string( const std::string& text )
+			bool SVNWorkingCopy::from_string( const std::string& text )
 			{
-				setRepo(SVNRepository(text));
+				if(getRepo().getURL() == text)
+				{
+					return false;
+				}
+				else
+				{
+					setRepo(SVNRepository(text));
+					return true;
+				}
 			}
 
 
 
-			void SVNWorkingCopy::LoadFromRecord(
+			bool SVNWorkingCopy::LoadFromRecord(
 				Type& fieldObject,
 				ObjectBase& object,
 				const Record& record,
 				const util::Env& env
 			){
-				SimpleObjectFieldDefinition<SVNWorkingCopy>::_UpdateFromString(
+				return SimpleObjectFieldDefinition<SVNWorkingCopy>::_UpdateFromString(
 					fieldObject,
 					record,
 					&SVNWorkingCopy::from_string

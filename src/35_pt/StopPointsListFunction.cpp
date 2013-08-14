@@ -40,6 +40,7 @@
 #include "CommercialLine.h"
 #include "City.h"
 #include "Webpage.h"
+#include "DRTArea.hpp"
 
 #ifndef UNIX
 #include <geos/util/math.h>
@@ -62,6 +63,7 @@ namespace synthese
 	using namespace security;
 	using namespace cms;
 	using namespace pt_website;
+	using namespace vehicle;
 
 	template<> const string util::FactorableTemplate<Function,pt::StopPointsListFunction>::FACTORY_KEY("StopPointsListFunction");
 
@@ -213,10 +215,10 @@ namespace synthese
 					throw RequestException("Malformed bbox.");
 				}
 
-				shared_ptr<Point> pt1(
+				boost::shared_ptr<Point> pt1(
 					_coordinatesSystem->createPoint(lexical_cast<double>(parsed_bbox[0]), lexical_cast<double>(parsed_bbox[1]))
 				);
-				shared_ptr<Point> pt2(
+				boost::shared_ptr<Point> pt2(
 					_coordinatesSystem->createPoint(lexical_cast<double>(parsed_bbox[2]), lexical_cast<double>(parsed_bbox[3]))
 				);
 				pt1 = CoordinatesSystem::GetInstanceCoordinatesSystem().convertPoint(*pt1);
@@ -334,7 +336,7 @@ namespace synthese
 			BOOST_FOREACH(const StopPointMapType::value_type& sp, stopPointMap)
 			{
 				// Declarations
-				shared_ptr<ParametersMap> stopPM(new ParametersMap);
+				boost::shared_ptr<ParametersMap> stopPM(new ParametersMap);
 
 				// Main attributes
 				sp.first.getStopPoint()->toParametersMap(
@@ -354,7 +356,7 @@ namespace synthese
 				BOOST_FOREACH(const StopAreaDestinationMapType::value_type& destination, sp.second)
 				{
 					// Main parameters
-					shared_ptr<ParametersMap> destinationPM(new ParametersMap);
+					boost::shared_ptr<ParametersMap> destinationPM(new ParametersMap);
 					destinationPM->insert("id", destination.first.getKey());
 					destinationPM->insert("name", destination.second.first->getName());
 					destinationPM->insert("cityName", destination.second.first->getCity()->getName());
@@ -365,10 +367,10 @@ namespace synthese
 						BOOST_FOREACH(const CommercialLineMapType::value_type& line, destination.second.second)
 						{
 							// Declaration
-							shared_ptr<ParametersMap> linePM(new ParametersMap);
+							boost::shared_ptr<ParametersMap> linePM(new ParametersMap);
 
 							// Main parameters
-							line.second->toParametersMap(*linePM);
+							line.second->toParametersMap(*linePM, true);
 
 							// Rolling stock
 							set<RollingStock *> rollingStocks;
@@ -386,8 +388,8 @@ namespace synthese
 							}
 							BOOST_FOREACH(RollingStock * rs, rollingStocks)
 							{
-								shared_ptr<ParametersMap> transportModePM(new ParametersMap);
-								rs->toParametersMap(*transportModePM);
+								boost::shared_ptr<ParametersMap> transportModePM(new ParametersMap);
+								rs->toParametersMap(*transportModePM, true);
 								linePM->insert("transportMode", transportModePM);
 							}
 
@@ -422,7 +424,7 @@ namespace synthese
 					// Merge of stop area data
 					if(subMap->hasSubMaps(StopPoint::TAG_STOP_AREA))
 					{
-						vector<shared_ptr<ParametersMap> > stopAreaMap(subMap->getSubMaps(StopPoint::TAG_STOP_AREA));
+						vector<boost::shared_ptr<ParametersMap> > stopAreaMap(subMap->getSubMaps(StopPoint::TAG_STOP_AREA));
 						subMap->merge(**stopAreaMap.begin(), DATA_STOP_AREA_PREFIX);
 					}
 
@@ -430,22 +432,22 @@ namespace synthese
 					{
 						if(subMap->hasSubMaps(TAG_DESTINATION))
 						{
-							vector<shared_ptr<ParametersMap> > destinationVect = subMap->getSubMaps(TAG_DESTINATION);
-							vector<shared_ptr<ParametersMap> > sortedDestinationVect;
+							vector<boost::shared_ptr<ParametersMap> > destinationVect = subMap->getSubMaps(TAG_DESTINATION);
+							vector<boost::shared_ptr<ParametersMap> > sortedDestinationVect;
 
 							if(_sortByLineName)
 							{
-								typedef multimap <string, shared_ptr<ParametersMap>,
+								typedef multimap <string, boost::shared_ptr<ParametersMap>,
 									util::alphanum_text_first_less<string> > sortedMapType;
 								sortedMapType sortedMap;
-								BOOST_FOREACH(const shared_ptr<ParametersMap>& destination, destinationVect)
+								BOOST_FOREACH(const boost::shared_ptr<ParametersMap>& destination, destinationVect)
 								{
 									if(destination->hasSubMaps(TAG_LINE))
 									{
-										BOOST_FOREACH(const shared_ptr<ParametersMap>& line, destination->getSubMaps(TAG_LINE))
+										BOOST_FOREACH(const boost::shared_ptr<ParametersMap>& line, destination->getSubMaps(TAG_LINE))
 										{
 											//Create a new Destination with only one line
-											shared_ptr<ParametersMap> newDestination(new ParametersMap);
+											boost::shared_ptr<ParametersMap> newDestination(new ParametersMap);
 											newDestination->merge(*destination);
 											newDestination->insert(TAG_LINE, line);
 											sortedMap.insert(make_pair(line->get<string>("line_short_name"), newDestination));
@@ -454,7 +456,6 @@ namespace synthese
 									}
 								}
 
-								std::cout << "================" << std::endl;
 								BOOST_FOREACH(sortedMapType::value_type it, sortedMap)
 								{
 									std::cout << it.first << std::endl;
@@ -641,7 +642,10 @@ namespace synthese
 					++*index;
 					departureDateTime = servicePointer.getDepartureDateTime();
 					if(sp.getKey() != servicePointer.getRealTimeDepartureVertex()->getKey())
+					{
+						if (!dynamic_cast<const DRTArea*>(servicePointer.getRealTimeDepartureVertex()))
 						continue;
+					}
 
 					const JourneyPattern* journeyPattern = dynamic_cast<const JourneyPattern*>(servicePointer.getService()->getPath());
 					if(journeyPattern == NULL) // Could be a junction
@@ -721,7 +725,7 @@ namespace synthese
 			const std::string destinationCityName,
 			const server::Request& request
 		) const {
-			BOOST_FOREACH(const shared_ptr<ParametersMap>& line, lines)
+			BOOST_FOREACH(const boost::shared_ptr<ParametersMap>& line, lines)
 			{
 				line->merge(getTemplateParameters());
 				line->insert("destinationName", destinationName),
@@ -738,7 +742,7 @@ namespace synthese
 			const server::Request& request
 		) const {
 			bool isFirst = true;
-			BOOST_FOREACH(const shared_ptr<ParametersMap>& destination, destinations)
+			BOOST_FOREACH(const boost::shared_ptr<ParametersMap>& destination, destinations)
 			{
 				destination->merge(getTemplateParameters());
 				destination->insert("isFirstDestination", isFirst);
@@ -786,7 +790,7 @@ namespace synthese
 
 			if(_bbox)
 			{
-				shared_ptr<Point> gp = stopPoint.getGeometry();
+				boost::shared_ptr<Point> gp = stopPoint.getGeometry();
 
 				// Coordinates of bbox center
 				double xCenter = (_bbox->getMaxX() + _bbox->getMinX()) / 2.0; 
@@ -799,6 +803,6 @@ namespace synthese
 			}
 
 			//return value
-			return round(distanceToBboxCenter);
+			return static_cast<int>(round(distanceToBboxCenter));
 		}
 }	}

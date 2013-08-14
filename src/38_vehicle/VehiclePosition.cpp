@@ -102,7 +102,10 @@ namespace synthese
 
 
 		void VehiclePosition::toParametersMap(
-			util::ParametersMap& pm
+			util::ParametersMap& pm,
+			bool withAdditionalParameters,
+			boost::logic::tribool withFiles,
+			std::string prefix
 		) const	{
 			if(hasGeometry())
 			{
@@ -114,8 +117,8 @@ namespace synthese
 			pm.insert(ATTR_IN_STOP_AREA, _inStopArea);
 			if(_stopPoint)
 			{
-				shared_ptr<ParametersMap> stopPM(new ParametersMap);
-				_stopPoint->toParametersMap(*stopPM);
+				boost::shared_ptr<ParametersMap> stopPM(new ParametersMap);
+				_stopPoint->toParametersMap(*stopPM, false);
 				pm.insert(TAG_STOP, stopPM);
 			}
 		}

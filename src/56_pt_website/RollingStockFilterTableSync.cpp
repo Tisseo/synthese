@@ -47,7 +47,7 @@ namespace synthese
 	using namespace db;
 	using namespace util;
 	using namespace pt_website;
-	using namespace pt;
+	using namespace vehicle;
 	using namespace security;
 
 	namespace util
@@ -108,7 +108,7 @@ namespace synthese
 			{
 				try
 				{
-					shared_ptr<PTServiceConfig> site(
+					boost::shared_ptr<PTServiceConfig> site(
 						PTServiceConfigTableSync::GetEditable(
 							rows->getLongLong(RollingStockFilterTableSync::COL_SITE_ID),
 							environment,

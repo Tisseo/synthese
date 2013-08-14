@@ -89,8 +89,8 @@ namespace synthese
 					pm.insert(ATTR_SESSION_ID, request.getSession()->getKey());
 					if(request.getSession()->getUser())
 					{
-						shared_ptr<ParametersMap> userPM(new ParametersMap);
-						request.getSession()->getUser()->toParametersMap(*userPM);
+						boost::shared_ptr<ParametersMap> userPM(new ParametersMap);
+						request.getSession()->getUser()->toParametersMap(*userPM, true);
 						pm.insert(TAG_USER, userPM);
 					}
 				}

@@ -100,8 +100,9 @@ namespace synthese
 				/// @param object the object to export
 				/// @param dirPath the directory where to export the files
 				void _export(
-					const ObjectBase& object,
-					const boost::filesystem::path& dirPath
+					const util::Registrable& object,
+					const boost::filesystem::path& dirPath,
+					const bool noCommit
 				) const;
 
 
@@ -111,7 +112,7 @@ namespace synthese
 				/// The export process maintains the working copy at a compliant status :
 				///  - new files are declared as added
 				///  - files that no longer exists are declared as removed
-				void _exportToWC() const;
+				void _exportToWC(const bool noCommit) const;
 
 
 
@@ -149,7 +150,8 @@ namespace synthese
 					/// @pre the repository URL must point to an inexistent directory
 					void create(
 						const std::string& user,
-						const std::string& password
+						const std::string& password,
+						const bool noCommit
 					) const;
 
 
@@ -165,10 +167,11 @@ namespace synthese
 
 
 
-					void commit(
-						const std::string& message,
+					void commit(const std::string& message,
 						const std::string& user,
-						const std::string& password
+						const std::string& password,
+						const bool noCommit,
+						const bool noUpdate
 					);
 
 
@@ -182,20 +185,23 @@ namespace synthese
 					///    are lost.
 					/// @param user valid login on the server
 					/// @param password password corresponding to the login
-					void update(
-						const std::string& user,
-						const std::string& password
-					);
+					/// @param noUpdate do not perform a svn update
+					/// @param noWCSave do not save the current site to the Working Copy
+					/// thus loosing the current changes.
+					void update(const std::string& user,
+						const std::string& password,
+						bool noUpdate,
+						bool noWCSave);
 				//@}
 
-				void from_string(
+				bool from_string(
 					const std::string& text
 				);
 
 				std::string to_string(
 				) const;
 
-				static void LoadFromRecord(
+				static bool LoadFromRecord(
 					Type& fieldObject,
 					ObjectBase& object,
 					const Record& record,

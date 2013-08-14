@@ -68,11 +68,14 @@ namespace synthese
 			static const std::string PARAMETER_LINE_PAGE_ID;
 			static const std::string PARAMETER_TERMINUS_ID;
 			static const std::string PARAMETER_OUTPUT_STOPS;
+			static const std::string PARAMETER_OUTPUT_LINES_IN_STOPS;
 			static const std::string PARAMETER_GROUP_BY_CITIES;
+			static const std::string PARAMETER_STOPS_DIRECTIONS;
 
 		private:
 			static const std::string TAG_CITY;
 			static const std::string TAG_STOP;
+			static const std::string TAG_DIRECTION;
 			static const std::string DATA_LINE;
 			static const std::string DATA_LINES;
 			static const std::string DATA_STOP_RANK;
@@ -93,7 +96,9 @@ namespace synthese
 				std::string _outputFormat;
 				boost::optional<util::RegistryKeyType> _terminusId;
 				bool _outputStops;
+				bool _outputLinesInStops;
 				bool _groupByCities;
+				size_t _stopsDirections;
 			//@}
 
 			//! @name Setters

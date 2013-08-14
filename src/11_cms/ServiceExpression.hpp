@@ -91,12 +91,22 @@ namespace synthese
 				util::ParametersMap& variables
 			) const;
 
+			void runService(
+				std::ostream& stream,
+				util::ParametersMap& result,
+				const server::Request& request,
+				const util::ParametersMap& additionalParametersMap,
+				const Webpage& page,
+				util::ParametersMap& variables
+			) const;
+
 
 			//////////////////////////////////////////////////////////////////////////
 			/// Constructor by partial string parsing
 			ServiceExpression(
 				std::string::const_iterator& it,
-				std::string::const_iterator end
+				std::string::const_iterator end,
+				bool ignoreWhiteChars = false
 			);
 		};
 	}

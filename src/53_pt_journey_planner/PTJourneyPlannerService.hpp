@@ -109,6 +109,7 @@ namespace synthese
 			static const std::string PARAMETER_CONFIG_ID;
 			static const std::string PARAMETER_MAX_SOLUTIONS_NUMBER;
 			static const std::string PARAMETER_APPROACH_SPEED;
+			static const std::string PARAMETER_MAX_APPROACH_DISTANCE;
 			static const std::string PARAMETER_MAX_DEPTH;
 			static const std::string PARAMETER_DEPARTURE_CITY_TEXT;
 			static const std::string PARAMETER_ARRIVAL_CITY_TEXT;
@@ -129,6 +130,7 @@ namespace synthese
 			static const std::string PARAMETER_SRID;
 			static const std::string PARAMETER_DEPARTURE_PLACE_XY;
 			static const std::string PARAMETER_ARRIVAL_PLACE_XY;
+			static const std::string PARAMETER_INVERT_XY;
 			static const std::string PARAMETER_SHOW_COORDINATES;
 			static const std::string PARAMETER_MAX_TRANSFER_DURATION;
 			static const std::string PARAMETER_MIN_MAX_DURATION_RATIO_FILTER;

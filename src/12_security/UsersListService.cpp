@@ -137,10 +137,10 @@ namespace synthese
 			}
 
 			// Storage of the result
-			BOOST_FOREACH(const shared_ptr<User>& user, users)
+			BOOST_FOREACH(const boost::shared_ptr<User>& user, users)
 			{
-				shared_ptr<ParametersMap> userPM(new ParametersMap);
-				user->toParametersMap(*userPM);
+				boost::shared_ptr<ParametersMap> userPM(new ParametersMap);
+				user->toParametersMap(*userPM, true);
 				result.insert(TAG_USER, userPM);
 			}
 

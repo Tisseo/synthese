@@ -72,6 +72,8 @@ namespace synthese
 			static const std::string COL_TEMPLATE_ID;
 			static const std::string COL_RAW_EDITOR;
 			static const std::string COL_DONE;
+			static const std::string COL_MESSAGES_SECTION_ID;
+			static const std::string COL_CALENDAR_ID;
 
 			AlarmTableSync() {}
 			~AlarmTableSync() {}

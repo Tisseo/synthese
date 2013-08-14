@@ -30,7 +30,7 @@
 #include "User.h"
 #include "GraphConstants.h"
 #include "CommercialLineTableSync.h"
-#include "FareTableSync.h"
+#include "FareTableSync.hpp"
 #include "RollingStockTableSync.hpp"
 #include "DataSourceTableSync.h"
 #include "PTUseRuleTableSync.h"
@@ -50,11 +50,13 @@ using namespace boost;
 namespace synthese
 {
 	using namespace db;
+	using namespace fare;
 	using namespace util;
 	using namespace impex;
 	using namespace graph;
 	using namespace pt;
 	using namespace security;
+	using namespace vehicle;
 
 	template<> const string util::FactorableTemplate<DBTableSync,JourneyPatternTableSync>::FACTORY_KEY(
 		"35.30.01 Journey patterns"
@@ -120,114 +122,7 @@ namespace synthese
 			Env& env,
 			LinkLevel linkLevel
 		){
-			string name (
-			    rows->getText (JourneyPatternTableSync::COL_NAME));
-			string timetableName (
-			    rows->getText (JourneyPatternTableSync::COL_TIMETABLENAME));
-			string direction (
-			    rows->getText (JourneyPatternTableSync::COL_DIRECTION));
-
-			bool isWalkingLine (rows->getBool (JourneyPatternTableSync::COL_ISWALKINGLINE));
-
-			line->setName(name);
-			line->setTimetableName (timetableName);
-			line->setDirection (direction);
-			line->setWalkingLine (isWalkingLine);
-			line->setWayBack(rows->getBool(JourneyPatternTableSync::COL_WAYBACK));
-			line->setRollingStock(NULL);
-			line->setNetwork(NULL);
-			line->setCommercialLine(NULL);
-			line->cleanDataSourceLinks();
-			line->setMain(rows->getBool(JourneyPatternTableSync::COL_MAIN));
-			line->setPlannedLength(rows->getDouble(JourneyPatternTableSync::COL_PLANNED_LENGTH));
-			RuleUser::Rules rules(RuleUser::GetEmptyRules());
-
-			if (linkLevel >= UP_LINKS_LOAD_LEVEL)
-			{
-				RegistryKeyType commercialLineId(rows->getLongLong (JourneyPatternTableSync::COL_COMMERCIAL_LINE_ID));
-				try
-				{
-					CommercialLine* cline(CommercialLineTableSync::GetEditable(commercialLineId, env, linkLevel).get());
-					line->setCommercialLine(cline);
-					line->setNetwork(cline->getNetwork());
-					cline->addPath(line);
-				}
-				catch(ObjectNotFoundException<CommercialLine>)
-				{
-					Log::GetInstance().warn("Bad value " + lexical_cast<string>(commercialLineId) + " for fare in line " + lexical_cast<string>(line->getKey()));
-				}
-
-				// Data sources and operator codes
-				line->setDataSourceLinksWithoutRegistration(
-					ImportableTableSync::GetDataSourceLinksFromSerializedString(
-						rows->getText(JourneyPatternTableSync::COL_DATASOURCE_ID),
-						env
-				)	);
-
-				RegistryKeyType rollingStockId (rows->getLongLong (JourneyPatternTableSync::COL_ROLLINGSTOCKID));
-				if(rollingStockId > 0)
-				{
-					try
-					{
-						line->setRollingStock(RollingStockTableSync::GetEditable(rollingStockId, env, linkLevel).get());
-					}
-					catch(ObjectNotFoundException<RollingStock>&)
-					{
-						Log::GetInstance().warn("Bad value " + lexical_cast<string>(rollingStockId) + " for rolling stock in line " + lexical_cast<string>(line->getKey()));
-				}	}
-
-
-				RegistryKeyType bikeComplianceId (rows->getLongLong (JourneyPatternTableSync::COL_BIKECOMPLIANCEID));
-				if(bikeComplianceId > 0)
-				{
-					try
-					{
-						rules[USER_BIKE - USER_CLASS_CODE_OFFSET] = PTUseRuleTableSync::Get(bikeComplianceId, env, linkLevel).get();
-					}
-					catch(ObjectNotFoundException<PTUseRule>&)
-					{
-						Log::GetInstance().warn("Bad value " + lexical_cast<string>(bikeComplianceId) + " for bike compliance in line " + lexical_cast<string>(line->getKey()));
-				}	}
-
-				RegistryKeyType handicappedComplianceId (rows->getLongLong (JourneyPatternTableSync::COL_HANDICAPPEDCOMPLIANCEID));
-				if(handicappedComplianceId > 0)
-				{
-					try
-					{
-						rules[USER_HANDICAPPED - USER_CLASS_CODE_OFFSET] = PTUseRuleTableSync::Get(handicappedComplianceId, env, linkLevel).get();
-					}
-					catch(ObjectNotFoundException<PTUseRule>&)
-					{
-						Log::GetInstance().warn("Bad value " + lexical_cast<string>(handicappedComplianceId) + " for handicapped compliance in line " + lexical_cast<string>(line->getKey()));
-				}	}
-
-				RegistryKeyType pedestrianComplianceId(rows->getLongLong (JourneyPatternTableSync::COL_PEDESTRIANCOMPLIANCEID));
-				if(pedestrianComplianceId > 0)
-				{
-					try
-					{
-						rules[USER_PEDESTRIAN - USER_CLASS_CODE_OFFSET] = PTUseRuleTableSync::Get(pedestrianComplianceId, env, linkLevel).get();
-					}
-					catch(ObjectNotFoundException<PTUseRule>&)
-					{
-						Log::GetInstance().warn("Bad value " + lexical_cast<string>(pedestrianComplianceId) + " for pedestrian compliance in line " + lexical_cast<string>(line->getKey()));
-				}	}
-
-				RegistryKeyType directionId(rows->getLongLong (JourneyPatternTableSync::COL_DIRECTION_ID));
-				if(directionId > 0)
-				{
-					try
-					{
-						line->setDirectionObj(
-							DestinationTableSync::GetEditable(directionId, env, linkLevel).get()
-						);
-					}
-					catch(ObjectNotFoundException<Destination>&)
-					{
-						Log::GetInstance().warn("Bad value " + lexical_cast<string>(directionId) + " for direction in line " + lexical_cast<string>(line->getKey()));
-				}	}
-			}
-			line->setRules(rules);
+			line->loadFromRecord(*rows, env);
 		}
 
 
@@ -237,7 +132,18 @@ namespace synthese
 			JourneyPattern* object,
 			optional<DBTransaction&> transaction
 		){
-			if(!object->getCommercialLine()) throw Exception("JourneyPattern save error. Missing commercial line");
+			if(!object->getCommercialLine() && !object->getEdges().size())
+			{
+				return;
+			}
+
+			if(!object->getCommercialLine())
+			{
+				throw Exception("JourneyPattern save error. "
+								"Missing commercial line for JourneyPattern " +
+								lexical_cast<string>(object->getKey())
+				);
+			}
 			ReplaceQuery<JourneyPatternTableSync> query(*object);
 			query.addField(object->getCommercialLine()->getKey());
 			query.addField(object->getName());
@@ -369,31 +275,5 @@ namespace synthese
 				query.setFirst(first);
 			}
 			return LoadFromQuery(query, env, linkLevel);
-		}
-
-
-		void JourneyPatternTableSync::ReloadServices(
-			RegistryKeyType journeyPatternId,
-			optional<DBTransaction&> transaction
-		){
-			Env env;
-			ScheduledServiceTableSync::SearchResult services(
-				ScheduledServiceTableSync::Search(
-					env,
-					journeyPatternId
-			)	);
-			BOOST_FOREACH(const shared_ptr<ScheduledService>& service, services)
-			{
-				ScheduledServiceTableSync::Save(service.get(), transaction);
-			}
-			ContinuousServiceTableSync::SearchResult cservices(
-				ContinuousServiceTableSync::Search(
-					env,
-					journeyPatternId
-			)	);
-			BOOST_FOREACH(const shared_ptr<ContinuousService>& cservice, cservices)
-			{
-				ContinuousServiceTableSync::Save(cservice.get(), transaction);
-			}
 		}
 }	}

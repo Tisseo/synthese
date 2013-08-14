@@ -98,6 +98,7 @@ namespace synthese
 				virtual bool isArrivalAllowed() const;
 
 				virtual bool getScheduleInput() const = 0;
+				virtual bool getReservationNeeded() const { return true; }
 
 				JourneyPattern*				getLine()			const;
 			//@}
@@ -106,6 +107,13 @@ namespace synthese
 			//! @name Modifiers
 			//@{
 				void setLine(JourneyPattern* line);
+
+				
+				
+				virtual bool loadFromRecord(
+					const Record& record,
+					util::Env& env
+				);
 			//@}
 		};
 }	}

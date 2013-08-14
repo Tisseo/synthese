@@ -118,13 +118,21 @@ namespace synthese
 			_rootId = map.getOptional<RegistryKeyType>(PARAMETER_ROOT_ID);
 			if(_rootId)
 			{
-				if(*_rootId > 0) try
+				if(decodeTableId(*_rootId) == Webpage::CLASS_NUMBER) try
 				{
 					_root = Env::GetOfficialEnv().get<Webpage>(*_rootId);
 				}
 				catch (ObjectNotFoundException<Webpage>&)
 				{
 					throw RequestException("No such root page");
+				}
+				else if(decodeTableId(*_rootId) == Website::CLASS_NUMBER) try
+				{
+					_rootSite = Env::GetOfficialEnv().get<Website>(*_rootId);
+				}
+				catch (ObjectNotFoundException<Webpage>&)
+				{
+					throw RequestException("No such root site");
 				}
 			}
 
@@ -223,16 +231,40 @@ namespace synthese
 
 			// Content
 			ParametersMap pm;
-			_getMenuContentRecursive(
-				stream,
-				request,
-				rootPage,
-				0,
-				currentPage,
-				0,
-				true,
-				pm
-			);
+			if(_rootSite.get())
+			{
+				BOOST_FOREACH(const Website::ChildrenType::value_type& it, _rootSite->getChildren())
+				{
+					shared_ptr<ParametersMap> pagePM(new ParametersMap);
+					_getMenuContentRecursive(
+						stream,
+						request,
+						it.second,
+						0,
+						currentPage,
+						0,
+						true,
+						*pagePM
+					);
+					if(!pagePM->getMap().empty())
+					{
+						pm.insert(TAG_PAGE, pagePM);
+					}
+				}
+			}
+			else
+			{
+				_getMenuContentRecursive(
+					stream,
+					request,
+					rootPage,
+					0,
+					currentPage,
+					0,
+					true,
+					pm
+				);
+			}
 
 			// RSS footer
 			if(!_itemPage.get() && _outputFormat == VALUE_RSS)
@@ -296,7 +328,7 @@ namespace synthese
 			)	);
 			for(WebPageTableSync::SearchResult::const_iterator it(pages.begin()); it != pages.end(); ++it)
 			{
-				shared_ptr<Webpage> page(*it);
+				boost::shared_ptr<Webpage> page(*it);
 
 				// Avoid no displayed pages
 				if(!page->mustBeDisplayed())
@@ -311,7 +343,7 @@ namespace synthese
 				);
 
 				// Recursion
-				shared_ptr<ParametersMap> pagePM(new ParametersMap);
+				boost::shared_ptr<ParametersMap> pagePM(new ParametersMap);
 				returned_page_in_branch |= _getMenuContentRecursive(
 					submenu,
 					request,

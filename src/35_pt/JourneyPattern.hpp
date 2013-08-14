@@ -31,12 +31,16 @@
 #include "Path.h"
 #include "ImportableTemplate.hpp"
 #include "Registry.h"
-#include "Named.h"
 #include "Calendar.h"
 #include "Edge.h"
 
 namespace synthese
 {
+	namespace calendar
+	{
+		class Calendar;
+	}
+
 	namespace geography
 	{
 		class City;
@@ -47,11 +51,15 @@ namespace synthese
 		class Service;
 	}
 
+	namespace vehicle
+	{
+		class RollingStock;
+	}
+
 	namespace pt
 	{
 		class TransportNetwork;
 		class StopPoint;
-		class RollingStock;
 		class JourneyPatternCopy;
 		class Destination;
 		class LineStop;
@@ -82,11 +90,11 @@ namespace synthese
 		*/
 		class JourneyPattern:
 			public graph::Path,
-			public impex::ImportableTemplate<JourneyPattern>,
-			public util::Named,
-			public calendar::Calendar
+			public impex::ImportableTemplate<JourneyPattern>
 		{
 		public:
+			static const std::string ATTR_ID;
+			static const std::string ATTR_DIRECTION_TEXT;
 
 			/// Chosen registry class.
 			typedef util::Registry<JourneyPattern>	Registry;
@@ -99,8 +107,9 @@ namespace synthese
 			std::string _timetableName; //!< Name for timetable
 			std::string _direction;		//!< Direction (shown on vehicles)
 			Destination* _directionObj;
-
+			std::string _name;
 			bool _isWalkingLine;
+			mutable boost::optional<calendar::Calendar> _calendar;
 
 			SubLines	_subLines;	//!< Copied lines handling services which not serve the line theory
 
@@ -124,22 +133,24 @@ namespace synthese
 			//@{
 				const std::string&	getDirection ()				const;
 				const std::string&	getTimetableName ()			const;
-				pt::RollingStock*	getRollingStock()			const;
-                                pt::TransportNetwork*	getNetwork()				const;
+				vehicle::RollingStock*	getRollingStock()			const;
+                TransportNetwork*	getNetwork()				const;
 				bool				getWalkingLine ()			const;
 				CommercialLine*		getCommercialLine()			const;
-				const SubLines		getSubLines()				const;
+				const SubLines&		getSubLines()				const;
 				bool				getWayBack()				const { return _wayBack; }
 				Destination*		getDirectionObj()			const { return _directionObj; }
 				bool				getMain()					const { return _main; }
 				graph::MetricOffset	getPlannedLength()			const { return _plannedLength; }
+				virtual std::string getName() const { return _name; }
+				calendar::Calendar& getCalendarCache() const;
 			//@}
 
 
 			//! @name Setters
 			//@{
 				void setWalkingLine (bool isWalkingLine);
-				void setRollingStock(pt::RollingStock*);
+				void setRollingStock(vehicle::RollingStock*);
 				void setNetwork(pt::TransportNetwork*);
 				void setTimetableName (const std::string& timetableName);
 				void setDirection (const std::string& direction);
@@ -148,6 +159,7 @@ namespace synthese
 				void setDirectionObj(Destination* value){ _directionObj = value; }
 				void setMain(bool value){ _main = value; }
 				void setPlannedLength(graph::MetricOffset value){ _plannedLength = value; }
+				void setName(const std::string& value){ _name = value; }
 			//@}
 
 
@@ -178,6 +190,13 @@ namespace synthese
 					graph::Service& service,
 					bool ensureLineTheory
 				);
+
+
+
+				virtual bool loadFromRecord(
+					const Record& record,
+					util::Env& env
+				);
 			//@}
 
 			//! @name Services
@@ -190,9 +209,17 @@ namespace synthese
 
 				bool isReservable () const;
 
+				void clearCalendarCache() const { _calendar.reset(); }
+
 				const pt::StopPoint* getDestination () const;
 				const pt::StopPoint* getOrigin () const;
 
+				virtual void toParametersMap(
+					util::ParametersMap& pm,
+					bool withAdditionalParameters,
+					boost::logic::tribool withFiles = boost::logic::indeterminate,
+					std::string prefix = std::string()
+				) const;
 
 				//////////////////////////////////////////////////////////////////////////
 				/// Line stop getter.
@@ -264,6 +291,8 @@ namespace synthese
 				//////////////////////////////////////////////////////////////////////////
 				/// Checks if the journey pattern calls at the specified city
 				bool callsAtCity(const geography::City& city) const;
+
+				virtual SubObjects getSubObjects() const;
 			//@}
 		};
 	}

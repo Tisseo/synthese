@@ -59,6 +59,11 @@ namespace synthese
 		const string TimetableColumn::ATTR_TIME = "time";
 		const string TimetableColumn::TAG_STOP_POINT = "stop_point";
 		const string TimetableColumn::TAG_CELL = "cell";
+		const string TimetableColumn::TAG_JOURNEY_PATTERN = "journey_pattern";
+		const string TimetableColumn::TAG_COMPRESSION_CELL = "compression_cell";
+		const string TimetableColumn::ATTR_COMPRESSION_RANK = "compression_rank";
+		const string TimetableColumn::ATTR_COMPRESSION_REPEATED = "compression_repeated";
+		const string TimetableColumn::ATTR_IS_COMPRESSION = "is_compression";
 
 
 
@@ -527,13 +532,15 @@ namespace synthese
 
 		void TimetableColumn::toParametersMap(
 			ParametersMap& pm,
-			bool withSchedules
+			bool withSchedules,
+			boost::optional<const std::vector<TimetableColumn>&> resultForCompressionOutput,
+			size_t rank
 		) const	{
 
 			// Note
 			if(_warning)
 			{
-				shared_ptr<ParametersMap> notePM(new ParametersMap);
+				boost::shared_ptr<ParametersMap> notePM(new ParametersMap);
 				_warning->toParametersMap(*notePM, false);
 				pm.insert(TAG_NOTE, notePM);
 			}
@@ -541,24 +548,32 @@ namespace synthese
 			// Service
 			BOOST_FOREACH(const Services::value_type& service, _services)
 			{
-				shared_ptr<ParametersMap> servicePM(new ParametersMap);
-				service->toParametersMap(*servicePM);
+				boost::shared_ptr<ParametersMap> servicePM(new ParametersMap);
+				service->toParametersMap(*servicePM, true);
 				pm.insert(TAG_SERVICE, servicePM);
+			}
+
+			// Journey pattern
+			if(_line)
+			{
+				boost::shared_ptr<ParametersMap> linePM(new ParametersMap);
+				_line->toParametersMap(*linePM, true);
+				pm.insert(TAG_JOURNEY_PATTERN, linePM);
 			}
 
 			// Line
 			if(_line && _line->getCommercialLine())
 			{
-				shared_ptr<ParametersMap> linePM(new ParametersMap);
-				_line->getCommercialLine()->toParametersMap(*linePM);
+				boost::shared_ptr<ParametersMap> linePM(new ParametersMap);
+				_line->getCommercialLine()->toParametersMap(*linePM, true);
 				pm.insert(TAG_LINE, linePM);
 			}
 
 			// Transport mode
 			if(_line && _line->getRollingStock())
 			{
-				shared_ptr<ParametersMap> transportModePM(new ParametersMap);
-				_line->getRollingStock()->toParametersMap(*transportModePM);
+				boost::shared_ptr<ParametersMap> transportModePM(new ParametersMap);
+				_line->getRollingStock()->toParametersMap(*transportModePM, true);
 				pm.insert(TAG_TRANSPORT_MODE, transportModePM);
 			}
 
@@ -571,8 +586,8 @@ namespace synthese
 				)	);
 				if(ptUseRule)
 				{
-					shared_ptr<ParametersMap> useRulePM(new ParametersMap);
-					ptUseRule->toParametersMap(*useRulePM);
+					boost::shared_ptr<ParametersMap> useRulePM(new ParametersMap);
+					ptUseRule->toParametersMap(*useRulePM, true);
 					pm.insert(TAG_USE_RULE, useRulePM);
 				}
 			}
@@ -582,7 +597,7 @@ namespace synthese
 			{
 				BOOST_FOREACH(const Content::value_type& cell, _content)
 				{
-					shared_ptr<ParametersMap> cellPM(new ParametersMap);
+					boost::shared_ptr<ParametersMap> cellPM(new ParametersMap);
 
 					// Time
 					if(!cell.second.is_not_a_date_time())
@@ -593,7 +608,7 @@ namespace synthese
 					// Stop point
 					if(cell.first)
 					{
-						shared_ptr<ParametersMap> stopPointPM(new ParametersMap);
+						boost::shared_ptr<ParametersMap> stopPointPM(new ParametersMap);
 						cell.first->toParametersMap(*stopPointPM, false);
 						cellPM->insert(TAG_STOP_POINT, stopPointPM);
 					}
@@ -601,5 +616,103 @@ namespace synthese
 					pm.insert(TAG_CELL, cellPM);
 				}
 			}
+
+			// Compression
+			pm.insert(ATTR_IS_COMPRESSION, isCompression());
+			if(isCompression())
+			{
+				pm.insert(ATTR_COMPRESSION_RANK, *_compressionRank);
+				pm.insert(ATTR_COMPRESSION_REPEATED, *_compressionRepeated);
+
+				// Insert following cells which are integrated to the compression
+				if(resultForCompressionOutput)
+				{
+					for(size_t compressionRank(rank);
+						(	compressionRank<resultForCompressionOutput->size() &&
+							resultForCompressionOutput->at(compressionRank).isCompression() &&
+							(compressionRank == rank || resultForCompressionOutput->at(compressionRank).getCompressionRank())
+						);
+						++compressionRank
+					){
+						boost::shared_ptr<ParametersMap> colPM(new ParametersMap);
+						resultForCompressionOutput->at(compressionRank).toParametersMap(
+							*colPM,
+							withSchedules,
+							boost::optional<const TimetableResult::Columns&>(),
+							compressionRank
+						);
+						pm.insert(TAG_COMPRESSION_CELL, colPM);
+					}
+				}
+
+			}
+		}
+
+
+
+		void TimetableColumn::setCompression( size_t rank, size_t repeated )
+		{
+			_compressionRank = rank;
+			_compressionRepeated = repeated;
+		}
+
+
+
+		//////////////////////////////////////////////////////////////////////////
+		/// Gets the hour of the first defined cell.
+		long TimetableColumn::getHour() const
+		{
+			BOOST_FOREACH(const Content::value_type& cell, _content)
+			{
+				if(cell.second.is_not_a_date_time())
+				{
+					continue;
+				}
+				return cell.second.hours();
+			}
+			throw Exception("Corrupted timetable : column without any data");
+			return 0;
+		}
+
+
+
+		bool TimetableColumn::isLike(
+			const TimetableColumn& other,
+			const boost::posix_time::time_duration& delta
+		) const	{
+			// Same columns must have the same calendar
+			if(_calendar != other._calendar)
+			{
+				return false;
+			}
+
+			// Loop on cells
+			TimetableColumn::Content::const_iterator itOther(other._content.begin());
+			BOOST_FOREACH(const Content::value_type& cell, _content)
+			{
+				// Undefined status must be the same
+				if(cell.second.is_not_a_date_time() != itOther->second.is_not_a_date_time())
+				{
+					return false;
+				}
+
+				// If undefined jump to the next cell
+				if(cell.second.is_not_a_date_time())
+				{
+					++itOther;
+					continue;
+				}
+
+				// Compare the times
+				if(cell.second - itOther->second != delta)
+				{
+					return false;
+				}
+
+				// OK check the next cell
+				++itOther;
+			}
+
+			return true;
 		}
 }	}

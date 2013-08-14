@@ -24,12 +24,14 @@
 #define SYNTHESE_HastusCSVFileFormat_H__
 
 #include "FileFormatTemplate.h"
-#include "Calendar.h"
 #include "MultipleFileTypesImporter.hpp"
 #include "NoExportPolicy.hpp"
+#include "PTDataCleanerFileFormat.hpp"
+#include "PTFileFormat.hpp"
+
+#include "Calendar.h"
 #include "ImportableTableSync.hpp"
 #include "StopPointTableSync.hpp"
-#include "PTDataCleanerFileFormat.hpp"
 #include "ScheduledService.h"
 #include "JourneyPattern.hpp"
 #include "RollingStock.hpp"
@@ -69,7 +71,8 @@ namespace synthese
 			//////////////////////////////////////////////////////////////////////////
 			class Importer_:
 				public impex::MultipleFileTypesImporter<HastusCSVFileFormat>,
-				public PTDataCleanerFileFormat
+				public PTDataCleanerFileFormat,
+				public PTFileFormat
 			{
 			public:
 				static const std::string FILE_ARRETS;
@@ -84,19 +87,21 @@ namespace synthese
 				static const std::string PARAMETER_STOP_AREA_DEFAULT_TRANSFER_DURATION;
 				static const std::string PARAMETER_DISPLAY_LINKED_STOPS;
 				static const std::string PARAMETER_HANDICAPPED_ALLOWED_USE_RULE;
+				static const std::string PARAMETER_HANDICAPPED_FORBIDDEN_USE_RULE;
 
 			private:
-				typedef std::map<std::string, boost::shared_ptr<pt::RollingStock> > RollingStockMap;
+				typedef std::map<std::string, boost::shared_ptr<vehicle::RollingStock> > RollingStockMap;
 				static const std::string SEP;
 
 				boost::shared_ptr<const pt::TransportNetwork> _network;
 				RollingStockMap _rollingStocks;
-				boost::shared_ptr<pt::RollingStock> _defaultRollingStock;
+				boost::shared_ptr<vehicle::RollingStock> _defaultRollingStock;
 				bool _importStopArea;
 				bool _interactive;
 				bool _displayLinkedStops;
 				boost::posix_time::time_duration _stopAreaDefaultTransferDuration;
 				boost::shared_ptr<pt::PTUseRule> _handicappedAllowedUseRule;
+				boost::shared_ptr<pt::PTUseRule> _handicappedForbiddenUseRule;
 
 				mutable std::vector<std::string> _line;
 				std::string _getValue(std::size_t rank) const;
@@ -123,7 +128,7 @@ namespace synthese
 					pt::ScheduledService::Schedules schedules;
 					pt::JourneyPattern::StopsWithDepartureArrivalAuthorization stops;
 					calendar::Calendar calendar;
-					pt::RollingStock* rollingStock;
+					vehicle::RollingStock* rollingStock;
 				};
 				typedef std::map<TripIndex, TripValues> Trips;
 				mutable Trips _trips;
@@ -138,8 +143,7 @@ namespace synthese
 
 				virtual bool _parse(
 					const boost::filesystem::path& filePath,
-					const std::string& key,
-					boost::optional<const server::Request&> adminRequest
+					const std::string& key
 				) const;
 
 
@@ -147,19 +151,11 @@ namespace synthese
 				Importer_(
 					util::Env& env,
 					const impex::Import& import,
-					const impex::ImportLogger& logger
+					impex::ImportLogLevel minLogLevel,
+					const std::string& logPath,
+					boost::optional<std::ostream&> outputStream,
+					util::ParametersMap& pm
 				);
-
-				//////////////////////////////////////////////////////////////////////////
-				/// Import screen to include in the administration console.
-				/// @param os stream to write the result on
-				/// @param request request for display of the administration console
-				/// @since 3.2.0
-				/// @date 2010
-				virtual void displayAdmin(
-					std::ostream& os,
-					const server::Request& request
-				) const;
 
 
 

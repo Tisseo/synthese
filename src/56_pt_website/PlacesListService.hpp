@@ -181,6 +181,10 @@ namespace synthese
 
 
 
+			~PlacesListService();
+
+
+
 			/// @name Getters
 			//@{
 				const std::string& getText() const { return _text; }
@@ -197,10 +201,10 @@ namespace synthese
 				void setCitiesWithAtLeastAStop(bool value){ _citiesWithAtLeastAStop = value; }
 				void setText(const std::string& value){ _text = value; }
 				void setCoordinatesSystem(const CoordinatesSystem* coordinatesSystem ){ _coordinatesSystem = coordinatesSystem; }
-				void setCoordinatesXY(const std::string& coordinatesXY)
+				void setCoordinatesXY(const std::string& coordinatesXY, bool invertXY)
 				{
 					_coordinatesXY = coordinatesXY;
-					_parseCoordinates();
+					_parseCoordinates(invertXY);
 				}
 				void addRequiredUserClass(const graph::UserClassCode code) { _requiredUserClasses.insert(code); }
 
@@ -256,13 +260,13 @@ namespace synthese
 			class SortHouseByDistanceToOriginPoint
 			{
 				private:
-					const road::House * _house;
+					const boost::shared_ptr<road::House> _house;
 					int _distanceToOriginPoint;
 					std::string _name;
 				public:
-					SortHouseByDistanceToOriginPoint(const road::House * house, int distanceToOriginPoint, std::string name);
+					SortHouseByDistanceToOriginPoint(const boost::shared_ptr<road::House>, int distanceToOriginPoint, std::string name);
 					bool operator<(SortHouseByDistanceToOriginPoint const &otherHouse) const;
-					const road::House * getHouse() const;
+					const boost::shared_ptr<road::House> getHouse() const;
 					int getDistanceToOriginPoint() const;
 					std::string getName() const {return _name;};
 			};
@@ -272,7 +276,7 @@ namespace synthese
 			// Add the house to the house map
 			void addHouse(
 				HouseMapType* const* houseMap,
-				const boost::shared_ptr<road::House> & house,
+				const boost::shared_ptr<road::House> house,
 				std::string _name
 			) const;
 
@@ -385,7 +389,7 @@ namespace synthese
 				return isAClassObject;
 			}
 
-			void _parseCoordinates();
+			void _parseCoordinates(bool invertXY);
 		};
 }	}
 

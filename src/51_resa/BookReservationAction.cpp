@@ -102,6 +102,10 @@ namespace synthese
 		const string BookReservationAction::PARAMETER_CUSTOMER_ALLOW_EMPTY_SURNAME = Action_PARAMETER_PREFIX + "aes";
 		const string BookReservationAction::PARAMETER_CUSTOMER_PHONE = Action_PARAMETER_PREFIX + "cuph";
 		const string BookReservationAction::PARAMETER_CUSTOMER_EMAIL = Action_PARAMETER_PREFIX + "cupe";
+		const string BookReservationAction::PARAMETER_CUSTOMER_ADDRESS = Action_PARAMETER_PREFIX + "cupa";
+		const string BookReservationAction::PARAMETER_CUSTOMER_POSTCODE = Action_PARAMETER_PREFIX + "cupp";
+		const string BookReservationAction::PARAMETER_CUSTOMER_CITYTEXT = Action_PARAMETER_PREFIX + "cupc";
+		const string BookReservationAction::PARAMETER_CUSTOMER_COUNTRY = Action_PARAMETER_PREFIX + "cupco";
 		const string BookReservationAction::PARAMETER_CUSTOMER_LANGUAGE = Action_PARAMETER_PREFIX + "cl";
 
 		const string BookReservationAction::PARAMETER_PASSWORD = Action_PARAMETER_PREFIX + "pass";
@@ -170,7 +174,7 @@ namespace synthese
 		{
 			_createCustomer = map.getDefault<bool>(PARAMETER_CREATE_CUSTOMER, false);
 			_ignoreReservation = map.getDefault<bool>(PARAMETER_IGNORE_RESERVATION_RULES, false);
-			_approachSpeed = map.getDefault<double>(PARAMETER_APPROACH_SPEED, 0.833);
+			_approachSpeed = map.getDefault<double>(PARAMETER_APPROACH_SPEED, 1.111);
 			_comment = map.getDefault<string>(PARAMETER_COMMENT);
 
 			if(map.getDefault<bool>(PARAMETER_SEARCH_CUSTOMER_BY_EXACT_NAME, false))
@@ -225,6 +229,10 @@ namespace synthese
 					}
 
 					_customer->setEMail(map.getDefault<string>(PARAMETER_CUSTOMER_EMAIL));
+					_customer->setAddress(map.getDefault<string>(PARAMETER_CUSTOMER_ADDRESS));
+					_customer->setPostCode(map.getDefault<string>(PARAMETER_CUSTOMER_POSTCODE));
+					_customer->setCityText(map.getDefault<string>(PARAMETER_CUSTOMER_CITYTEXT));
+					_customer->setCountry(map.getDefault<string>(PARAMETER_CUSTOMER_COUNTRY));
 					_customer->setProfile(ResaModule::GetBasicResaCustomerProfile().get());
 
 					if(map.getOptional<string>(PARAMETER_CUSTOMER_LANGUAGE))
@@ -451,7 +459,7 @@ namespace synthese
 					assert(su.getArrivalEdge() != NULL);
 					assert(su.getArrivalEdge()->getHub() != NULL);
 
-					shared_ptr<Reservation> r(new Reservation);
+					boost::shared_ptr<Reservation> r(new Reservation);
 					r->setKey(ReservationTableSync::getId());
 					_env->getEditableRegistry<Reservation>().add(r);
 
@@ -588,7 +596,7 @@ namespace synthese
 					return;
 				}
 
-				shared_ptr<Reservation> r(new Reservation);
+				boost::shared_ptr<Reservation> r(new Reservation);
 				r->setKey(ReservationTableSync::getId());
 				_env->getEditableRegistry<Reservation>().add(r);
 

@@ -23,6 +23,7 @@
 #include "DisplayScreenContentFunction.h"
 
 #include "AccessParameters.h"
+#include "ActionException.h"
 #include "RequestException.h"
 #include "Request.h"
 #include "StopPointTableSync.hpp"
@@ -32,7 +33,6 @@
 #include "DisplayType.h"
 #include "DisplayTypeTableSync.h"
 #include "DeparturesTableInterfacePage.h"
-#include "DeparturesTableRoutePlanningInterfacePage.h"
 #include "StopAreaTableSync.hpp"
 #include "Interface.h"
 #include "Env.h"
@@ -50,6 +50,7 @@
 #include "PTUseRule.h"
 #include "Destination.hpp"
 #include "RoutePlanningTableGenerator.h"
+#include "ServerModule.h"
 #include "DisplayScreenAlarmRecipient.h"
 #include "InterfacePageException.h"
 #include "MimeTypes.hpp"
@@ -65,6 +66,7 @@ namespace synthese
 	using namespace util;
 	using namespace graph;
 	using namespace server;
+	using namespace vehicle;
 	using namespace pt;
 	using namespace pt_website;
 	using namespace interfaces;
@@ -101,8 +103,6 @@ namespace synthese
 		const string DisplayScreenContentFunction::DATA_WIRING_CODE("wiring_code");
 		const string DisplayScreenContentFunction::DATA_DISPLAY_CLOCK("display_clock");
 		const string DisplayScreenContentFunction::DATA_ROWS("rows");
-		const string DisplayScreenContentFunction::DATA_MESSAGE_LEVEL("message_level");
-		const string DisplayScreenContentFunction::DATA_MESSAGE_CONTENT("message_content");
 		const string DisplayScreenContentFunction::DATA_DATE("date");
 		const string DisplayScreenContentFunction::DATA_SUBSCREEN_("subscreen_");
 		const string DisplayScreenContentFunction::DATA_FIRST_DEPARTURE_TIME("first_departure_time");
@@ -367,7 +367,7 @@ namespace synthese
 					// 3.1 by id
 					if(decodeTableId(id) == StopPointTableSync::TABLE.ID)
 					{
-						shared_ptr<const StopPoint> stop(
+						boost::shared_ptr<const StopPoint> stop(
 								Env::GetOfficialEnv().get<StopPoint>(map.get<RegistryKeyType>(Request::PARAMETER_OBJECT_ID))
 						);
 
@@ -386,7 +386,7 @@ namespace synthese
 						string oc(map.get<string>(PARAMETER_OPERATOR_CODE));
 
 						//Get StopPoint Global Registry
-						typedef const pair<const RegistryKeyType, shared_ptr<StopPoint> > myType;
+						typedef const pair<const RegistryKeyType, boost::shared_ptr<StopPoint> > myType;
 						ArrivalDepartureTableGenerator::PhysicalStops pstops;
 						BOOST_FOREACH(myType&  myStop,Env::GetOfficialEnv().getRegistry<StopPoint>())
 						{
@@ -615,19 +615,19 @@ namespace synthese
 			pm.insert(DATA_STOP_AREA_CITY_NAME, connPlace->getCity()->getName());
 			pm.insert(DATA_STOP_AREA_CITY_ID, connPlace->getCity()->getKey());
 
-			shared_ptr<ParametersMap> journeyPm(new ParametersMap());
+			boost::shared_ptr<ParametersMap> journeyPm(new ParametersMap());
 			journeyPm->insert("route_id", journeyPattern->getKey());
 			journeyPm->insert("date_time", servicePointer.getDepartureDateTime());
 
-			shared_ptr<ParametersMap> stopPM(new ParametersMap);
+			boost::shared_ptr<ParametersMap> stopPM(new ParametersMap);
 			stop->toParametersMap(*stopPM, false);
 			journeyPm->insert("stop", stopPM);
 
 			RollingStock* rs = journeyPattern->getRollingStock();
 			if(rs)
 			{
-				shared_ptr<ParametersMap> rsPM(new ParametersMap);
-				rs->toParametersMap(*rsPM);
+				boost::shared_ptr<ParametersMap> rsPM(new ParametersMap);
+				rs->toParametersMap(*rsPM, true);
 				journeyPm->insert("rollingStock", rsPM);
 			}
 
@@ -635,28 +635,28 @@ namespace synthese
 
 			if(commercialLine)
 			{
-				shared_ptr<ParametersMap> linePM(new ParametersMap);
-				commercialLine->toParametersMap(*linePM);
+				boost::shared_ptr<ParametersMap> linePM(new ParametersMap);
+				commercialLine->toParametersMap(*linePM, true);
 				journeyPm->insert("line", linePM);
 			}
 
 			const StopArea& origin(
 				*journeyPattern->getOrigin()->getConnectionPlace()
 			);
-			shared_ptr<ParametersMap> originPM(new ParametersMap);
-			origin.toParametersMap(*originPM);
+			boost::shared_ptr<ParametersMap> originPM(new ParametersMap);
+			origin.toParametersMap(*originPM, true);
 			journeyPm->insert("origin", originPM);
 
 
 			const StopArea& destination(
 				*journeyPattern->getDestination()->getConnectionPlace()
 			);
-			shared_ptr<ParametersMap> destinationPM(new ParametersMap);
-			destination.toParametersMap(*destinationPM);
+			boost::shared_ptr<ParametersMap> destinationPM(new ParametersMap);
+			destination.toParametersMap(*destinationPM, true);
 			journeyPm->insert("destination", destinationPM);
 
-			shared_ptr<ParametersMap> connPlacePM(new ParametersMap);
-			connPlace->toParametersMap(*connPlacePM);
+			boost::shared_ptr<ParametersMap> connPlacePM(new ParametersMap);
+			connPlace->toParametersMap(*connPlacePM, true);
 			journeyPm->insert("stopArea", connPlacePM);
 
 			pm.insert("journey", journeyPm);
@@ -666,6 +666,8 @@ namespace synthese
 
 		util::ParametersMap DisplayScreenContentFunction::run( std::ostream& stream, const Request& request ) const
 		{
+			boost::shared_lock<shared_mutex> lock(ServerModule::baseWriterMutex);
+
 			if(!_screen->getType())
 			{
 				return ParametersMap();
@@ -699,32 +701,9 @@ namespace synthese
 							_screen->getRoutePlanningWithTransfer()
 						);
 
-						RoutePlanningListWithAlarm displayedObject;
-						displayedObject.map = generator.run();
-						displayedObject.alarm = NULL; // DisplayScreenAlarmRecipient::getAlarm(*_screen, date);
-
-						if(_screen->getType()->getDisplayInterface() &&
-							_screen->getType()->getDisplayInterface()->getPage<DeparturesTableRoutePlanningInterfacePage>()
-						){
-							_screen->getType()->getDisplayInterface()->getPage<DeparturesTableRoutePlanningInterfacePage>()->display(
-								stream,
-								variables,
-								_screen->getTitle(),
-								_screen->getWiringCode(),
-								_screen->getServiceNumberDisplay(),
-								_screen->getTrackNumberDisplay(),
-								_screen->getRoutePlanningWithTransfer(),
-								_screen->getBlinkingDelay(),
-								_screen->getDisplayClock(),
-								*_screen->getDisplayedPlace(),
-								displayedObject,
-								&request
-							);
-						}
-						else
+						RoutePlanningList displayedObject(generator.run());
+						if(_screen->getType()->getDisplayMainPage())
 						{
-							assert(_screen->getType()->getDisplayMainPage());
-
 							_displayRoutePlanningBoard(
 								stream,
 								request,
@@ -743,9 +722,9 @@ namespace synthese
 					}
 					else
 					{
-						ArrivalDepartureListWithAlarm displayedObject;
-						displayedObject.map = _screen->generateStandardScreen(realStartDateTime, endDateTime);
-						displayedObject.alarm = NULL; // DisplayScreenAlarmRecipient::getAlarm(*_screen, date);
+						ArrivalDepartureList displayedObject(
+							_screen->generateStandardScreen(realStartDateTime, endDateTime)
+						);
 
 						if(_screen->getType()->getDisplayInterface() &&
 							_screen->getType()->getDisplayInterface()->getPage<DeparturesTableInterfacePage>()
@@ -1032,15 +1011,10 @@ namespace synthese
 					(   _screen.get() &&
 						_screen->getType() &&
 						_screen->getType()->getDisplayInterface() &&
-						(	_screen->getGenerationMethod() == DisplayScreen::ROUTE_PLANNING ?
-							_screen->getType()->getDisplayInterface()->hasPage<DeparturesTableRoutePlanningInterfacePage>()	:
-							_screen->getType()->getDisplayInterface()->hasPage<DeparturesTableInterfacePage>()
-						)
+						_screen->getGenerationMethod() != DisplayScreen::ROUTE_PLANNING &&
+						_screen->getType()->getDisplayInterface()->hasPage<DeparturesTableInterfacePage>()
 					) ?
-						(	_screen->getGenerationMethod() == DisplayScreen::ROUTE_PLANNING ?
-							_screen->getType()->getDisplayInterface()->getPage<DeparturesTableRoutePlanningInterfacePage>()->getMimeType() :
-							_screen->getType()->getDisplayInterface()->getPage<DeparturesTableInterfacePage>()->getMimeType()
-						) :
+						_screen->getType()->getDisplayInterface()->getPage<DeparturesTableInterfacePage>()->getMimeType() :
 					"text/plain"
 				;
 			}
@@ -1054,7 +1028,7 @@ namespace synthese
 
 
 		void DisplayScreenContentFunction::setScreen(
-			shared_ptr<const DisplayScreen> value
+			boost::shared_ptr<const DisplayScreen> value
 		){
 			_screen = value;
 		}
@@ -1069,7 +1043,7 @@ namespace synthese
 			boost::shared_ptr<const cms::Webpage> destinationPage,
 			boost::shared_ptr<const cms::Webpage> transferPage,
 			const boost::posix_time::ptime& date,
-			const ArrivalDepartureListWithAlarm& rows,
+			const ArrivalDepartureList& rows,
 			const DisplayScreen& screen
 		) const {
 			ParametersMap pm(getTemplateParameters());
@@ -1114,19 +1088,18 @@ namespace synthese
 			if(rowPage.get())
 			{
 				stringstream rowStream;
-				const ArrivalDepartureList& ptds(rows.map);
-
-				if(!ptds.empty())
+				
+				if(!rows.empty())
 				{
 					displayFullDate(
 						DATA_FIRST_DEPARTURE_TIME,
-						(*ptds.begin()).first.getDepartureDateTime(),
+						(*rows.begin()).first.getDepartureDateTime(),
 						pm
 					);
 
 					displayFullDate(
 						DATA_LAST_DEPARTURE_TIME,
-						(*ptds.rbegin()).first.getDepartureDateTime(),
+						(*rows.rbegin()).first.getDepartureDateTime(),
 						pm
 					);
 				}
@@ -1141,8 +1114,8 @@ namespace synthese
 				size_t __NombrePages(1);
 				if(__Pages != 0)
 				{
-					int departuresNumber = ptds.size() - departuresToHide;
-					for (ArrivalDepartureList::const_iterator it = ptds.begin(); departuresNumber && (it != ptds.end()); ++it, --departuresNumber)
+					int departuresNumber = rows.size() - departuresToHide;
+					for (ArrivalDepartureList::const_iterator it = rows.begin(); departuresNumber && (it != rows.end()); ++it, --departuresNumber)
 					{
 						const ActualDisplayedArrivalsList& displayedList = it->second;
 						if (displayedList.size() > __NombrePages + 2)
@@ -1167,8 +1140,8 @@ namespace synthese
 
 					// Boucle sur les rangees
 					int __Rangee = __MultiplicateurRangee;
-					int departuresNumber = ptds.size() - departuresToHide;
-					for (ArrivalDepartureList::const_iterator it = ptds.begin(); departuresNumber && (it != ptds.end()); ++it, --departuresNumber)
+					int departuresNumber = rows.size() - departuresToHide;
+					for (ArrivalDepartureList::const_iterator it = rows.begin(); departuresNumber && (it != rows.end()); ++it, --departuresNumber)
 					{
 						const ArrivalDepartureRow& row(*it);
 
@@ -1197,13 +1170,6 @@ namespace synthese
 				}
 
 				pm.insert(DATA_ROWS, rowStream.str());
-			}
-
-			// Messages
-			if(rows.alarm)
-			{
-				pm.insert(DATA_MESSAGE_LEVEL, rows.alarm->getLevel());
-				pm.insert(DATA_MESSAGE_CONTENT, rows.alarm->getLongMessage());
 			}
 
 			// Subscreens
@@ -1248,7 +1214,7 @@ namespace synthese
 			pm.insert(DATA_DISPLAY_TEAM, screen.getDisplayTeam());
 			if(row.first.getService())
 			{
-				static_cast<const StopPoint*>(row.first.getDepartureEdge()->getFromVertex())->getConnectionPlace()->toParametersMap(pm);
+				static_cast<const StopPoint*>(row.first.getDepartureEdge()->getFromVertex())->getConnectionPlace()->toParametersMap(pm, true);
 
 				// Waiting time
 				time_duration waitingTime(row.first.getDepartureDateTime() - requestTime);
@@ -1300,7 +1266,7 @@ namespace synthese
 				);
 
 				// Line
-				dynamic_cast<const CommercialLine&>(*row.first.getService()->getPath()->getPathGroup()).toParametersMap(pm);
+				dynamic_cast<const CommercialLine&>(*row.first.getService()->getPath()->getPathGroup()).toParametersMap(pm, true);
 
 				// Transport mode
 				const JourneyPattern* line(static_cast<const JourneyPattern*>(row.first.getService()->getPath()));
@@ -1418,8 +1384,8 @@ namespace synthese
 			const graph::ServicePointer& object,
 			bool lastDisplayedStopWasInTheSameCity,
 			bool isTheEndStation,
-			std::size_t rank,
-			std::size_t globalRank,
+			size_t rank,
+			size_t globalRank,
 			const IntermediateStop::TransferDestinations& transferDestinations,
 			const DisplayScreen& screen,
 			bool isContinuation,
@@ -1431,7 +1397,7 @@ namespace synthese
 			)	);
 
 			ParametersMap pm(getTemplateParameters());
-			place->toParametersMap(pm);
+			place->toParametersMap(pm, true);
 			pm.insert(DATA_IS_SAME_CITY, lastDisplayedStopWasInTheSameCity);
 			pm.insert(DATA_TIME, to_iso_extended_string((rank ? object.getArrivalDateTime() : object.getDepartureDateTime()).date()) +" "+ to_simple_string((rank ? object.getArrivalDateTime() : object.getDepartureDateTime()).time_of_day()));
 			pm.insert(DATA_IS_END_STATION, isTheEndStation);
@@ -1499,7 +1465,7 @@ namespace synthese
 			const server::Request& request,
 			boost::shared_ptr<const cms::Webpage> page,
 			const graph::ServicePointer& object,
-			std::size_t localTransferRank,
+			size_t localTransferRank,
 			const DisplayScreen& screen
 		) const {
 			ParametersMap pm(getTemplateParameters());
@@ -1513,8 +1479,8 @@ namespace synthese
 				pm.insert(DATA_TRANSPORT_MODE, line->getRollingStock()->getKey());
 			}
 
-			line->getCommercialLine()->toParametersMap(pm);
-			place->toParametersMap(pm);
+			line->getCommercialLine()->toParametersMap(pm, true);
+			place->toParametersMap(pm, true);
 
 			{ // Departure time
 				stringstream s;
@@ -1561,7 +1527,7 @@ namespace synthese
 			boost::shared_ptr<const cms::Webpage> rowPage,
 			boost::shared_ptr<const cms::Webpage> destinationPage,
 			const boost::posix_time::ptime& date,
-			const RoutePlanningListWithAlarm& rows,
+			const RoutePlanningList& rows,
 			const DisplayScreen& screen
 		) const {
 			ParametersMap pm(getTemplateParameters());
@@ -1581,18 +1547,17 @@ namespace synthese
 			pm.insert(DATA_STOP_NAME, screen.getDisplayedPlace() ? screen.getDisplayedPlace()->getFullName() : string());
 			pm.insert(DATA_DISPLAY_CLOCK, screen.getDisplayClock());
 			pm.insert(DATA_WITH_TRANSFER, screen.getRoutePlanningWithTransfer());
-			screen.getDisplayedPlace()->toParametersMap(pm);
+			screen.getDisplayedPlace()->toParametersMap(pm, true);
 
 			// Rows
 			if(rowPage.get())
 			{
 				stringstream rowsStream;
-				const RoutePlanningList& ptds(rows.map);
-
+				
 				// Sort of the rows
 				typedef map<string,RoutePlanningList::const_iterator> SortedRows;
 				SortedRows sortedRows;
-				for(RoutePlanningList::const_iterator it = ptds.begin(); it != ptds.end(); ++it)
+				for(RoutePlanningList::const_iterator it = rows.begin(); it != rows.end(); ++it)
 				{
 					stringstream s;
 					if(destinationPage.get())
@@ -1629,13 +1594,6 @@ namespace synthese
 				pm.insert(DATA_ROWS, rowsStream.str());
 			}
 
-			// Messages
-			if(rows.alarm)
-			{
-				pm.insert(DATA_MESSAGE_LEVEL, rows.alarm->getLevel());
-				pm.insert(DATA_MESSAGE_CONTENT, rows.alarm->getLongMessage());
-			}
-
 			// Subscreens
 			size_t subScreenRank(0);
 			BOOST_FOREACH(const DisplayScreen::ChildrenType::value_type& it, screen.getChildren())
@@ -1657,7 +1615,7 @@ namespace synthese
 			const server::Request& request,
 			boost::shared_ptr<const cms::Webpage> page,
 			boost::shared_ptr<const cms::Webpage> destinationPage,
-			std::size_t rowId,
+			size_t rowId,
 			const RoutePlanningRow& row,
 			const DisplayScreen& screen
 		) const {
@@ -1707,7 +1665,7 @@ namespace synthese
 				}
 
 				// Line
-				static_cast<const JourneyPattern*>(s.getDepartureEdge()->getParentPath())->getCommercialLine()->toParametersMap(pm);
+				static_cast<const JourneyPattern*>(s.getDepartureEdge()->getParentPath())->getCommercialLine()->toParametersMap(pm, true);
 
 				// Transport mode
 				const JourneyPattern* jp(static_cast<const JourneyPattern*>(s.getDepartureEdge()->getParentPath()));
@@ -1726,7 +1684,7 @@ namespace synthese
 					str << setw(2) << setfill('0') << s.getDepartureDateTime().time_of_day().hours() << ":" << setw(2) << setfill('0') << s.getDepartureDateTime().time_of_day().minutes();
 					pm.insert(DATA_SECOND_TIME, str.str());
 
-					static_cast<const JourneyPattern*>(s.getDepartureEdge()->getParentPath())->getCommercialLine()->toParametersMap(pm, DATA_SECOND_);
+					static_cast<const JourneyPattern*>(s.getDepartureEdge()->getParentPath())->getCommercialLine()->toParametersMap(pm, true, boost::logic::indeterminate, DATA_SECOND_);
 
 					const JourneyPattern* jp(static_cast<const JourneyPattern*>(s.getDepartureEdge()->getParentPath()));
 					if(jp->getRollingStock())
@@ -1778,7 +1736,7 @@ namespace synthese
 			const pt::StopArea& place
 		) const {
 			ParametersMap pm(getTemplateParameters());
-			place.toParametersMap(pm);
+			place.toParametersMap(pm, true);
 
 			// Launch of the display
 			page->display(stream, request, pm);

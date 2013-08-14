@@ -35,6 +35,7 @@
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/PrecisionModel.h>
 #include <geos/geom/CoordinateFilter.h>
+#include <boost/thread/mutex.hpp>
 
 namespace synthese
 {
@@ -95,6 +96,7 @@ namespace synthese
 		projPJ _projObject;
 		geos::geom::GeometryFactory _geometryFactory;
 		bool _degrees;
+		mutable boost::mutex _proj4Mutex;
 
 		CoordinatesSystem(const CoordinatesSystem&);
 		void operator=(const CoordinatesSystem&);
@@ -234,7 +236,7 @@ namespace synthese
 
 
 
-			static void LoadFromRecord(
+			static bool LoadFromRecord(
 				CoordinatesSystem::Type& fieldObject,
 				ObjectBase& object,
 				const Record& record,

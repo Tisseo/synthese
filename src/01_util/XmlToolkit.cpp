@@ -283,15 +283,33 @@ namespace synthese
 			const std::string& str
 		){
 			vector<string> parts;
-			split(parts, str, is_any_of("TZ"));
-			if(parts.size() < 2)
+			split(parts, str, is_any_of("TZ+-"));
+			if(parts.size() < 4)
 			{
 				throw Exception("Malformed XSD date time");
 			}
 			ptime result(
-				from_string(parts[0]),
-				duration_from_string(parts[1])
+				from_string(parts[0] + "-" + parts[1] + "-" + parts[2]),
+				duration_from_string(parts[3])
 			);
+			if (parts.size() > 4)
+			{
+				// DateTime has to be corrected 
+				try {
+					size_t pos = str.find_last_of('+');
+					if (pos != string::npos)
+					{
+						result -= duration_from_string(parts[4]);
+					}
+					else
+					{
+						result += duration_from_string(parts[4]);
+					}
+				}
+				catch (...){
+					throw Exception("Malformed XSD date time");
+				}
+			}
 			return result;
 		}
 }	}

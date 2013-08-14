@@ -94,7 +94,7 @@ namespace synthese
 			//@{
 				const std::string& getCode () const { return _code; }
 				void setCode (const std::string& code) { _code = code; }
-				const std::string& getName() const { return _name; }
+				virtual std::string getName() const { return _name; }
 				void setName(const std::string& code) { _name = code; }
 
 				PlacesMatcher& getLexicalMatcher(
@@ -184,8 +184,16 @@ namespace synthese
 
 
 				virtual void toParametersMap(
-					util::ParametersMap& pm
+					util::ParametersMap& pm,
+					bool withAdditionalParameters,
+					boost::logic::tribool withFiles = boost::logic::indeterminate,
+					std::string prefix = std::string()
 				) const;
+
+				virtual bool loadFromRecord(
+					const Record& record,
+					util::Env& env
+				);
 			//@}
 		};
 	}

@@ -24,9 +24,13 @@
 
 #include "Import.hpp"
 #include "InterSYNTHESEFileFormat.hpp"
+#include "InterSYNTHESEPackage.hpp"
 #include "InterSYNTHESEQueueTableSync.hpp"
 #include "InterSYNTHESESlave.hpp"
+#include "InterSYNTHESESlaveUpdateService.hpp"
+#include "ServerModule.h"
 #include "URI.hpp"
+#include "User.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/thread.hpp>
@@ -43,7 +47,8 @@ namespace synthese
 	using namespace server;
 	using namespace util;
 	
-	template<> const std::string util::FactorableTemplate<ModuleClass, InterSYNTHESEModule>::FACTORY_KEY("19_inter_synthese");
+	template<>
+	const string FactorableTemplate<ModuleClass, InterSYNTHESEModule>::FACTORY_KEY = "19_inter_synthese";
 	
 	namespace inter_synthese
 	{
@@ -59,6 +64,7 @@ namespace synthese
 		bool InterSYNTHESEModule::_slaveActive(true);
 		time_duration InterSYNTHESEModule::_syncWaitingTime(seconds(5));
 		RegistryKeyType InterSYNTHESEModule::_slaveId(0);
+		InterSYNTHESEModule::PackagesBySmartURL InterSYNTHESEModule::_packagesBySmartURL;
 	}
 
 	namespace server
@@ -82,6 +88,7 @@ namespace synthese
 
 		template<> void ModuleClassTemplate<InterSYNTHESEModule>::Start()
 		{
+			ServerModule::AddThread(&InterSYNTHESESlaveUpdateService::RunBackgroundUpdater, "Inter-SYNTHESE slave full updater");
 		}
 
 
@@ -186,7 +193,7 @@ namespace synthese
 			}
 			else
 			{
-				shared_ptr<Import> import;
+				boost::shared_ptr<Import> import;
 				bool created(false);
 				if(Env::GetOfficialEnv().getRegistry<Import>().contains(FAKE_IMPORT_ID))
 				{
@@ -214,6 +221,32 @@ namespace synthese
 					Env::GetOfficialEnv().getEditableRegistry<Import>().add(import);
 				}
 			}
+		}
+
+
+
+		void InterSYNTHESEModule::RemovePackage( const std::string& smartURL )
+		{
+			_packagesBySmartURL.erase(smartURL);
+		}
+
+
+
+		void InterSYNTHESEModule::AddPackage( InterSYNTHESEPackage& package )
+		{
+			_packagesBySmartURL[package.get<Code>()] = &package;
+		}
+
+
+
+		InterSYNTHESEPackage* InterSYNTHESEModule::GetPackageBySmartURL( const std::string& smartURL )
+		{
+			PackagesBySmartURL::iterator it(_packagesBySmartURL.find(smartURL));
+			if(it == _packagesBySmartURL.end())
+			{
+				return NULL;
+			}
+			return it->second;
 		}
 }	}
 

@@ -32,7 +32,7 @@
 #include "User.h"
 #include "Request.h"
 #include "PTUseRuleTableSync.h"
-#include "FareTableSync.h"
+#include "FareTableSync.hpp"
 
 using namespace std;
 using namespace boost;
@@ -41,6 +41,7 @@ using namespace boost::gregorian;
 
 namespace synthese
 {
+	using namespace fare;
 	using namespace server;
 	using namespace security;
 	using namespace util;
@@ -240,7 +241,7 @@ namespace synthese
 				}
 				else
 				{
-					_fare = shared_ptr<Fare>();
+					_fare = boost::shared_ptr<Fare>();
 				}
 			}
 

@@ -25,15 +25,15 @@
 #include "DisplayScreen.h"
 
 #include "AlgorithmLogger.hpp"
+#include "BroadcastPointAlarmRecipient.hpp"
 #include "CityTableSync.h"
 #include "CommercialLineTableSync.h"
 #include "DeparturesTableInterfacePage.h"
-#include "DeparturesTableRoutePlanningInterfacePage.h"
 #include "DisplayMaintenanceLog.h"
 #include "DisplayMonitoringStatus.h"
-#include "DisplayScreenAlarmRecipient.h"
 #include "DisplayScreenContentFunction.h"
 #include "DisplayScreenCPU.h"
+#include "DisplayScreenTableSync.h"
 #include "DisplayType.h"
 #include "Interface.h"
 #include "InterfacePageException.h"
@@ -232,7 +232,7 @@ namespace synthese
 			const boost::posix_time::ptime& endTime,
 			bool rootCall
 		) const	{
-			shared_ptr<ArrivalDepartureTableGenerator> generator;
+			boost::shared_ptr<ArrivalDepartureTableGenerator> generator;
 			switch (_generationMethod)
 			{
 			case STANDARD_METHOD:
@@ -820,7 +820,9 @@ namespace synthese
 
 		void DisplayScreen::toParametersMap(
 			util::ParametersMap& pm,
-			std::string prefix /*= std::string() */
+			bool withAdditionalParameters,
+			boost::logic::tribool withFiles,
+			std::string prefix
 		) const {
 
 			pm.insert(prefix + DATA_IS_ONLINE, _maintenanceIsOnline);
@@ -875,7 +877,7 @@ namespace synthese
 				// in broad cast points recipients
 				Alarm::LinkedObjects::const_iterator it(
 					linkedObjects.find(
-						DisplayScreenAlarmRecipient::FACTORY_KEY
+						BroadcastPointAlarmRecipient::FACTORY_KEY
 				)	);
 
 				// No broadcast recipient = no display
@@ -1051,11 +1053,11 @@ namespace synthese
 			stringstream s;
 			ParametersMap pm;
 
-			shared_ptr<ParametersMap> screenPM(new ParametersMap);
-			toParametersMap(*screenPM);
+			boost::shared_ptr<ParametersMap> screenPM(new ParametersMap);
+			toParametersMap(*screenPM, true);
 			pm.insert("screen", screenPM);
 			pm.insert(VAR_BROADCAST_POINT_TYPE, VALUE_DISPLAY_SCREEN);
-			shared_ptr<ParametersMap> recipientsPM(new ParametersMap);
+			boost::shared_ptr<ParametersMap> recipientsPM(new ParametersMap);
 			Alarm::LinkedObjectsToParametersMap(linkedObjects, *recipientsPM);
 			pm.insert("recipients", recipientsPM);
 

@@ -24,7 +24,7 @@
 #define SYNTHESE_ReservationRuleTableSync_H__
 
 #include "DBDirectTableSyncTemplate.hpp"
-#include "OldLoadSavePolicy.hpp"
+#include "ReservationContact.h"
 
 #include <iostream>
 #include <vector>
@@ -43,18 +43,10 @@ namespace synthese
 		class ReservationContactTableSync:
 			public db::DBDirectTableSyncTemplate<
 				ReservationContactTableSync,
-				ReservationContact,
-				db::FullSynchronizationPolicy,
-				db::OldLoadSavePolicy
+				ReservationContact
 			>
 		{
 		public:
-			static const std::string COL_NAME;
-			static const std::string COL_PHONEEXCHANGENUMBER;
-			static const std::string COL_PHONEEXCHANGEOPENINGHOURS;
-			static const std::string COL_DESCRIPTION;
-			static const std::string COL_WEBSITEURL;
-
 
 			ReservationContactTableSync() {}
 

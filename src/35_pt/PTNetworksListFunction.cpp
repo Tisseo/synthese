@@ -93,10 +93,10 @@ namespace synthese
 			BOOST_FOREACH(const TransportNetworkTableSync::SearchResult::value_type& it, networks)
 			{
 				// Declaration
-				shared_ptr<ParametersMap> networkPM(new ParametersMap);
+				boost::shared_ptr<ParametersMap> networkPM(new ParametersMap);
 
 				// Parameters
-				it->toParametersMap(*networkPM);
+				it->toParametersMap(*networkPM, true);
 
 				// Registering the network
 				pm.insert(TAG_NETWORK, networkPM);

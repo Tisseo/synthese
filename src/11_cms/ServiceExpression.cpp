@@ -78,14 +78,17 @@ namespace synthese
 
 
 
-		void ServiceExpression::display(
+		//////////////////////////////////////////////////////////////////////////
+		/// Runs the service and get the parameters map result.
+		/// Direct output is done on the stream.
+		void ServiceExpression::runService(
 			std::ostream& stream,
+			ParametersMap& result,
 			const server::Request& request,
 			const util::ParametersMap& additionalParametersMap,
 			const Webpage& page,
 			util::ParametersMap& variables
 		) const	{
-
 			if(!_functionCreator)
 			{
 				return;
@@ -146,14 +149,13 @@ namespace synthese
 			}
 
 			// Function
-			shared_ptr<Function> function(_functionCreator->create());
+			boost::shared_ptr<Function> function(_functionCreator->create());
 			if(dynamic_cast<FunctionWithSiteBase*>(function.get()))
 			{
 				static_cast<FunctionWithSiteBase*>(function.get())->setSite(page.getRoot());
 			}
 			function->setTemplateParameters(templateParametersMap);
 
-			ParametersMap result;
 			try
 			{
 				// Service initialization
@@ -182,6 +184,20 @@ namespace synthese
 			{
 				_addExceptionToVariable(variables, "Unhandled exception", function->getFactoryKey());
 			}
+		}
+
+
+
+		void ServiceExpression::display(
+			std::ostream& stream,
+			const server::Request& request,
+			const util::ParametersMap& additionalParametersMap,
+			const Webpage& page,
+			util::ParametersMap& variables
+		) const	{
+
+			ParametersMap result;
+			runService(stream, result, request, additionalParametersMap, page, variables);
 
 			// Display of the result if inline template defined
 			if(!_inlineTemplate.empty())
@@ -198,7 +214,8 @@ namespace synthese
 
 		ServiceExpression::ServiceExpression(
 			std::string::const_iterator& it,
-			std::string::const_iterator end
+			std::string::const_iterator end,
+			bool ignoreWhiteChars
 		):	_functionCreator(NULL),
 			_repeatParameters(false)
 		{
@@ -252,7 +269,7 @@ namespace synthese
 						
 						// Parsing of the nodes
 						++it;
-						CMSScript parameterNodes(it, end, functionTermination);
+						CMSScript parameterNodes(it, end, functionTermination, ignoreWhiteChars);
 						string parameterNameStr(ParametersMap::Trim(parameterName.str()));
 
 						// Special template parameter

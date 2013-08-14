@@ -97,21 +97,17 @@ namespace synthese
 	{
 		MessageApplicationPeriodTableSync::SearchResult MessageApplicationPeriodTableSync::Search(
 			Env& env,
-			std::string name
-			, int first /*= 0*/,
-			boost::optional<std::size_t> number
-			, bool orderByName
-			, bool raisingOrder,
+			optional<RegistryKeyType> calendarId,
+			int first /*= 0*/,
+			boost::optional<std::size_t> number,
+			bool orderByName,
+			bool raisingOrder,
 			LinkLevel linkLevel
 		){
 			SelectQuery<MessageApplicationPeriodTableSync> query;
-			if (!name.empty())
+			if (calendarId)
 			{
-				query.addWhereField(SimpleObjectFieldDefinition<Name>::FIELD.name, name, ComposedExpression::OP_LIKE);
-			}
-			if (orderByName)
-			{
-				query.addOrderField(SimpleObjectFieldDefinition<Name>::FIELD.name, raisingOrder);
+				query.addWhereField(ScenarioCalendar::FIELD.name, *calendarId, ComposedExpression::OP_EQ);
 			}
 			if (number)
 			{
@@ -123,5 +119,32 @@ namespace synthese
 			}
 
 			return LoadFromQuery(query, env, linkLevel);
+		}
+
+
+
+		void MessageApplicationPeriodTableSync::CopyPeriods(
+			util::RegistryKeyType sourceId,
+			ScenarioCalendar& calendar,
+			boost::optional<db::DBTransaction&> transaction
+		){
+			Env env;
+			SearchResult periods(
+				Search(env, sourceId)
+			);
+			BOOST_FOREACH(const boost::shared_ptr<MessageApplicationPeriod>& period, periods)
+			{
+				// Raw copy
+				boost::shared_ptr<MessageApplicationPeriod> newPeriod(
+					boost::dynamic_pointer_cast<MessageApplicationPeriod, ObjectBase>(
+						period->copy()
+				)	);
+
+				// Link to the new calendar
+				period->set<ScenarioCalendar>(calendar);
+
+				// Save
+				Save(period.get(), transaction);
+			}
 		}
 }	}

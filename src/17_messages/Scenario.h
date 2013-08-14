@@ -26,8 +26,6 @@
 #define SYNTHESE_Scenario_h__
 
 #include "ImportableTemplate.hpp"
-#include "Named.h"
-#include "ParametersMap.h"
 #include "Registrable.h"
 #include "Registry.h"
 
@@ -36,6 +34,8 @@ namespace synthese
 	namespace messages
 	{
 		class Alarm;
+		class MessagesSection;
+		class ScenarioCalendar;
 
 		////////////////////////////////////////////////////////////////////
 		/// Scenario of alarms diffusion.
@@ -47,18 +47,19 @@ namespace synthese
 		///		- the sent scenario
 		class Scenario:
 			public virtual util::Registrable,
-			public impex::ImportableTemplate<Scenario>,
-			public util::Named
+			public impex::ImportableTemplate<Scenario>
 		{
 		public:
-			typedef std::set<int> Sections;
+			typedef std::set<const MessagesSection*> Sections;
 			typedef std::set<const Alarm*> Messages;
+			typedef std::set<ScenarioCalendar*> ScenarioCalendars;
 
 		private:
 
 			Sections _sections;
-
+			std::string _name;
 			mutable Messages _messages;
+			mutable ScenarioCalendars _calendars;
 
 		protected:
 			Scenario(const std::string name = std::string());
@@ -72,12 +73,21 @@ namespace synthese
 
 			void addMessage(const Alarm& message) const;
 			void removeMessage(const Alarm& message) const;
-			const Messages& getMessages() const { return _messages; }
 
+			/// @name Setters
+			//@{
+				void setSections(const Sections& value){ _sections = value; }
+				void setCalendars(const ScenarioCalendars& value) const { _calendars = value; }
+				void setName(const std::string& value){ _name = value; }
+			//@}
 
-
-			const Sections& getSections() const { return _sections; }
-			void setSections(const Sections& value){ _sections = value; }
+			/// @name Getters
+			//@{
+				const Messages& getMessages() const { return _messages; }
+				const ScenarioCalendars& getCalendars() const { return _calendars; }
+				const Sections& getSections() const { return _sections; }
+				virtual std::string getName() const { return _name; }
+			//@}
 		};
 	}
 }

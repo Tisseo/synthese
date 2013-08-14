@@ -156,7 +156,7 @@ namespace synthese
 			JourneyPatternTableSync::SearchResult routes(
 				JourneyPatternTableSync::Search(_getEnv(), _line->getKey())
 			);
-			BOOST_FOREACH(const shared_ptr<JourneyPattern>& line, routes)
+			BOOST_FOREACH(const boost::shared_ptr<JourneyPattern>& line, routes)
 			{
 				LineStopTableSync::Search(
 					_getEnv(),
@@ -202,12 +202,24 @@ namespace synthese
 				bool globalReadRight(
 					_request.getUser()->getProfile()->isAuthorized<ResaRight>(security::READ,UNKNOWN_RIGHT_LEVEL)
 				);
+				if (!globalReadRight && _line.get())
+				{
+					globalReadRight = _request.getUser()->getProfile()->isAuthorized<ResaRight>(security::READ, UNKNOWN_RIGHT_LEVEL, lexical_cast<string>(_line->getKey()));
+				}
 				bool globalDeleteRight(
 					_request.getUser()->getProfile()->isAuthorized<ResaRight>(security::DELETE_RIGHT,UNKNOWN_RIGHT_LEVEL)
 				);
+				if (!globalDeleteRight && _line.get())
+				{
+					globalDeleteRight = _request.getUser()->getProfile()->isAuthorized<ResaRight>(security::DELETE_RIGHT, UNKNOWN_RIGHT_LEVEL, lexical_cast<string>(_line->getKey()));
+				}
 				bool globalCancelRight(
 					_request.getUser()->getProfile()->isAuthorized<ResaRight>(security::CANCEL, UNKNOWN_RIGHT_LEVEL)
 				);
+				if (!globalCancelRight && _line.get())
+				{
+					globalCancelRight = _request.getUser()->getProfile()->isAuthorized<ResaRight>(security::CANCEL, UNKNOWN_RIGHT_LEVEL, lexical_cast<string>(_line->getKey()));
+				}
 
 				// Requests
 				AdminFunctionRequest<BookableCommercialLineAdmin> searchRequest(_request, *this);
@@ -242,10 +254,10 @@ namespace synthese
 						_displayCancelled ? logic::indeterminate : logic::tribool(false)
 				)	);
 				// Services reading
-				vector<shared_ptr<ReservableService> > sortedServices;
+				vector<boost::shared_ptr<ReservableService> > sortedServices;
 				{
 					// Declaration
-					map<string, shared_ptr<ReservableService> > servicesByNumber;
+					map<string, boost::shared_ptr<ReservableService> > servicesByNumber;
 
 					// Scheduled services
 					ScheduledServiceTableSync::SearchResult services(
@@ -260,7 +272,7 @@ namespace synthese
 							optional<size_t>(),
 							true, true, DOWN_LINKS_LOAD_LEVEL
 					)	);
-					BOOST_FOREACH(const shared_ptr<ScheduledService>& service, services)
+					BOOST_FOREACH(const boost::shared_ptr<ScheduledService>& service, services)
 					{
 						if(	!service->isActive(_date) ||
 							servicesByNumber.find(service->getServiceNumber()) != servicesByNumber.end()
@@ -278,14 +290,14 @@ namespace synthese
 							Env::GetOfficialEnv(),
 							_line->getKey()
 					)	);
-					BOOST_FOREACH(const shared_ptr<FreeDRTArea>& area, areas)
+					BOOST_FOREACH(const boost::shared_ptr<FreeDRTArea>& area, areas)
 					{
 						FreeDRTTimeSlotTableSync::SearchResult freeDRTs(
 							FreeDRTTimeSlotTableSync::Search(
 								Env::GetOfficialEnv(),
 								area->getKey()
 						)	);
-						BOOST_FOREACH(const shared_ptr<FreeDRTTimeSlot>& service, freeDRTs)
+						BOOST_FOREACH(const boost::shared_ptr<FreeDRTTimeSlot>& service, freeDRTs)
 						{
 							if(	!service->isActive(_date) ||
 								servicesByNumber.find(service->getServiceNumber()) != servicesByNumber.end()
@@ -302,7 +314,7 @@ namespace synthese
 
 				// Sort reservations by service number
 				map<string, ServiceReservations> reservations;
-				BOOST_FOREACH(const shared_ptr<const Reservation>& resa, sqlreservations)
+				BOOST_FOREACH(const boost::shared_ptr<const Reservation>& resa, sqlreservations)
 				{
 					reservations[resa->getServiceCode()].addReservation(resa.get());
 				}
@@ -424,7 +436,7 @@ namespace synthese
 				stream << t.open();
 
 				// Display of services
-				BOOST_FOREACH(const shared_ptr<ReservableService>& service, sortedServices)
+				BOOST_FOREACH(const boost::shared_ptr<ReservableService>& service, sortedServices)
 				{
 					const string& serviceNumber(
 						dynamic_cast<Service*>(service.get())->getServiceNumber()
@@ -630,7 +642,7 @@ namespace synthese
 										break;
 
 									case SHOULD_BE_AT_WORK:
-										stream << HTMLModule::getLinkButton(cancelRequest.getURL(), "Noter absence", "Etes-vous sûr de noter l'absence du client à l'arrêt ?", ResaModule::GetStatusIcon(NO_SHOW));
+										stream << HTMLModule::getLinkButton(cancelRequest.getURL() + "&absence=1", "Noter absence", "Etes-vous sûr de noter l'absence du client à l'arrêt ?", ResaModule::GetStatusIcon(NO_SHOW));
 										break;
 									default:
 										break;
@@ -644,7 +656,7 @@ namespace synthese
 									case DONE:
 									case SHOULD_BE_DONE:
 									case SHOULD_BE_AT_WORK:
-										stream << HTMLModule::getLinkButton(cancelRequest.getURL(), "Noter absence", "Etes-vous sûr de noter l'absence du client à l'arrêt ?", ResaModule::GetStatusIcon(NO_SHOW));
+										stream << HTMLModule::getLinkButton(cancelRequest.getURL() + "&absence=1", "Noter absence", "Etes-vous sûr de noter l'absence du client à l'arrêt ?", ResaModule::GetStatusIcon(NO_SHOW));
 										break;
 									default:
 									break;
@@ -715,7 +727,7 @@ namespace synthese
 				c.push_back("Zone");
 				HTMLTable t(c, ResultHTMLTable::CSS_CLASS);
 				stream << t.open();
-				BOOST_FOREACH(const shared_ptr<FreeDRTArea>& area, areas)
+				BOOST_FOREACH(const boost::shared_ptr<FreeDRTArea>& area, areas)
 				{
 					// New row
 					stream << t.row();
@@ -780,9 +792,9 @@ namespace synthese
 						departureName = dynamic_cast<const NamedPlace*>(startEdge->getHub())->getFullName();
 					}
 					// Handle DRTArea as departure
-					else if(dynamic_cast<const Named*>(startEdge->getFromVertex()))
+					else
 					{
-						departureName = dynamic_cast<const Named*>(startEdge->getFromVertex())->getName();
+						departureName = startEdge->getFromVertex()->getName();
 					}
 
 					ptime date(_date, services[0]->getDepartureSchedule(false, 0));
@@ -831,7 +843,7 @@ namespace synthese
 				ba->_line == _line &&
 				ba->_serviceNumber
 			){
-				shared_ptr<BookableCommercialLineAdmin> p(
+				boost::shared_ptr<BookableCommercialLineAdmin> p(
 					getNewPage<BookableCommercialLineAdmin>()
 				);
 				p->setCommercialLine(_line);

@@ -184,7 +184,7 @@ namespace synthese
 			if(!coordinatesXY.empty())
 			{
 				placesListService.addRequiredUserClass(USER_PEDESTRIAN);
-				placesListService.setCoordinatesXY(coordinatesXY);
+				placesListService.setCoordinatesXY(coordinatesXY, false);
 			}
 			else if(!startPlaceName.empty())
 			{
@@ -532,7 +532,7 @@ namespace synthese
 					bool first(true);
 					for(ResultsMap::const_iterator it(resultsMap.begin()); it != resultsMap.end(); it++)
 					{
-						shared_ptr<geos::geom::Point> wgs84Point(CoordinatesSystem::GetCoordinatesSystem(4326).convertPoint(
+						boost::shared_ptr<geos::geom::Point> wgs84Point(CoordinatesSystem::GetCoordinatesSystem(4326).convertPoint(
 							*(*it).second.stop->getPoint()
 						));
 
@@ -638,13 +638,13 @@ namespace synthese
 					result.insert(
 						it.first,
 						VertexAccess(
-							itps.second.approachTime +
+							it.second.approachTime +
 							(	direction == DEPARTURE_TO_ARRIVAL ?
 								vertex->getHub()->getTransferDelay(*vertex, *it.first) :
 								vertex->getHub()->getTransferDelay(*it.first, *vertex)
 							),
-							itps.second.approachDistance,
-							itps.second.approachJourney
+							it.second.approachDistance,
+							it.second.approachJourney
 					)	);
 				}
 			}

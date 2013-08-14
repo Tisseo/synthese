@@ -58,12 +58,12 @@ namespace synthese
 			choices.push_back(make_pair(RegistryKeyType(0), "(Toutes sources)"));
 			BOOST_FOREACH(const Registry<DataSource>::value_type& source, Env::GetOfficialEnv().getRegistry<DataSource>())
 			{
-				choices.push_back(make_pair(source.first, source.second->getName()));
+				choices.push_back(make_pair(source.first, source.second->get<Name>()));
 			}
-			fields.push_back(shared_ptr<AjaxVectorFieldEditor::Field>(new AjaxVectorFieldEditor::SelectField("Source", false, choices)));
+			fields.push_back(boost::shared_ptr<AjaxVectorFieldEditor::Field>(new AjaxVectorFieldEditor::SelectField("Source", false, choices)));
 
 			// Code field
-			fields.push_back(shared_ptr<AjaxVectorFieldEditor::Field>(new AjaxVectorFieldEditor::TextInputField("Code")));
+			fields.push_back(boost::shared_ptr<AjaxVectorFieldEditor::Field>(new AjaxVectorFieldEditor::TextInputField("Code")));
 
 			// Creation of the editor
 			AjaxVectorFieldEditor editor(

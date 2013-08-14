@@ -177,7 +177,7 @@ namespace synthese
 					throw RequestException("Invalid center point coordinates");
 				}
 
-				shared_ptr<Point> pt1(
+				boost::shared_ptr<Point> pt1(
 					_coordinatesSystem->createPoint(lexical_cast<double>(parsed_coord[0]), lexical_cast<double>(parsed_coord[1]))
 				);
 
@@ -244,7 +244,7 @@ namespace synthese
 				throw RequestException("Network List is unreadable");
 			}
 			_accessParameters = AccessParameters(
-				USER_PEDESTRIAN, false, false, 1000, posix_time::minutes(23), 0.833, boost::optional<size_t>(), allowedPathClasses, allowedNetworks
+				USER_PEDESTRIAN, false, false, 1000, posix_time::minutes(23), 1.111, boost::optional<size_t>(), allowedPathClasses, allowedNetworks
 			);
 		}
 
@@ -273,9 +273,10 @@ namespace synthese
 			size_t nbStop = 0;
 			size_t maxDistance = 0;
 			bool isServiceNumberReadched = false;
+			set<RegistryKeyType> serviceStored;
 			BOOST_FOREACH(const StopPointSetType::value_type& sp, stopPointSet)
 			{
-				shared_ptr<ParametersMap> stopMap(new ParametersMap);
+				boost::shared_ptr<ParametersMap> stopMap(new ParametersMap);
 				stopMap->insert(DATA_STOP_POINT_ID, sp.getStopPoint()->getKey());
 				stopMap->insert(DATA_STOP_POINT_NAME, sp.getStopPoint()->getName());
 				stopMap->insert(DATA_STOP_DISTANCE, sp.getDistanceToCenter());
@@ -325,12 +326,17 @@ namespace synthese
 							continue;
 						}
 
+						// Check if service already stored in map
+						if(serviceStored.find(service->getKey()) != serviceStored.end())
+							continue;
+						serviceStored.insert(service->getKey());
+
 						nbService++;
 						nbServiceInStop++;
 						maxDistance = sp.getDistanceToCenter();
 						if(_displayServices)
 						{
-							shared_ptr<ParametersMap> serviceMap(new ParametersMap);
+							boost::shared_ptr<ParametersMap> serviceMap(new ParametersMap);
 							serviceMap->insert(DATA_SERVICE_ID, service->getKey());
 
 							const CommercialLine * commercialLine(journeyPattern->getCommercialLine());
@@ -468,7 +474,7 @@ namespace synthese
 		{
 			int distanceToCenter = 0;
 
-			shared_ptr<Point> gp = stopPoint.getGeometry();
+			boost::shared_ptr<Point> gp = stopPoint.getGeometry();
 
 			if(gp.get())
 			{

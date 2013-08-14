@@ -24,15 +24,14 @@
 
 #include "IneoBDSIFileFormat.hpp"
 
-#include "ActionException.h"
 #include "AlarmObjectLinkTableSync.h"
 #include "AlarmRecipientTemplate.h"
+#include "BroadcastPointAlarmRecipient.hpp"
 #include "CommercialLine.h"
 #include "DataSourceTableSync.h"
 #include "Depot.hpp"
 #include "DesignatedLinePhysicalStop.hpp"
 #include "DisplayScreen.h"
-#include "DisplayScreenAlarmRecipient.h"
 #include "DBModule.h"
 #include "DBTransaction.hpp"
 #include "Import.hpp"
@@ -41,9 +40,11 @@
 #include "LineStopTableSync.h"
 #include "ParametersMap.h"
 #include "Request.h"
+#include "RequestException.h"
 #include "ScenarioTableSync.h"
 #include "ScheduledServiceTableSync.h"
 #include "SentScenario.h"
+#include "ServerModule.h"
 #include "StopPoint.hpp"
 
 #include <boost/filesystem.hpp>
@@ -96,7 +97,7 @@ namespace synthese
 			}
 			catch(ObjectNotFoundException<DataSource>&)
 			{
-				throw ActionException("No such real time data source");
+				throw RequestException("No such planned data source");
 			}
 
 			// Messages recipients datasource
@@ -108,16 +109,21 @@ namespace synthese
 			}
 			catch(ObjectNotFoundException<DataSource>&)
 			{
-				throw ActionException("No such messages recipients data source");
+				throw RequestException("No such messages recipients data source");
 			}
 		}
 		
 		
 		
 		bool IneoBDSIFileFormat::Importer_::_read(
-			boost::optional<const server::Request&> request
 		) const {
 			date today(day_clock::local_day());
+
+			boost::unique_lock<shared_mutex> lock(ServerModule::baseWriterMutex, boost::try_to_lock);
+			if(!lock.owns_lock())
+			{
+				throw RequestException("IneoBDSIFileFormat: Already running");
+			}
 
 			//////////////////////////////////////////////////////////////////////////
 			// Preparation of list of objects to remove
@@ -161,8 +167,7 @@ namespace synthese
 					Depot* depot(NULL);
 					if(stopPoint)
 					{
-						_logLoad(
-							ImportLogger::LOAD,
+						_logLoadDetail(
 							"STOP",mnemol,name,stopPoint->getKey(),stopPoint->getConnectionPlace()->getFullName() + "/" + stopPoint->getName(), string(), string(), "OK"
 						);
 					}
@@ -171,15 +176,13 @@ namespace synthese
 						depot = _plannedDataSource->getObjectByCode<Depot>(mnemol);
 						if(depot)
 						{
-							_logLoad(
-								ImportLogger::LOAD,
+							_logLoadDetail(
 								"DEPOT",mnemol,name,depot->getKey(),depot->getName(),string(), string(), "OK"
 							);
 						}
 						else
 						{
-							_logLoad(
-								ImportLogger::WARN,
+							_logWarningDetail(
 								"STOP/DEPOT",mnemol,name,0,string(), string(),string(), "NOT FOUND"
 							);
 							continue;
@@ -219,16 +222,14 @@ namespace synthese
 					);
 					if(line)
 					{
-						_logLoad(
-							ImportLogger::LOAD,
+						_logLoadDetail(
 							"LINE",mnemo,mnemo,line->getKey(),line->getName(),string(), string(), "OK"
 						);
 					}
 					else
 					{
 						Log::GetInstance().warn("No such line : " + mnemo);
-						_logLoad(
-							ImportLogger::WARN,
+						_logWarningDetail(
 							"LINE",mnemo,mnemo,0,string(), string(),string(), "NOT FOUND"
 						);
 						continue;
@@ -282,8 +283,7 @@ namespace synthese
 					Lignes::iterator it(lignes.find(result->getInt("ligne")));
 					if(it == lignes.end())
 					{
-						_logLoad(
-							ImportLogger::WARN,
+						_logWarningDetail(
 							"JOURNEYPATTERN",lexical_cast<string>(ref),name,0,string(),string(), string(),"LINE NOT FOUND"
 						);
 						chainages.erase(ref);
@@ -300,8 +300,7 @@ namespace synthese
 					chainage.ligne = &it->second;
 					chainage.nom = name;
 					chainage.sens = (result->getText("sens") == "R");
-					_logLoad(
-						ImportLogger::LOAD,
+					_logLoadDetail(
 						"JOURNEYPATTERN",lexical_cast<string>(ref),name,0,string(),string(), string(),"OK"
 					);
 					
@@ -324,8 +323,7 @@ namespace synthese
 						Arrets::iterator it(arrets.find(chainageResult->getInt("arret")));
 						if(it == arrets.end())
 						{
-							_logLoad(
-								ImportLogger::WARN,
+							_logWarningDetail(
 								"STOPPOINT",lexical_cast<string>(arretChn.ref),lexical_cast<string>(arretChn.ref),0,string(),string(), string(),"Bad arret field in arretchn"
 							);
 							chainage.arretChns.pop_back();
@@ -334,8 +332,7 @@ namespace synthese
 						arretChn.arret = &it->second;
 						arretChn.pos = chainageResult->getInt("pos");
 						arretChn.type = chainageResult->getText("type");
-						_logLoad(
-							ImportLogger::LOAD,
+						_logLoadDetail(
 							"STOPPOINT",lexical_cast<string>(arretChn.ref),arretChn.arret->nom,0,string(),string(), string(),"OK"
 						);
 
@@ -372,16 +369,14 @@ namespace synthese
 					Chainages::iterator it(chainages.find(result->getInt("chainage")));
 					if(it == chainages.end())
 					{
-						_logLoad(
-							ImportLogger::WARN,
+						_logWarningDetail(
 							"SERVICE",lexical_cast<string>(ref),lexical_cast<string>(ref),0,string(),string(), string(),"Bad chainage field in course "
 						);
 						courses.erase(ref);
 					}
 					else
 					{
-						_logLoad(
-							ImportLogger::LOAD,
+						_logLoadDetail(
 							"SERVICE",lexical_cast<string>(ref),lexical_cast<string>(ref),0,string(),string(), string(),"OK"
 						);
 						course.chainage = &it->second;
@@ -456,20 +451,16 @@ namespace synthese
 								horaire.hrd = now_plus_35;
 							}
 
-							_logLoad(
-								ImportLogger::DEBG,
+							_logDebugDetail(
 								"SCHEDULE_HTD",lexical_cast<string>(ref),lexical_cast<string>(ref),0,string(),horaireResult->getText("htd"),to_simple_string(horaire.htd),"OK"
 							);
-							_logLoad(
-								ImportLogger::DEBG,
+							_logDebugDetail(
 								"SCHEDULE_HTA",lexical_cast<string>(ref),lexical_cast<string>(ref),0,string(),horaireResult->getText("hta"),to_simple_string(horaire.hta),"OK"
 							);
-							_logLoad(
-								ImportLogger::DEBG,
+							_logDebugDetail(
 								"SCHEDULE_HRD",lexical_cast<string>(ref),lexical_cast<string>(ref),0,string(),horaireResult->getText("hrd"),to_simple_string(horaire.hrd),"OK"
 							);
-							_logLoad(
-								ImportLogger::DEBG,
+							_logDebugDetail(
 								"SCHEDULE_HRA",lexical_cast<string>(ref),lexical_cast<string>(ref),0,string(),horaireResult->getText("hra"),to_simple_string(horaire.hra),"OK"
 							);
 						}
@@ -540,7 +531,7 @@ namespace synthese
 						); // Boards comes from BDSI too !!
 						if(!dest.syntheseDisplayBoard)
 						{
-							Log::GetInstance().warn("No such display screen : " + dest.destinataire);
+							_logWarning("No such display screen : " + dest.destinataire);
 							continue;
 						}
 
@@ -564,8 +555,8 @@ namespace synthese
 				{
 					const Programmation& programmation(itProg.second);
 
-					shared_ptr<SentScenario> updatedScenario;
-					shared_ptr<Alarm> updatedMessage;
+					boost::shared_ptr<SentScenario> updatedScenario;
+					boost::shared_ptr<Alarm> updatedMessage;
 					SentScenario* scenario(
 						static_cast<SentScenario*>(
 							_import.get<DataSource>()->getObjectByCode<Scenario>(
@@ -605,7 +596,7 @@ namespace synthese
 						const Scenario::Messages& messages(scenario->getMessages());
 						if(messages.size() != 1)
 						{
-							Log::GetInstance().warn(
+							_logWarning(
 								"Corrupted message : scenario should contain one message : " + lexical_cast<string>(scenario->getKey())
 							);
 							
@@ -657,7 +648,7 @@ namespace synthese
 					// Adding of existing object links to the removal list
 					Alarm::LinkedObjects::mapped_type existingRecipients(
 						(*scenario->getMessages().begin())->getLinkedObjects(
-							DisplayScreenAlarmRecipient::FACTORY_KEY
+							BroadcastPointAlarmRecipient::FACTORY_KEY
 					)	);
 					BOOST_FOREACH(const Alarm::LinkedObjects::mapped_type::value_type& aol, existingRecipients)
 					{
@@ -684,11 +675,11 @@ namespace synthese
 						}
 
 						// Link creation
-						shared_ptr<AlarmObjectLink> link(new AlarmObjectLink);
+						boost::shared_ptr<AlarmObjectLink> link(new AlarmObjectLink);
 						link->setKey(AlarmObjectLinkTableSync::getId());
 						link->setAlarm(message);
 						link->setObjectId(itDest.syntheseDisplayBoard->getKey());
-						link->setRecipient(DisplayScreenAlarmRecipient::FACTORY_KEY);
+						link->setRecipient(BroadcastPointAlarmRecipient::FACTORY_KEY);
 						_env.getEditableRegistry<AlarmObjectLink>().add(link);
 					}
 				}
@@ -834,7 +825,7 @@ namespace synthese
 						// If no journey pattern was found, creation of a new journey pattern
 						if(course.chainage->syntheseJourneyPatterns.empty())
 						{
-							shared_ptr<JourneyPattern> jp(new JourneyPattern(JourneyPatternTableSync::getId()));
+							boost::shared_ptr<JourneyPattern> jp(new JourneyPattern(JourneyPatternTableSync::getId()));
 							jp->setCommercialLine(course.chainage->ligne->syntheseLine);
 							jp->setWayBack(course.chainage->sens);
 							jp->setName(course.chainage->nom);
@@ -848,7 +839,7 @@ namespace synthese
 							size_t rank(0);
 							BOOST_FOREACH(const Chainage::ArretChns::value_type& arretChn, course.chainage->arretChns)
 							{
-								shared_ptr<DesignatedLinePhysicalStop> ls(
+								boost::shared_ptr<DesignatedLinePhysicalStop> ls(
 									new DesignatedLinePhysicalStop(
 										LineStopTableSync::getId(),
 										jp.get(),
@@ -886,6 +877,7 @@ namespace synthese
 							){
 								course.syntheseService = service;
 								servicesToLinkAndUpdate.push_back(&course);
+								servicesToRemove.erase(lexical_cast<string>(course.ref));
 								break;
 							}
 						}
@@ -924,7 +916,7 @@ namespace synthese
 					course.syntheseService->setPath(const_cast<JourneyPattern*>(route));
 					course.syntheseService->addCodeBySource(*_import.get<DataSource>(), lexical_cast<string>(course.ref));
 					course.syntheseService->setActive(today);
-					_env.getEditableRegistry<ScheduledService>().add(shared_ptr<ScheduledService>(course.syntheseService));
+					_env.getEditableRegistry<ScheduledService>().add(boost::shared_ptr<ScheduledService>(course.syntheseService));
 
 					servicesToLinkAndUpdate.push_back(&course);
 				}
@@ -942,7 +934,7 @@ namespace synthese
 				// Loop on services to move and update
 				BOOST_FOREACH(const ServicesToUpdate::value_type& it, servicesToMoveAndUpdate)
 				{
-					shared_ptr<ScheduledService> oldService(
+					boost::shared_ptr<ScheduledService> oldService(
 						ScheduledServiceTableSync::GetEditable(
 							it->syntheseService->getKey(),
 							_env
@@ -957,12 +949,13 @@ namespace synthese
 				// Loop on services to link and update
 				BOOST_FOREACH(const ServicesToUpdate::value_type& it, servicesToLinkAndUpdate)
 				{
-					shared_ptr<ScheduledService> oldService(
+					boost::shared_ptr<ScheduledService> oldService(
 						ScheduledServiceTableSync::GetEditable(
 							it->syntheseService->getKey(),
 							_env
 					)	);
 					Importable::DataSourceLinks links(oldService->getDataSourceLinks());
+					links.erase(dataSourceOnUpdateEnv);
 					links.insert(make_pair(dataSourceOnUpdateEnv, lexical_cast<string>(it->ref)));
 					oldService->setDataSourceLinksWithoutRegistration(links);
 					it->updateService(*it->syntheseService);
@@ -971,7 +964,7 @@ namespace synthese
 				// Remove services from today
 				BOOST_FOREACH(const ServicesToRemove::value_type& it, servicesToRemove)
 				{
-					shared_ptr<ScheduledService> oldService(
+					boost::shared_ptr<ScheduledService> oldService(
 						ScheduledServiceTableSync::GetEditable(
 							it.second->getKey(),
 							_env
@@ -991,15 +984,17 @@ namespace synthese
 		IneoBDSIFileFormat::Importer_::Importer_(
 			util::Env& env,
 			const impex::Import& import,
-			const impex::ImportLogger& logger
-		):	Importer(env, import, logger),
-			DatabaseReadImporter<IneoBDSIFileFormat>(env, import, logger)
+			impex::ImportLogLevel minLogLevel,
+			const std::string& logPath,
+			boost::optional<std::ostream&> outputStream,
+			util::ParametersMap& pm
+		):	Importer(env, import, minLogLevel, logPath, outputStream, pm),
+			DatabaseReadImporter<IneoBDSIFileFormat>(env, import, minLogLevel, logPath, outputStream, pm)
 		{}
 
 
 
-		void IneoBDSIFileFormat::Importer_::_logLoad(
-			ImportLogger::Level level,
+		void IneoBDSIFileFormat::Importer_::_logLoadDetail(
 			const std::string& table,
 			const std::string& localId,
 			const std::string& locaName,
@@ -1012,16 +1007,70 @@ namespace synthese
 
 			stringstream content;
 			content <<
-					table << ";" <<
-					localId << ";" <<
-					locaName << ";" <<
-					(syntheseId ? lexical_cast<string>(syntheseId) : string()) << ";" <<
-					syntheseName << ";" <<
-					oldValue << ";" <<
-					newValue << ";" <<
-					remarks
+				table << ";" <<
+				localId << ";" <<
+				locaName << ";" <<
+				(syntheseId ? lexical_cast<string>(syntheseId) : string()) << ";" <<
+				syntheseName << ";" <<
+				oldValue << ";" <<
+				newValue << ";" <<
+				remarks
 			;
-			_log(level, content.str());
+			_logLoad(content.str());
+		}
+
+
+
+		void IneoBDSIFileFormat::Importer_::_logWarningDetail(
+			const std::string& table,
+			const std::string& localId,
+			const std::string& locaName,
+			const util::RegistryKeyType syntheseId,
+			const std::string& syntheseName,
+			const std::string& oldValue,
+			const std::string& newValue,
+			const std::string& remarks
+		) const	{
+
+			stringstream content;
+			content <<
+				table << ";" <<
+				localId << ";" <<
+				locaName << ";" <<
+				(syntheseId ? lexical_cast<string>(syntheseId) : string()) << ";" <<
+				syntheseName << ";" <<
+				oldValue << ";" <<
+				newValue << ";" <<
+				remarks
+			;
+			_logWarning(content.str());
+		}
+
+
+
+		void IneoBDSIFileFormat::Importer_::_logDebugDetail(
+			const std::string& table,
+			const std::string& localId,
+			const std::string& locaName,
+			const util::RegistryKeyType syntheseId,
+			const std::string& syntheseName,
+			const std::string& oldValue,
+			const std::string& newValue,
+			const std::string& remarks
+		) const	{
+
+			stringstream content;
+			content <<
+				table << ";" <<
+				localId << ";" <<
+				locaName << ";" <<
+				(syntheseId ? lexical_cast<string>(syntheseId) : string()) << ";" <<
+				syntheseName << ";" <<
+				oldValue << ";" <<
+				newValue << ";" <<
+				remarks
+			;
+			_logDebug(content.str());
 		}
 
 

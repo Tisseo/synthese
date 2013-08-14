@@ -24,13 +24,16 @@
 #include "AlarmObjectLinkTableSync.h"
 #include "AlarmTemplate.h"
 #include "DBResult.hpp"
+#include "MessageAlternativeTableSync.hpp"
 #include "MessagesLibraryLog.h"
 #include "MessagesLibraryRight.h"
 #include "MessagesRight.h"
+#include "MessagesSectionTableSync.hpp"
 #include "MessagesLog.h"
 #include "MessagesTypes.h"
 #include "Profile.h"
 #include "ReplaceQuery.h"
+#include "ScenarioCalendarTableSync.hpp"
 #include "ScenarioTemplate.h"
 #include "ScenarioTableSync.h"
 #include "SentAlarm.h"
@@ -66,6 +69,8 @@ namespace synthese
 		const string AlarmTableSync::COL_TEMPLATE_ID("template_id");
 		const string AlarmTableSync::COL_RAW_EDITOR = "raw_editor";
 		const string AlarmTableSync::COL_DONE = "done";
+		const string AlarmTableSync::COL_MESSAGES_SECTION_ID = "messages_section_id";
+		const string AlarmTableSync::COL_CALENDAR_ID = "calendar_id";
 	}
 
 	namespace db
@@ -85,6 +90,8 @@ namespace synthese
 			Field(AlarmTableSync::COL_TEMPLATE_ID, SQL_INTEGER),
 			Field(AlarmTableSync::COL_RAW_EDITOR, SQL_BOOLEAN),
 			Field(AlarmTableSync::COL_DONE, SQL_BOOLEAN),
+			Field(AlarmTableSync::COL_MESSAGES_SECTION_ID, SQL_INTEGER),
+			Field(AlarmTableSync::COL_CALENDAR_ID, SQL_INTEGER),
 			Field()
 		};
 
@@ -102,11 +109,11 @@ namespace synthese
 		){
 			if(row->getBool(AlarmTableSync::COL_IS_TEMPLATE))
 			{
-				return shared_ptr<Alarm>(new AlarmTemplate(row->getKey()));
+				return boost::shared_ptr<Alarm>(new AlarmTemplate(row->getKey()));
 			}
 			else
 			{
-				return shared_ptr<Alarm>(new SentAlarm(row->getKey()));
+				return boost::shared_ptr<Alarm>(new SentAlarm(row->getKey()));
 			}
 		}
 
@@ -124,6 +131,21 @@ namespace synthese
 			alarm->setLongMessage (rows->getText (AlarmTableSync::COL_LONG_MESSAGE));
 			alarm->setRawEditor(rows->getBool(AlarmTableSync::COL_RAW_EDITOR));
 			alarm->setDone(rows->getBool(AlarmTableSync::COL_DONE));
+
+			// Section
+			if(linkLevel > FIELDS_ONLY_LOAD_LEVEL)
+			{
+				alarm->setSection(NULL);
+				RegistryKeyType id(rows->getDefault<RegistryKeyType>(AlarmTableSync::COL_MESSAGES_SECTION_ID));
+				if(id) try
+				{
+					alarm->setSection(MessagesSectionTableSync::Get(id, env).get());
+				}
+				catch (ObjectNotFoundException<MessagesSection>& e)
+				{
+					Log::GetInstance().warn("Invalid section", e);
+				}
+			}
 
 			if(dynamic_cast<AlarmTemplate*>(alarm))
 			{
@@ -180,8 +202,35 @@ namespace synthese
 						MessagesModule::UpdateActivatedMessages();
 					}
 				}
+				sentAlarm.clearBroadcastPointsCache();
 			}
 
+			// Calendar
+			if(linkLevel >= UP_LINKS_LOAD_LEVEL)
+			{
+				RegistryKeyType calendarId(
+					rows->getDefault<RegistryKeyType>(
+						AlarmTableSync::COL_CALENDAR_ID,
+						RegistryKeyType(0)
+				)	);
+				alarm->setCalendar(NULL);
+				if(calendarId)
+				{
+					try
+					{
+						alarm->setCalendar(
+							ScenarioCalendarTableSync::Get(
+								calendarId,
+								env
+							).get()
+						);
+					}
+					catch(ObjectNotFoundException<ScenarioCalendar>&)
+					{
+
+					}
+				}
+			}
 		}
 
 
@@ -209,6 +258,12 @@ namespace synthese
 			);
 			query.addField(object->getRawEditor());
 			query.addField(object->getDone());
+			query.addField(object->getSection());
+			query.addField(
+				object->getCalendar() ?
+				object->getCalendar()->getKey() :
+				RegistryKeyType(0)
+			);
 			query.execute(transaction);
 		}
 
@@ -246,7 +301,7 @@ namespace synthese
 			try
 			{
 				Env env;
-				shared_ptr<const Alarm> alarm(AlarmTableSync::Get(object_id, env));
+				boost::shared_ptr<const Alarm> alarm(AlarmTableSync::Get(object_id, env));
 				if (dynamic_cast<const SentAlarm*>(alarm.get()))
 				{
 					return session && session->hasProfile() && session->getUser()->getProfile()->isAuthorized<MessagesRight>(DELETE_RIGHT);
@@ -268,7 +323,20 @@ namespace synthese
 			util::RegistryKeyType id,
 			db::DBTransaction& transaction
 		){
-			AlarmObjectLinkTableSync::Remove(id);
+			Env env;
+
+			// Links
+			AlarmObjectLinkTableSync::RemoveByMessage(id);
+
+			// Message alternatives
+			MessageAlternativeTableSync::SearchResult alternatives(
+				MessageAlternativeTableSync::Search(env, id)
+			);
+			BOOST_FOREACH(const boost::shared_ptr<MessageAlternative>& alternative, alternatives)
+			{
+				MessageAlternativeTableSync::Remove(NULL, alternative->getKey(), transaction, false);
+			}
+
 		}
 
 
@@ -286,7 +354,7 @@ namespace synthese
 			util::RegistryKeyType id
 		){
 			Env env;
-			shared_ptr<const Alarm> alarm(AlarmTableSync::Get(id, env));
+			boost::shared_ptr<const Alarm> alarm(AlarmTableSync::Get(id, env));
 			if (dynamic_cast<const SentAlarm*>(alarm.get()))
 			{
 				MessagesLog::AddDeleteEntry(static_cast<const SentAlarm*>(alarm.get()), session->getUser().get());

@@ -116,7 +116,7 @@ namespace synthese
 			_disabledPassenger(false),
 			_withoutTransfer(false),
 			_planningOrder(DEPARTURE_FIRST),
-			_approachSpeed(0.833),//0.833 = 3km/h, 1.111 = 4km/h
+			_approachSpeed(1.111),//0.833 = 3km/h, 1.111 = 4km/h
 			_enabledPedestrian(false),
 			_ignoreReservation(false)
 		{
@@ -200,7 +200,7 @@ namespace synthese
 			vector<pair<optional<string>, string> > hours;
 			{
 				date date(day_clock::local_day());
-				for(size_t i=0; i<14; ++i)
+				for(size_t i=0; i<140; ++i)
 				{
 					dates.push_back(
 						make_pair(
@@ -238,8 +238,8 @@ namespace synthese
 			// Search form
 			stream << "<h1>Recherche</h1>";
 
-			shared_ptr<Place> startPlace;
-			shared_ptr<Place> endPlace;
+			boost::shared_ptr<Place> startPlace;
+			boost::shared_ptr<Place> endPlace;
 
 			if (!_startCity.empty() && !_endCity.empty())
 			{

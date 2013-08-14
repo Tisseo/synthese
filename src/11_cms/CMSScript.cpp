@@ -28,6 +28,7 @@
 #include "IncludeExpression.hpp"
 #include "HTMLTable.h"
 #include "LabelNode.hpp"
+#include "MapUpdateNode.hpp"
 #include "Request.h"
 #include "ServiceExpression.hpp"
 #include "StaticFunctionRequest.h"
@@ -74,12 +75,22 @@ namespace synthese
 		CMSScript::CMSScript(
 			string::const_iterator& it,
 			string::const_iterator end,
-			std::set<string> termination
-		):	_ignoreWhiteChars(false),
+			std::set<string> termination,
+			bool ignoreWhiteChars
+		):	_ignoreWhiteChars(ignoreWhiteChars),
 			_doNotEvaluate(false),
 			_sharedMutex(new synthese::util::shared_recursive_mutex)
 		{
 			_parse(it, end, termination);
+		}
+
+
+
+		bool CMSScript::operator==(const CMSScript& other) const
+		{
+			return _ignoreWhiteChars == other._ignoreWhiteChars &&
+				_doNotEvaluate == other._doNotEvaluate &&
+				_code == other._code;
 		}
 
 
@@ -91,7 +102,7 @@ namespace synthese
 			{
 				_nodes.clear();
 				_nodes.push_back(
-					shared_ptr<WebpageContentNode>(
+					boost::shared_ptr<WebpageContentNode>(
 						new ConstantExpression(_code)
 				)	);
 			}
@@ -118,7 +129,7 @@ namespace synthese
 
 
 
-		void CMSScript::update(
+		bool CMSScript::update(
 			const std::string& code,
 			bool ignoreWhiteChars,
 			bool doNotEvaluate
@@ -135,6 +146,8 @@ namespace synthese
 			{
 				_updateNodes();
 			}
+
+			return toUpdate;
 		}
 
 
@@ -189,14 +202,14 @@ namespace synthese
 					if(!currentText.empty())
 					{
 						_nodes.push_back(
-							shared_ptr<WebpageContentNode>(
+							boost::shared_ptr<WebpageContentNode>(
 								new ConstantExpression(currentText)
 						)	);
 						currentText.clear();
 					}
 
 					// Parsing service node
-					shared_ptr<ServiceExpression> node(
+					boost::shared_ptr<ServiceExpression> node(
 						new ServiceExpression(it, end)
 					);
 
@@ -214,7 +227,7 @@ namespace synthese
 					if(!currentText.empty())
 					{
 						_nodes.push_back(
-							shared_ptr<WebpageContentNode>(
+							boost::shared_ptr<WebpageContentNode>(
 								new ConstantExpression(currentText)
 						)	);
 						currentText.clear();
@@ -233,7 +246,7 @@ namespace synthese
 						// Escape if = or @ or out of double quotes
 						if(!inDoubleQuotes && !serviceRecursion)
 						{
-							if(*it2 == '=' || *it2 == '@')
+							if(*it2 == '=' || *it2 == ':' || *it2 == '@')
 							{
 								break;
 							}
@@ -339,13 +352,67 @@ namespace synthese
 
 						// Node creation
 						_nodes.push_back(
-							shared_ptr<WebpageContentNode>(
+							boost::shared_ptr<WebpageContentNode>(
 								new VariableUpdateNode(items, it, end)
 						)	);
 					}
+					else if(
+						it2 != end &&
+						*it2 == ':' &&
+						it2+1 != end &&
+						*(it2+1) == '='
+					){	// Is a map set ?
+						it = it2;
+						++it;
+						++it;
+
+						trim(parameter);
+
+						MapUpdateNode::Items items;
+						items.push_back(MapUpdateNode::Item());
+						for(string::const_iterator it3(parameter.begin()); it3!=parameter.end(); )
+						{
+							// Alphanum chars
+							if( (*it3 >= 'a' && *it3 <= 'z') ||
+								(*it3 >= 'A' && *it3 <= 'Z') ||
+								(*it3 >= '0' && *it3 <= '9') ||
+								*it3 == '_'
+							){
+								items.rbegin()->key.push_back(*it3);
+								++it3;
+								continue;
+							}
+
+							// Index
+							if(	*it3 == '[')
+							{
+								++it3;
+								items.rbegin()->index = Expression::Parse(it3, parameter.end(), "]");
+								continue;
+							}
+
+							// Sub map
+							if(	*it3 == '.')
+							{
+								++it3;
+								items.push_back(MapUpdateNode::Item());
+								continue;
+							}
+
+							// Ignored char
+							++it3;
+						}
+
+						// Node creation
+						_nodes.push_back(
+							boost::shared_ptr<WebpageContentNode>(
+								new MapUpdateNode(items, it, end)
+						)	);
+
+					}
 					else // Is an expression
 					{
-						shared_ptr<Expression> expr(
+						boost::shared_ptr<Expression> expr(
 							Expression::Parse(it, end, "@>")
 						);
 
@@ -365,15 +432,15 @@ namespace synthese
 					if(!currentText.empty())
 					{
 						_nodes.push_back(
-							shared_ptr<WebpageContentNode>(
+							boost::shared_ptr<WebpageContentNode>(
 								new ConstantExpression(currentText)
 						)	);
 						currentText.clear();
 					}
 
 					_nodes.push_back(
-						shared_ptr<WebpageContentNode>(
-							new ForEachExpression(it, end)
+						boost::shared_ptr<WebpageContentNode>(
+							new ForEachExpression(it, end, _ignoreWhiteChars)
 					)	);
 
 				} // Shortcut to WebpageDisplayFunction
@@ -386,14 +453,14 @@ namespace synthese
 					if(!currentText.empty())
 					{
 						_nodes.push_back(
-							shared_ptr<WebpageContentNode>(
+							boost::shared_ptr<WebpageContentNode>(
 								new ConstantExpression(currentText)
 						)	);
 						currentText.clear();
 					}
 
 					_nodes.push_back(
-						shared_ptr<WebpageContentNode>(
+						boost::shared_ptr<WebpageContentNode>(
 							new IncludeExpression(it, end)
 					)	);
 
@@ -406,14 +473,14 @@ namespace synthese
 					if(!currentText.empty())
 					{
 						_nodes.push_back(
-							shared_ptr<WebpageContentNode>(
+							boost::shared_ptr<WebpageContentNode>(
 								new ConstantExpression(currentText)
 						)	);
 						currentText.clear();
 					}
 
 					_nodes.push_back(
-						shared_ptr<WebpageContentNode>(
+						boost::shared_ptr<WebpageContentNode>(
 							new GotoNode(it, end)
 					)	);
 
@@ -426,14 +493,14 @@ namespace synthese
 					if(!currentText.empty())
 					{
 						_nodes.push_back(
-							shared_ptr<WebpageContentNode>(
+							boost::shared_ptr<WebpageContentNode>(
 								new ConstantExpression(currentText)
 						)	);
 						currentText.clear();
 					}
 
 					_nodes.push_back(
-						shared_ptr<WebpageContentNode>(
+						boost::shared_ptr<WebpageContentNode>(
 							new LabelNode(it, end)
 					)	);
 
@@ -464,7 +531,7 @@ namespace synthese
 			if(!currentText.empty())
 			{
 				_nodes.push_back(
-					shared_ptr<WebpageContentNode>(
+					boost::shared_ptr<WebpageContentNode>(
 						new ConstantExpression(currentText)
 				)	);
 				currentText.clear();

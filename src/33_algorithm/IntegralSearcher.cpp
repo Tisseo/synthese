@@ -39,7 +39,7 @@
 #include "Crossing.h"
 #include "ReverseRoadPart.hpp"
 #include "ReverseRoadChunk.hpp"
-#include "Junction.hpp"
+#include "StopPoint.hpp"
 
 #include <sstream>
 #include <limits>
@@ -200,7 +200,7 @@ namespace synthese
 			while(!todo.empty())
 			{
 				this_thread::interruption_point();
-				shared_ptr<RoutePlanningIntermediateJourney> journey(todo.front());
+				boost::shared_ptr<RoutePlanningIntermediateJourney> journey(todo.front());
 
 				VertexAccessMap curVam;
 				ptime minMaxDateTimeAtOrigin(callMinMaxDateTimeAtOrigin);
@@ -380,20 +380,21 @@ namespace synthese
 						optional<Edge::ArrivalServiceIndex::Value> arrivalServiceNumber;
 						set<const Edge*> nonServedEdges;
 						ptime departureMoment(correctedDesiredTime);
-                        // If path is a junction, we use the desiredTime instead of the corrected desired time
-                        const Junction* junction(dynamic_cast<const Junction*> (&path));
-                        if (junction != NULL)
-                        {
-                            departureMoment = desiredTime;
-							if (_accessDirection == DEPARTURE_TO_ARRIVAL)
-							{
-								fullApproachJourney.setStartApproachDuration(minutes(0));
-							}
-							else
-							{
-								fullApproachJourney.setEndApproachDuration(minutes(0));
-							}
-                        }
+						// If path is a junction, we verify that the origin vertex is the same
+						const Junction* junction(dynamic_cast<const Junction*> (&path));
+						if (junction != NULL)
+						{
+							if (!currentJourney.empty() &&
+								origin->getKey() != currentJourney.getEndEdge().getFromVertex()->getKey())
+								continue;
+						}
+						if(!currentJourney.empty())
+						{
+							const Junction* currentJunction(dynamic_cast<const Junction*>(currentJourney.getEndEdge().getParentPath()));
+							if(currentJunction != NULL &&
+								((_accessDirection == DEPARTURE_TO_ARRIVAL) ? currentJunction->getEnd()->getKey() : currentJunction->getStart()->getKey() != origin->getKey()))
+								continue;
+						}
 						while(true)
 						{
 							this_thread::interruption_point();
@@ -541,7 +542,7 @@ sqrt(
 									)
 								);
 
-								shared_ptr<RoutePlanningIntermediateJourney> resultJourney(
+								boost::shared_ptr<RoutePlanningIntermediateJourney> resultJourney(
 									new RoutePlanningIntermediateJourney(
 										fullApproachJourney,
 										serviceUse,
@@ -585,7 +586,7 @@ sqrt(
 								// Storage of the journey for recursion
 								if(	isARecursionNode
 								){
-									shared_ptr<RoutePlanningIntermediateJourney> todoJourney(
+									boost::shared_ptr<RoutePlanningIntermediateJourney> todoJourney(
 										new RoutePlanningIntermediateJourney(
 											*journey,
 											serviceUse,
@@ -648,7 +649,7 @@ sqrt(
 // ------------------------------------------------------------------------- Utilities
 
 		IntegralSearcher::_JourneyUsefulness IntegralSearcher::evaluateJourney(
-			const shared_ptr<RoutePlanningIntermediateJourney>& journeysptr,
+			const boost::shared_ptr<RoutePlanningIntermediateJourney>& journeysptr,
 			bool isGoalReached
 		) const {
 

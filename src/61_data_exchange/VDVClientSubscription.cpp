@@ -57,7 +57,10 @@ namespace synthese
 			DeparturesTableDirection di(DISPLAY_DEPARTURES);
 			EndFilter ef(WITH_PASSING);
 			LineFilter lf;
-			lf.insert(make_pair(_line, optional<bool>()));
+			if (_line)
+			{
+				lf.insert(make_pair(_line, optional<bool>()));
+			}
 			DisplayedPlacesList dp;
 			ForbiddenPlacesList fp;
 			ptime now(second_clock::local_time());
@@ -162,14 +165,14 @@ namespace synthese
 			}
 			if(_stopArea)
 			{
-				shared_ptr<ParametersMap> stopPM(new ParametersMap);
-				_stopArea->toParametersMap(*stopPM);
+				boost::shared_ptr<ParametersMap> stopPM(new ParametersMap);
+				_stopArea->toParametersMap(*stopPM, true);
 				pm.insert(TAG_STOP_AREA, stopPM);
 			}
 			if(_line)
 			{
-				shared_ptr<ParametersMap> linePM(new ParametersMap);
-				_line->toParametersMap(*linePM);
+				boost::shared_ptr<ParametersMap> linePM(new ParametersMap);
+				_line->toParametersMap(*linePM, true);
 				pm.insert(TAG_LINE, linePM);
 			}
 			pm.insert(ATTR_TIME_SPAN, _timeSpan.total_seconds() / 60);

@@ -54,6 +54,8 @@ LanguageSelectorService.cpp
 LanguageSelectorService.hpp
 MailService.cpp
 MailService.hpp
+MapUpdateNode.cpp
+MapUpdateNode.hpp
 NoOpService.cpp
 NoOpService.hpp
 NotService.cpp
@@ -142,6 +144,8 @@ WebsiteConfig.cpp
 WebsiteConfig.hpp
 WebsiteConfigTableSync.cpp
 WebsiteConfigTableSync.hpp
+WebsitesService.cpp
+WebsitesService.hpp
 )
 
 set_source_files_properties(CMSModule.gen.cpp CMSModule.inc.cpp PROPERTIES HEADER_FILE_ONLY 1)

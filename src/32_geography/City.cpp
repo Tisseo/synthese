@@ -21,6 +21,9 @@
 */
 
 #include "City.h"
+
+#include "CityTableSync.h"
+#include "GeographyModule.h"
 #include "Registry.h"
 #include "Factory.h"
 #include "ParametersMap.h"
@@ -144,7 +147,7 @@ namespace synthese
 			// X and Y
 			if(coordinatesSystem && getPoint().get())
 			{
-				shared_ptr<Point> center(
+				boost::shared_ptr<Point> center(
 					coordinatesSystem->convertPoint(*getPoint())
 				);
 				{
@@ -162,13 +165,17 @@ namespace synthese
 
 
 
-		void City::toParametersMap( util::ParametersMap& pm ) const
-		{
+		void City::toParametersMap(
+			util::ParametersMap& pm,
+			bool withAdditionalParameters,
+			boost::logic::tribool withFiles,
+			std::string prefix
+		) const {
 			static string fakePrefix;
 			toParametersMap(
 				pm,
 				&CoordinatesSystem::GetInstanceCoordinatesSystem(),
-				fakePrefix
+				prefix
 			);
 		}
 
@@ -201,5 +208,46 @@ namespace synthese
 				}
 			}
 			return true;
+		}
+
+
+
+		bool City::loadFromRecord( const Record& record, util::Env& env )
+		{
+			bool updated(false);
+
+			// Name
+			if(record.isDefined(CityTableSync::TABLE_COL_NAME))
+			{
+				string value(
+					record.get<string>(CityTableSync::TABLE_COL_NAME)
+				);
+				if(value != getName())
+				{
+					updated = true;
+					setName(value);
+
+					if(&env == &Env::GetOfficialEnv())
+					{
+						// Add to cities and all places matcher
+						GeographyModule::AddToCitiesMatchers(Env::GetOfficialEnv().getEditableSPtr(this));
+					}
+				}
+			}
+
+			// Code
+			if(record.isDefined(CityTableSync::TABLE_COL_CODE))
+			{
+				string value(
+					record.get<string>(CityTableSync::TABLE_COL_CODE)
+				);
+				if(value != getCode())
+				{
+					setCode(value);
+					updated = true;
+				}
+			}
+
+			return updated;
 		}
 }	}

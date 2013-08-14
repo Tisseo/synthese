@@ -10,6 +10,8 @@ TreeFolderDownNode.hpp
 TreeFolderDownNodeInterface.cpp
 TreeFolderDownNodeInterface.hpp
 TreeFolderRoot.hpp
+TreeFoldersService.cpp
+TreeFoldersService.hpp
 TreeFolderTableSync.cpp
 TreeFolderTableSync.hpp
 TreeFolderUpNode.cpp
@@ -21,6 +23,7 @@ TreeModule.h
 TreeModule.inc.cpp
 TreeMultiClassRootPolicy.hpp
 TreeNode.hpp
+TreeNodeField.hpp
 TreeOtherClassRootPolicy.hpp
 TreeRankOrderingPolicy.hpp
 TreeRoot.hpp

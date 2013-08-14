@@ -59,6 +59,11 @@ namespace synthese
 		const string Reservation::DATA_LANGUAGE("language");
 		const string Reservation::DATA_NAME("name");
 		const string Reservation::DATA_PHONE = "phone";
+		const string Reservation::DATA_EMAIL = "email";
+		const string Reservation::DATA_ADDRESS = "address";
+		const string Reservation::DATA_POSTCODE = "postcode";
+		const string Reservation::DATA_CITYTEXT = "cityText";
+		const string Reservation::DATA_COUNTRY = "country";
 		const string Reservation::DATA_TRANSACTION_ID("transaction_id");
 		const string Reservation::DATA_SEATS_NUMBER("seats_number");
 		const string Reservation::DATA_VEHICLE_ID("vehicle_id");
@@ -284,6 +289,12 @@ namespace synthese
 			pm.insert(DATA_COMMENT, getTransaction()->getComment());
 			pm.insert(DATA_NAME, getTransaction()->getCustomerName());
 			pm.insert(DATA_PHONE, getTransaction()->getCustomerPhone());
+			security::User* customer = UserTableSync::GetEditable(getTransaction()->getCustomerUserId(), Env::GetOfficialEnv()).get();
+			pm.insert(DATA_EMAIL, customer->getEMail());
+			pm.insert(DATA_ADDRESS, customer->getAddress());
+			pm.insert(DATA_POSTCODE, customer->getPostCode());
+			pm.insert(DATA_CITYTEXT, customer->getCityText());
+			pm.insert(DATA_COUNTRY, customer->getCountry());
 
 			// Transaction
 			pm.insert(DATA_TRANSACTION_ID, getTransaction()->getKey());
@@ -320,8 +331,8 @@ namespace synthese
 			}
 			if(_acknowledgeUser)
 			{
-				shared_ptr<ParametersMap> userPM(new ParametersMap);
-				_acknowledgeUser->toParametersMap(*userPM);
+				boost::shared_ptr<ParametersMap> userPM(new ParametersMap);
+				_acknowledgeUser->toParametersMap(*userPM, true);
 				pm.insert(DATA_ACKNOWLEDGE_USER, userPM);
 			}
 
@@ -338,8 +349,8 @@ namespace synthese
 			}
 			if(_cancellationAcknowledgeUser)
 			{
-				shared_ptr<ParametersMap> userPM(new ParametersMap);
-				_cancellationAcknowledgeUser->toParametersMap(*userPM);
+				boost::shared_ptr<ParametersMap> userPM(new ParametersMap);
+				_cancellationAcknowledgeUser->toParametersMap(*userPM, true);
 				pm.insert(DATA_CANCELLATION_ACKNOWLEDGE_USER, userPM);
 			}
 
@@ -351,7 +362,7 @@ namespace synthese
 			pm.insert(DATA_SEAT, getSeatNumber());
 
 			// Status
-			shared_ptr<ParametersMap> statusPM(new ParametersMap);
+			boost::shared_ptr<ParametersMap> statusPM(new ParametersMap);
 			statusPM->insert(DATA_STATUS, static_cast<int>(getStatus()));
 			statusPM->insert(DATA_NAME, ResaModule::GetStatusText(getStatus()));
 			statusPM->insert(DATA_FULL_TEXT, getFullStatusText());
@@ -363,5 +374,12 @@ namespace synthese
 			{
 				pm.insert(DATA_LANGUAGE, user->getLanguage()->getName(*language));
 			}
+		}
+
+
+
+		void Reservation::toParametersMap( util::ParametersMap& pm, bool withAdditionalParameters, boost::logic::tribool withFiles /*= boost::logic::indeterminate*/, std::string prefix /*= std::string() */ ) const
+		{
+			toParametersMap(pm, optional<Language>(), prefix);
 		}
 }	}

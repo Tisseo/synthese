@@ -38,9 +38,6 @@
 #include "DriverService.hpp"
 #include "VehicleService.hpp"
 
-#include "HeuresOperationFileFormat.hpp"
-#include "IneoOperationFileFormat.hpp"
-
 #include "PTOperationModule.inc.cpp"
 
 void synthese::pt_operation::moduleRegister()
@@ -62,9 +59,6 @@ void synthese::pt_operation::moduleRegister()
 	synthese::pt_operation::DriverAllocationsListService::integrate();
 	synthese::pt_operation::DriverAllocationTemplatesListService::integrate();
 	synthese::pt_operation::VehicleServicesListService::integrate();
-
-	synthese::pt_operation::HeuresOperationFileFormat::integrate();
-	synthese::pt_operation::IneoOperationFileFormat::integrate();
 
 	synthese::pt_operation::DepotUpdateAction::integrate();
 	synthese::pt_operation::DriverServiceUpdateAction::integrate();

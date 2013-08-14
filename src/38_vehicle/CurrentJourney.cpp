@@ -60,8 +60,8 @@ namespace synthese
 			// Line
 			if(_line)
 			{
-				shared_ptr<ParametersMap> linePM(new ParametersMap);
-				_line->toParametersMap(*linePM);
+				boost::shared_ptr<ParametersMap> linePM(new ParametersMap);
+				_line->toParametersMap(*linePM, true);
 				pm.insert(TAG_COMMERCIAL_LINE, linePM);
 			}
 
@@ -71,7 +71,7 @@ namespace synthese
 			// Next stops
 			BOOST_FOREACH(const NextStops::value_type& it, _nextStops)
 			{
-				shared_ptr<ParametersMap> stopPM(new ParametersMap);
+				boost::shared_ptr<ParametersMap> stopPM(new ParametersMap);
 
 				it.toParametersMap(*stopPM);
 

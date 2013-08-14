@@ -164,11 +164,12 @@ namespace synthese
 								0,
 								&object,
 								rank++,
-								other.getIsDeparture(),
 								other.getIsArrival(),
+								other.getIsDeparture(),
 								maxMetricOffset - other.getMetricOffset(),
 								other.getPhysicalStop(),
-								other.getScheduleInput()
+								other.getScheduleInput(),
+								other.getReservationNeeded()
 							);
 							if((it+1) != _template->getEdges().rend())
 							{
@@ -178,7 +179,7 @@ namespace synthese
 								if(prevOther.getGeometry().get())
 								{
 									ls.setGeometry(
-										shared_ptr<LineString>(
+										boost::shared_ptr<LineString>(
 											dynamic_cast<LineString*>(prevOther.getGeometry()->reverse())
 									)	);
 								}
@@ -192,8 +193,8 @@ namespace synthese
 								0,
 								&object,
 								rank++,
-								other.getIsDeparture(),
 								other.getIsArrival(),
+								other.getIsDeparture(),
 								maxMetricOffset - other.getMetricOffset(),
 								other.getArea(),
 								other.getInternalService()
@@ -201,7 +202,7 @@ namespace synthese
 							if(other.getGeometry().get())
 							{
 								ls.setGeometry(
-									shared_ptr<LineString>(
+									boost::shared_ptr<LineString>(
 										dynamic_cast<LineString*>(other.getGeometry()->reverse())
 								)	);
 							}
@@ -224,12 +225,13 @@ namespace synthese
 								other.getIsArrival(),
 								other.getMetricOffset(),
 								other.getPhysicalStop(),
-								other.getScheduleInput()
+								other.getScheduleInput(),
+								other.getReservationNeeded()
 							);
 							if(other.getGeometry().get())
 							{
 								ls.setGeometry(
-									shared_ptr<LineString>(
+									boost::shared_ptr<LineString>(
 										dynamic_cast<LineString*>(other.getGeometry()->clone())
 								)	);
 							}
@@ -251,7 +253,7 @@ namespace synthese
 							if(other.getGeometry().get())
 							{
 								ls.setGeometry(
-									shared_ptr<LineString>(
+									boost::shared_ptr<LineString>(
 										dynamic_cast<LineString*>(other.getGeometry()->clone())
 								)	);
 							}

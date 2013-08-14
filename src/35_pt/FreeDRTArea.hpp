@@ -25,7 +25,6 @@
 
 #include "Registrable.h"
 #include "Registry.h"
-#include "Named.h"
 #include "Journey.h"
 #include "Exception.h"
 #include "Path.h"
@@ -44,12 +43,16 @@ namespace synthese
 		class Place;
 	}
 
+	namespace vehicle
+	{
+		class RollingStock;
+	}
+
 	namespace pt
 	{
 		class CommercialLine;
 		class FreeDRTTimeSlot;
 		class StopArea;
-		class RollingStock;
 		class TransportNetwork;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -61,7 +64,6 @@ namespace synthese
 		/// @author Hugues Romain
 		/// @date 2011
 		class FreeDRTArea:
-			public util::Named,
 			public graph::Path
 		{
 		public:
@@ -97,6 +99,7 @@ namespace synthese
 			//@{
 				Cities _cities;
 				StopAreas _stopAreas;
+				std::string _name;
 			//@}
 
 			/// @name Links
@@ -110,6 +113,7 @@ namespace synthese
 
 			//! @name Getters
 			//@{
+				virtual std::string getName() const { return _name; }
 				const Cities& getCities() const { return _cities; }
 				const StopAreas& getStopAreas() const { return _stopAreas; }
 			//@}
@@ -118,11 +122,12 @@ namespace synthese
 			//@{
 				void setCities(const Cities& value){ _cities = value; }
 				void setStopAreas(const StopAreas& value){ _stopAreas = value; }
+				void setName(const std::string& value){ _name = value; }
 			//@}
 
 			/// @name Modifiers
 			//@{
-				void setRollingStock(RollingStock* value);
+				void setRollingStock(vehicle::RollingStock* value);
 				void setNetwork(TransportNetwork* value);
 				void setLine(CommercialLine* value);
 				void addTimeSlot(FreeDRTTimeSlot& value);
@@ -146,7 +151,7 @@ namespace synthese
 
 
 				CommercialLine* getLine() const;
-				RollingStock*	getRollingStock()			const;
+				vehicle::RollingStock*	getRollingStock()			const;
 				TransportNetwork* getNetwork() const;
 
 

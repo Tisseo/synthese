@@ -26,20 +26,13 @@
 #include "DBModule.h"
 #include "GraphConstants.h"
 #include "Import.hpp"
-#include "ScheduledService.h"
 #include "ScheduledServiceTableSync.h"
-#include "ContinuousService.h"
 #include "ContinuousServiceTableSync.h"
 #include "JourneyPatternTableSync.hpp"
 #include "DesignatedLinePhysicalStop.hpp"
 #include "LineStopTableSync.h"
-#include "City.h"
 #include "CityTableSync.h"
-#include "Service.h"
-#include "RollingStock.hpp"
-#include "NonConcurrencyRule.h"
 #include "NonConcurrencyRuleTableSync.h"
-#include "ReservationContact.h"
 #include "ReservationContactTableSync.h"
 #include "PTUseRule.h"
 #include "PTConstants.h"
@@ -49,12 +42,7 @@
 #include "CityAliasTableSync.hpp"
 #include "JunctionTableSync.hpp"
 #include "RollingStockTableSync.hpp"
-#include "ImportFunction.h"
-#include "PropertiesHTMLTable.h"
 #include "RequestException.h"
-#include "AdminFunctionRequest.hpp"
-#include "DataSourceAdmin.h"
-#include "PTFileFormat.hpp"
 #include "ImpExModule.h"
 #include "DesignatedLinePhysicalStop.hpp"
 #include "CalendarTemplateElementTableSync.h"
@@ -90,9 +78,8 @@ namespace synthese
 	using namespace db;
 	using namespace pt;
 	using namespace server;
-	using namespace admin;
-	using namespace html;
 	using namespace calendar;
+	using namespace vehicle;
 
 	namespace util
 	{
@@ -119,15 +106,21 @@ namespace synthese
 		string ToXsdTime (const time_duration& time);
 		time_duration FromXsdDuration(const std::string& text);
 
+
+
 		//////////////////////////////////////////////////////////////////////////
 		// CONSTRUCTOR
 		TridentFileFormat::Importer_::Importer_(
 			Env& env,
 			const Import& import,
-			const impex::ImportLogger& logger
-		):	Importer(env, import, logger),
-			OneFileTypeImporter<Importer_>(env, import, logger),
-			PTDataCleanerFileFormat(env, import, logger),
+			impex::ImportLogLevel minLogLevel,
+			const std::string& logPath,
+			boost::optional<std::ostream&> outputStream,
+			util::ParametersMap& pm
+		):	Importer(env, import, minLogLevel, logPath, outputStream, pm),
+			OneFileTypeImporter<Importer_>(env, import, minLogLevel, logPath, outputStream, pm),
+			PTDataCleanerFileFormat(env, import, minLogLevel, logPath, outputStream, pm),
+			PTFileFormat(env, import, minLogLevel, logPath, outputStream, pm),
 			_importStops(false),
 			_autoGenerateStopAreas(false),
 			_importJunctions(false),
@@ -140,6 +133,7 @@ namespace synthese
 			_networks(*import.get<DataSource>(), env),
 			_lines(*import.get<DataSource>(), env)
 		{}
+
 
 
 		//////////////////////////////////////////////////////////////////////////
@@ -247,8 +241,8 @@ namespace synthese
 			);
 
 			bool resaIsCompulsory=false;
-                        BOOST_FOREACH(Registry<PTUseRule>::value_type r, _env.getRegistry<PTUseRule>())
-                        {
+            BOOST_FOREACH(Registry<PTUseRule>::value_type r, _env.getRegistry<PTUseRule>())
+            {
 				const PTUseRule& rule(*r.second);
 
 				if (rule.getReservationType() == PTUseRule::RESERVATION_RULE_FORBIDDEN || (rule.getMinDelayDays().days() == 0 && rule.getMinDelayMinutes().total_seconds() == 0))       continue;
@@ -301,7 +295,7 @@ namespace synthese
 		    if (_withTisseoExtension)
 				os << "<TisseoPTNetwork xmlns='http://www.trident.org/schema/trident' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='http://www.trident.org/schema/trident  https://extranet.rcsmobility.com/projects/synthese/repository/raw/doc/include/35_pt/trident2-tisseo/tisseo-chouette-extension.xsd'>" << "\n";
 			else
-				os << "<ChouettePTNetwork xmlns='http://www.trident.org/schema/trident' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='http://www.trident.org/schema/trident  http://www.rcsmobility.com/synthese/include/35_pt/chouette/Chouette.xsd'>" << "\n";
+				os << "<ChouettePTNetwork xmlns='http://www.trident.org/schema/trident' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='http://www.trident.org/schema/trident  https://extranet.rcsmobility.com/projects/synthese/repository/raw/doc/include/35_pt/chouette/Chouette.xsd'>" << "\n";
 
 			// --------------------------------------------------- PTNetwork
 			const TransportNetwork* tn(_line->getNetwork());
@@ -424,7 +418,7 @@ namespace synthese
 			{
 				const StopPoint& ps(*itps.second);
 
-				shared_ptr<Point> wgs84ps;
+				boost::shared_ptr<Point> wgs84ps;
 				if(ps.hasGeometry())
 				{
 					wgs84ps = CoordinatesSystem::GetCoordinatesSystem(4326).convertPoint(*ps.getGeometry());
@@ -633,7 +627,7 @@ namespace synthese
 				const DesignatedLinePhysicalStop& ls(static_cast<DesignatedLinePhysicalStop&>(*lineStop.second));
 				const StopPoint* ps = static_cast<const StopPoint*>(ls.getFromVertex());
 
-				shared_ptr<Point> wgs84ps;
+				boost::shared_ptr<Point> wgs84ps;
 				if(ps->hasGeometry())
 				{
 					wgs84ps = CoordinatesSystem::GetCoordinatesSystem(4326).convertPoint(*ps->getGeometry());
@@ -765,7 +759,7 @@ namespace synthese
 				LineStopTableSync::SearchResult linestops(
 					LineStopTableSync::Search(_env, srv->getPath()->getKey())
 				);
-				BOOST_FOREACH(const shared_ptr<LineStop>& ls, linestops)
+				BOOST_FOREACH(const boost::shared_ptr<LineStop>& ls, linestops)
 				{
 					os << "<vehicleJourneyAtStop>" << "\n";
 					os << "<stopPointId>" << TridentId (peerid, "StopPoint", *ls) << "</stopPointId>" << "\n";
@@ -875,7 +869,7 @@ namespace synthese
 					LineStopTableSync::SearchResult linestops(
 						LineStopTableSync::Search(_env, srv->getPath()->getKey())
 					);
-					BOOST_FOREACH(const shared_ptr<LineStop>& ls, linestops)
+					BOOST_FOREACH(const boost::shared_ptr<LineStop>& ls, linestops)
 					{
 						os << "<vehicleJourneyAtStop>" << "\n";
 						os << "<stopPointId>" << TridentId (peerid, "StopPoint", *ls) << "</stopPointId>" << "\n";
@@ -1014,7 +1008,7 @@ namespace synthese
 					StopAreaTableSync::SearchResult places(
 						StopAreaTableSync::Search(senv, city->getKey(), true)
 					);
-					BOOST_FOREACH(const shared_ptr<const StopArea>& cp, places)
+					BOOST_FOREACH(const boost::shared_ptr<const StopArea>& cp, places)
 					{
 						// filter physical stops not concerned by this line.
 						if(!_env.getRegistry<StopArea>().contains(cp->getKey())) continue;
@@ -1051,8 +1045,7 @@ namespace synthese
 		// INPUT
 
 		bool TridentFileFormat::Importer_::_parse(
-			const path& filePath,
-			boost::optional<const server::Request&> adminRequest
+			const path& filePath
 		) const {
 			bool failure(false);
 
@@ -1129,18 +1122,16 @@ namespace synthese
 			XMLNode networkNameNode = networkNode.getChildNode("name", 0);
 
 			TransportNetwork* network(
-				PTFileFormat::CreateOrUpdateNetwork(
+				_createOrUpdateNetwork(
 					_networks,
 					networkIdNode.getText(),
 					charset_converter.convert(networkNameNode.getText()),
-					dataSource,
-					_env,
-					_logger
+					dataSource
 			)	);
 
 			// Commercial lines
 			CommercialLine* cline(
-				PTFileFormat::CreateOrUpdateLine(
+				_createOrUpdateLine(
 					_lines,
 					lineKeyNode.getText(),
 					clineNameNode.isEmpty() || !clineNameNode.nText() ?
@@ -1151,13 +1142,11 @@ namespace synthese
 						optional<const string&>(charset_converter.convert(clineShortNameNode.getText())),
 					optional<RGBColor>(),
 					*network,
-					dataSource,
-					_env,
-					_logger
+					dataSource
 			)	);
 
 			// Transport mode
-			shared_ptr<RollingStock> rollingStock;
+			boost::shared_ptr<RollingStock> rollingStock;
 			RollingStockTableSync::SearchResult rollingStocks(
 				RollingStockTableSync::Search(
 					_env,
@@ -1297,11 +1286,10 @@ namespace synthese
 					// Search of an existing connection place with the same code
 					StopArea* curStop(NULL);
 					set<StopArea*> cstops(
-						PTFileFormat::GetStopAreas(
+						_getStopAreas(
 							_stopAreas,
 							stopKey,
 							optional<const string&>(),
-							_logger,
 							false
 					)	);
 					if(cstops.size() > 1)
@@ -1351,16 +1339,14 @@ namespace synthese
 						}
 
 						// Stop area creation
-						curStop = PTFileFormat::CreateStopArea(
+						curStop = _createStopArea(
 							_stopAreas,
 							stopKey,
 							name,
 							*city,
 							_defaultTransferDuration,
 							false,
-							dataSource,
-							_env,
-							_logger
+							dataSource
 						);
 					}
 					else
@@ -1416,8 +1402,8 @@ namespace synthese
 				if(_importStops)
 				{
 					// Geometry
-					shared_ptr<StopPoint::Geometry> geometry;
-					shared_ptr<const City> city;
+					boost::shared_ptr<StopPoint::Geometry> geometry;
+					boost::shared_ptr<const City> city;
 					if(areaCentroidNode.isEmpty())
 					{
 						_logWarning(
@@ -1521,21 +1507,19 @@ namespace synthese
 
 					if(curStop)
 					{
-						stopPoints = PTFileFormat::CreateOrUpdateStop(
+						stopPoints = _createOrUpdateStop(
 							_stops,
 							stopKey,
 							name,
 							optional<const RuleUser::Rules&>(),
 							curStop,
 							geometry.get(),
-							dataSource,
-							_env,
-							_logger
+							dataSource
 						);
 					}
 					else if(_autoGenerateStopAreas && city)
 					{
-						stopPoints = PTFileFormat::CreateOrUpdateStopWithStopAreaAutocreation(
+						stopPoints = _createOrUpdateStopWithStopAreaAutocreation(
 							_stops,
 							stopKey,
 							name,
@@ -1543,8 +1527,6 @@ namespace synthese
 							*city,
 							_defaultTransferDuration,
 							dataSource,
-							_env,
-							_logger,
 							boost::optional<const graph::RuleUser::Rules&>()
 						);
 					}
@@ -1559,11 +1541,10 @@ namespace synthese
 				}
 				else
 				{
-					if(	PTFileFormat::GetStopPoints(
+					if(	_getStopPoints(
 							_stops,
 							stopKey,
-							name,
-							_logger
+							name
 						).empty()
 					){
 						failure = true;
@@ -1614,7 +1595,7 @@ namespace synthese
 			JourneyPatternTableSync::SearchResult sroutes(
 				JourneyPatternTableSync::Search(_env, cline->getKey())
 			);
-			BOOST_FOREACH(const shared_ptr<JourneyPattern>& line, sroutes)
+			BOOST_FOREACH(const boost::shared_ptr<JourneyPattern>& line, sroutes)
 			{
 				LineStopTableSync::Search(
 					_env,
@@ -1794,7 +1775,7 @@ namespace synthese
 				else
 				{
 					// Route creation
-					journeyPattern = PTFileFormat::CreateOrUpdateRoute(
+					journeyPattern = _createOrUpdateRoute(
 						*cline,
 						(_mergeRoutes || updatedRoute) ? optional<const string&>() : optional<const string&>(route.objectId),
 						optional<const string&>(route.name),
@@ -1805,8 +1786,6 @@ namespace synthese
 						rollingStock.get(),
 						route.stops,
 						dataSource,
-						_env,
-						_logger,
 						true,
 						true
 					);
@@ -1818,14 +1797,12 @@ namespace synthese
 
 				// Service creation
 				ScheduledService* service(
-					PTFileFormat::CreateOrUpdateService(
+					_createOrUpdateService(
 						*journeyPattern,
 						deps,
 						arrs,
 						serviceNumber,
-						dataSource,
-						_env,
-						_logger
+						dataSource
 				)	);
 				if(service)
 				{
@@ -1855,7 +1832,7 @@ namespace synthese
 					{
 						ct = new CalendarTemplate(CalendarTemplateTableSync::getId());
 						ct->addCodeBySource(dataSource, calendarId);
-						_env.getEditableRegistry<CalendarTemplate>().add(shared_ptr<CalendarTemplate>(ct));
+						_env.getEditableRegistry<CalendarTemplate>().add(boost::shared_ptr<CalendarTemplate>(ct));
 						_calendarTemplates.add(*ct);
 						calendarToImport = true;
 					}
@@ -1884,7 +1861,7 @@ namespace synthese
 						}
 						if(calendarToImport)
 						{
-							BOOST_FOREACH(const shared_ptr<CalendarTemplateElement>& element, elements)
+							BOOST_FOREACH(const boost::shared_ptr<CalendarTemplateElement>& element, elements)
 							{
 								_calendarElementsToRemove.insert(element);
 								_env.getEditableRegistry<CalendarTemplateElement>().remove(element->getKey());
@@ -1905,7 +1882,7 @@ namespace synthese
 						{
 							XMLNode dayNode(calendarNode.getChildNode("calendarDay", dayRank));
 							date d(from_string(dayNode.getText()));
-							shared_ptr<CalendarTemplateElement> cte(new CalendarTemplateElement(CalendarTemplateElementTableSync::getId()));
+							boost::shared_ptr<CalendarTemplateElement> cte(new CalendarTemplateElement(CalendarTemplateElementTableSync::getId()));
 							cte->setCalendar(ct);
 							cte->setMinDate(d);
 							cte->setMaxDate(d);
@@ -2060,8 +2037,8 @@ namespace synthese
 						);
 						continue;
 					}
-					shared_ptr<StopPoint> startStop = startStops.front();
-					shared_ptr<StopPoint> endStop = endStops.front();
+					boost::shared_ptr<StopPoint> startStop = startStops.front();
+					boost::shared_ptr<StopPoint> endStop = endStops.front();
 
 					// Internal or external connection
 					if(startStop->getConnectionPlace() == endStop->getConnectionPlace())
@@ -2086,7 +2063,7 @@ namespace synthese
 								_env, startStop->getKey(), endStop->getKey()
 						)	);
 
-						shared_ptr<Junction> junction;
+						boost::shared_ptr<Junction> junction;
 						if(!junctions.empty())
 						{
 							junction = junctions.front();
@@ -2166,7 +2143,7 @@ namespace synthese
 			}
 			if(_importTimetablesAsTemplates)
 			{
-				BOOST_FOREACH(const shared_ptr<CalendarTemplateElement>& element, _calendarElementsToRemove)
+				BOOST_FOREACH(const boost::shared_ptr<CalendarTemplateElement>& element, _calendarElementsToRemove)
 				{
 					DBModule::GetDB()->deleteStmt(element->getKey(), transaction);
 				}
@@ -2331,32 +2308,5 @@ namespace synthese
 				throw Exception("Trident SRID not found");
 			}
 			return it->second;
-		}
-
-
-
-		void TridentFileFormat::Importer_::displayAdmin(
-			std::ostream& stream,
-			const server::Request& request
-		) const	{
-			AdminFunctionRequest<DataSourceAdmin> importRequest(request);
-			PropertiesHTMLTable t(importRequest.getHTMLForm());
-			stream << t.open();
-			stream << t.title("Propriétés");
-			stream << t.cell("Effectuer import", t.getForm().getOuiNonRadioInput(DataSourceAdmin::PARAMETER_DO_IMPORT, false));
-			stream << t.cell("Effacer données existantes", t.getForm().getOuiNonRadioInput(PARAMETER_CLEAN_OLD_DATA, _cleanOldData));
-			stream << t.cell("Effacer arrêts inutilisés", t.getForm().getOuiNonRadioInput(PTDataCleanerFileFormat::PARAMETER_CLEAN_UNUSED_STOPS, _cleanUnusedStops));
-			stream << t.cell("Import arrêts", t.getForm().getOuiNonRadioInput(PARAMETER_IMPORT_STOPS, _importStops));
-			stream << t.cell("Autogénérer arrêts commerciaux", t.getForm().getOuiNonRadioInput(PARAMETER_AUTOGENERATE_STOP_AREAS, _autoGenerateStopAreas));
-			stream << t.cell("Fusionner itinéraires par valeur", t.getForm().getOuiNonRadioInput(PARAMETER_MERGE_ROUTES, _mergeRoutes));
-			stream << t.cell("Traiter tous les StopArea en tant qu'arrêts physiques", t.getForm().getOuiNonRadioInput(PARAMETER_TREAT_ALL_STOP_AREA_AS_QUAY, _treatAllStopAreaAsQuay));
-			stream << t.cell("Import transferts", t.getForm().getOuiNonRadioInput(PARAMETER_IMPORT_JUNCTIONS, _importJunctions));
-			stream << t.cell("Importer calendriers en tant que modèles", t.getForm().getOuiNonRadioInput(PARAMETER_IMPORT_TIMETABLES_AS_TEMPLATES, _importTimetablesAsTemplates));
-			stream << t.cell("Ignorer données passées", t.getForm().getOuiNonRadioInput(PARAMETER_FROM_TODAY, _fromToday));
-			stream << t.cell("Temps de correspondance par défaut (minutes)", t.getForm().getTextInput(PARAMETER_DEFAULT_TRANSFER_DURATION, lexical_cast<string>(_defaultTransferDuration.total_seconds() / 60)));
-			stream << t.title("Données (remplir un des deux champs)");
-			stream << t.cell("Ligne", t.getForm().getTextInput(PARAMETER_PATH, (_pathsSet.size() == 1) ? _pathsSet.begin()->file_string() : string()));
-			stream << t.cell("Répertoire", t.getForm().getTextInput(PARAMETER_DIRECTORY, _dirPath.file_string()));
-			stream << t.close();
 		}
 }	}

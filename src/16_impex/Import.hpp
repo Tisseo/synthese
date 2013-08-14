@@ -25,9 +25,10 @@
 
 #include "Object.hpp"
 
+#include "CMSScriptField.hpp"
 #include "DataSource.h"
 #include "EnumObjectField.hpp"
-#include "ImportLogger.hpp"
+#include "ImpExTypes.hpp"
 #include "ParametersMapField.hpp"
 #include "PtimeField.hpp"
 #include "SchemaMacros.hpp"
@@ -49,7 +50,8 @@ namespace synthese
 	FIELD_STRING(LogPath)
 	FIELD_SECONDS(AutoImportDelay)
 	FIELD_TIME(AutoImportTime)
-	FIELD_ENUM(MinLogLevel, impex::ImportLogger::Level)
+	FIELD_ENUM(MinLogLevel, impex::ImportLogLevel)
+	FIELD_CMS_SCRIPT(Documentation)
 	
 	namespace impex
 	{
@@ -63,7 +65,8 @@ namespace synthese
 			FIELD(AutoImportTime),
 			FIELD(Active),
 			FIELD(LogPath),
-			FIELD(MinLogLevel)
+			FIELD(MinLogLevel),
+			FIELD(Documentation)
 		> ImportRecord;
 
 
@@ -94,7 +97,10 @@ namespace synthese
 			//@{
 				boost::shared_ptr<Importer> getImporter(
 					util::Env& env,
-					const ImportLogger& importLogger
+					ImportLogLevel minLogLevel,
+					const std::string& logPath,
+					boost::optional<std::ostream&> outputStream,
+					util::ParametersMap& pm
 				) const;
 
 				bool canImport() const;

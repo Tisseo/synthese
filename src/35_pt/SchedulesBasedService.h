@@ -83,6 +83,9 @@ namespace synthese
 					const std::vector<boost::posix_time::time_period> &excludeRanges
 			) const;
 
+			// This is the schedule as we got it when loaded from the base
+			std::string _rawSchedule;
+
 		protected:
 
 			//! @name Theoretical data
@@ -109,6 +112,7 @@ namespace synthese
 				boost::posix_time::time_duration departureShift,
 				bool updateFollowingSchedules
 			);
+
 		public:
 			SchedulesBasedService(
 				std::string serviceNumber,
@@ -261,20 +265,26 @@ namespace synthese
 
 
 
+				typedef std::pair<Schedules, Schedules> SchedulesPair;
+
 				//////////////////////////////////////////////////////////////////////////
 				/// Reads schedules from encoded strings.
 				/// Schedules at non scheduled stops are ignored.
 				/// @param value encoded strings
 				/// @param shiftArrivals duration to add to the arrival times (default 0)
 				/// @author Hugues Romain
-				void decodeSchedules(
+				static SchedulesPair DecodeSchedules(
 					const std::string value,
 					boost::posix_time::time_duration shiftArrivals = boost::posix_time::minutes(0)
 				);
 
 
 				std::string encodeStops() const;
-				void decodeStops(const std::string& value, util::Env& env);
+
+				ServedVertices decodeStops(
+					const std::string& value,
+					util::Env& env
+				) const;
 
 
 				void setVertex(

@@ -134,7 +134,7 @@ namespace synthese
 				// Loop on lines
 				for (StopAreaTableSync::SearchResult::iterator dsit = dsv.begin(); dsit != dsv.end(); ++dsit)
 				{
-					shared_ptr<StopArea> ds = *dsit;
+					boost::shared_ptr<StopArea> ds = *dsit;
 
 					// Right check
 //					if(!getRight()->perimeterIncludes(lexical_cast<string>(ds->getKey()))
@@ -189,7 +189,7 @@ namespace synthese
 			);
 
 			stream << t.open();
-			BOOST_FOREACH(const shared_ptr<StopArea>& stop, stops)
+			BOOST_FOREACH(const boost::shared_ptr<StopArea>& stop, stops)
 			{
 				if (usedStops.find(stop->getKey()) != usedStops.end())
 				{
@@ -214,7 +214,7 @@ namespace synthese
 		AlarmRecipientSearchFieldsMap StopAreaAlarmRecipient::getSearchFields(HTMLForm& form, const ParametersMap& parameters) const
 		{
 			AlarmRecipientSearchFieldsMap map;
-/*			shared_ptr<const JourneyPattern> line;
+/*			boost::shared_ptr<const JourneyPattern> line;
 			Env env;
 			optional<RegistryKeyType> id(parameters.getOptional<RegistryKeyType>(PARAMETER_SEARCH_LINE));
 			if (id)
@@ -242,75 +242,6 @@ namespace synthese
 		{
 			TransportNetworkRight* result(new TransportNetworkRight);
 			result->setParameter(perimeter);
-			return shared_ptr<Right>(result);
-		}
-
-
-
-		StopAreaAlarmRecipient::AvailableRecipients::Tree::value_type StopAreaAlarmRecipient::getAvailableRecipients() const
-		{
-			// Root item
-			shared_ptr<AvailableRecipients> result(new AvailableRecipients);
-			result->id = 0;
-			result->name = "Tous les arrêts";
-
-			// Sort cities alphabetically
-			typedef multimap<string, City*> Cities;
-			Cities cities;
-			BOOST_FOREACH(
-				const Registry<City>::value_type& item,
-				Env::GetOfficialEnv().getRegistry<City>()
-			){
-				cities.insert(make_pair(item.second->getName(), item.second.get()));
-			}
-
-			// Cities loop
-			BOOST_FOREACH(const Cities::value_type& city, cities)
-			{
-				// Register city
-				shared_ptr<AvailableRecipients> cityObj(new AvailableRecipients);
-				cityObj->id = city.second->getKey();
-				cityObj->name = city.first;
-				result->tree.push_back(cityObj);
-
-				// Sort stop areas
-				typedef multimap<string, StopArea*> StopAreas;
-				StopAreas stopAreas;
-				BOOST_FOREACH(
-					const City::PlacesMatcher::Map::value_type& stopArea,
-					city.second->getLexicalMatcher(StopArea::FACTORY_KEY).entries()
-				){
-					stopAreas.insert(
-						make_pair(
-							stopArea.second->getName(),
-							static_cast<StopArea*>(stopArea.second.get())
-					)	);
-				}
-
-				// Stop areas loop
-				BOOST_FOREACH(const StopAreas::value_type& stopAreaItem, stopAreas)
-				{
-					const StopArea& stopArea(*stopAreaItem.second);
-
-					// Register stop area
-					shared_ptr<AvailableRecipients> stopAreaObj(new AvailableRecipients);
-					stopAreaObj->id = stopArea.getKey();
-					stopAreaObj->name = stopArea.getName();
-					cityObj->tree.push_back(stopAreaObj);
-
-					// Physical stops loop
-					BOOST_FOREACH(
-						const StopArea::PhysicalStops::value_type& stop,
-						stopArea.getPhysicalStops()
-					){
-						shared_ptr<AvailableRecipients> stopObj(new AvailableRecipients);
-						stopObj->id = stop.first;
-						stopObj->name = stop.second->getName() +" ("+ stop.second->getCodeBySources() +")";
-						stopAreaObj->tree.push_back(stopObj);
-					}
-				}
-			}
-
-			return result;
+			return boost::shared_ptr<Right>(result);
 		}
 }	}

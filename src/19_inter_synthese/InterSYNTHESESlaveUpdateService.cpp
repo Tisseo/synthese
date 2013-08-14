@@ -26,11 +26,11 @@
 
 #include "InterSYNTHESEQueue.hpp"
 #include "InterSYNTHESESlave.hpp"
-#include "InterSYNTHESESlaveTableSync.hpp"
 #include "InterSYNTHESESyncTypeFactory.hpp"
 #include "RequestException.h"
 #include "Request.h"
 #include "ServerConstants.h"
+#include "ServerModule.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -54,7 +54,9 @@ namespace synthese
 		const string InterSYNTHESESlaveUpdateService::NO_CONTENT_TO_SYNC = "no_content_to_sync!";
 		const string InterSYNTHESESlaveUpdateService::PARAMETER_SLAVE_ID = "slave_id";
 		
-
+		bool InterSYNTHESESlaveUpdateService::bgUpdaterDone(false);
+		boost::mutex InterSYNTHESESlaveUpdateService::bgMutex;
+		boost::shared_ptr<InterSYNTHESESlave> InterSYNTHESESlaveUpdateService::bgNextSlave;
 
 		ParametersMap InterSYNTHESESlaveUpdateService::_getParametersMap() const
 		{
@@ -87,16 +89,24 @@ namespace synthese
 			const Request& request
 		) const {
 
+			if(_slave->fullUpdateNeeded())
+			{
+				if(bgProcessSlave(_slave))
+				{
+					stream << "we are processing your initial dump. come back soon!";
+				}
+				else
+				{
+					stream << "sorry another initial dump is running, come back soon";
+				}
+				return ParametersMap();
+			}
+
 			InterSYNTHESESlave::QueueRange range(_slave->getQueueRange());
 			if(range.first == _slave->getQueue().end())
 			{
 				// Send to the slave that there is nothing to sync
 				stream << NO_CONTENT_TO_SYNC;
-
-				// Record the request as slave activity
-				ptime now(second_clock::local_time());
-				_slave->set<LastActivityReport>(now);
-				InterSYNTHESESlaveTableSync::Save(_slave.get());
 			}
 			else
 			{
@@ -119,6 +129,11 @@ namespace synthese
 			}
 			_slave->setLastSentRange(range);
 
+			// Record the request as slave activity
+			// Even if the slave crashed and don't get the results,
+			// we won't rebuild the full database on the new slave_update
+			_slave->markAsUpToDate();
+
 			return ParametersMap();
 		}
 		
@@ -137,4 +152,48 @@ namespace synthese
 		{
 			return "text/plain";
 		}
+
+		bool InterSYNTHESESlaveUpdateService::bgProcessSlave(
+			const boost::shared_ptr<InterSYNTHESESlave> &slave
+		) const
+		{
+			boost::mutex::scoped_lock(bgMutex);
+			if(!bgNextSlave)
+			{
+				bgNextSlave = slave;
+				return true;
+			}
+			return false;
+		}
+
+		void InterSYNTHESESlaveUpdateService::RunBackgroundUpdater()
+		{
+			bgUpdaterDone = false;
+			boost::shared_ptr<InterSYNTHESESlave> slave;
+
+			while(!bgUpdaterDone)
+			{
+				ServerModule::SetCurrentThreadRunningAction();
+				{
+					boost::mutex::scoped_lock(bgMutex);
+					slave = bgNextSlave;
+					bgNextSlave.reset();
+				}
+				if(slave.get())
+				{
+					slave->processFullUpdate();
+
+					// Record the request as slave activity
+					// Even if the slave crashed and don't get the results,
+					// we won't rebuild the full database on the new slave_update
+					slave->markAsUpToDate();
+
+					slave.reset();
+				}
+
+				ServerModule::SetCurrentThreadWaiting();
+				boost::this_thread::sleep(boost::posix_time::milliseconds(500));
+			}
+		}
+
 }	}

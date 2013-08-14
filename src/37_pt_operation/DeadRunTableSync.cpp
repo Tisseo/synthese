@@ -130,8 +130,8 @@ namespace synthese
 				}
 
 				// Depot, stop point, direction, length
-				shared_ptr<Depot> depot;
-				shared_ptr<StopPoint> stop;
+				boost::shared_ptr<Depot> depot;
+				boost::shared_ptr<StopPoint> stop;
 				RegistryKeyType pid(rows->getLongLong(DeadRunTableSync::COL_DEPOT_ID));
 				RegistryKeyType stopId(rows->getLongLong(DeadRunTableSync::COL_STOP_ID));
 				try
@@ -172,7 +172,11 @@ namespace synthese
 			}
 
 			// Schedules
-			object->decodeSchedules(rows->getText(DeadRunTableSync::COL_SCHEDULES));
+			SchedulesBasedService::SchedulesPair value(
+				SchedulesBasedService::DecodeSchedules(
+					rows->get<string>(DeadRunTableSync::COL_SCHEDULES)
+			)	);
+			object->setSchedules(value.first, value.second, true);
 
 			// Dates
 			object->setFromSerializedString(rows->getText(DeadRunTableSync::COL_DATES));

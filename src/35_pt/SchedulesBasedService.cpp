@@ -66,7 +66,7 @@ namespace synthese
 			_nextRTUpdate(posix_time::second_clock::local_time() + gregorian::days(1))
 		{
 			clearStops();
-			clearRTData();
+            clearRTData();
 		}
 
 
@@ -156,6 +156,13 @@ namespace synthese
 							}
 						}
 
+						// Check
+						if(	itDeparture == departureSchedules.end() ||
+							itArrival == arrivalSchedules.end()
+						){
+							throw BadSchedulesException();
+						}
+
 						// Store the schedules
 						_departureSchedules.push_back(*itDeparture);
 						_arrivalSchedules.push_back(*itArrival);
@@ -175,9 +182,6 @@ namespace synthese
 			}	}
 			else
 			{
-				assert(departureSchedules.size() == _path->getEdges().size());
-				assert(arrivalSchedules.size() == _path->getEdges().size());
-
 				_departureSchedules = departureSchedules;
 				_arrivalSchedules = arrivalSchedules;
 			}
@@ -368,14 +372,13 @@ namespace synthese
 		}
 
 		void SchedulesBasedService::clearRTData()
-		{
-			_hasRealTimeData = false;
-			_RTDepartureSchedules = _departureSchedules;
-			_RTArrivalSchedules = _arrivalSchedules;
-			// Assuming arrival and departure schedules have the same size
-			_RTTimestamps.assign(_departureSchedules.size(), boost::posix_time::ptime());
-			_emptySchedules.assign(_departureSchedules.size(), not_a_date_time);
-
+        {
+            _hasRealTimeData = false;
+            _RTDepartureSchedules = _departureSchedules;
+            _RTArrivalSchedules = _arrivalSchedules;
+            // Assuming arrival and departure schedules have the same size
+            _RTTimestamps.assign(_departureSchedules.size(), boost::posix_time::ptime());
+            _emptySchedules.assign(_departureSchedules.size(), not_a_date_time);
 			if(getPath())
 			{
 				_RTVertices.clear();
@@ -440,6 +443,11 @@ namespace synthese
 		std::string SchedulesBasedService::encodeSchedules(
 			boost::posix_time::time_duration shiftArrivals
 		) const {
+			if(!_path)
+			{
+				return _rawSchedule;
+			}
+
 			stringstream str;
 			size_t i(0);
 			BOOST_FOREACH(const Edge* edge, _path->getEdges())
@@ -462,12 +470,18 @@ namespace synthese
 
 
 
-		void SchedulesBasedService::decodeSchedules(
+		SchedulesBasedService::SchedulesPair SchedulesBasedService::DecodeSchedules(
 			const std::string value,
 			boost::posix_time::time_duration shiftArrivals
 		){
 			typedef tokenizer<char_separator<char> > tokenizer;
 
+			_rawSchedule = value;
+			if(!_path)
+			{
+				// No need to parse the data an complete our init
+				return;
+			}
 			// Parse all schedules arrival#departure,arrival#departure...
 			tokenizer schedulesTokens (value, char_separator<char>(","));
 
@@ -513,11 +527,7 @@ namespace synthese
 				throw BadSchedulesException();
 			}
 
-			setSchedules(
-				departureSchedules,
-				arrivalSchedules,
-				true
-			);
+			return make_pair(departureSchedules, arrivalSchedules);
 		}
 
 
@@ -654,11 +664,20 @@ namespace synthese
 			const Schedules& departureSchedules, 
 			const Schedules& arrivalSchedules
 		){
+			// Do not process new schedules if none has changed
+			if((_RTDepartureSchedules == departureSchedules) &&
+			   (_RTArrivalSchedules == arrivalSchedules)
+			)
+			{
+                _hasRealTimeData = true;
+				return;
+			}
+
+			Log::GetInstance().info("SchedulesBasedService: Applying RealTime update to service " + lexical_cast<string>(getKey()));
 			_RTDepartureSchedules = departureSchedules;
 			_RTArrivalSchedules = arrivalSchedules;
 			_computeNextRTUpdate();
 			_path->markScheduleIndexesUpdateNeeded(true);
-			_hasRealTimeData = true;
 
 
 			// Inter-SYNTHESE sync
@@ -719,11 +738,12 @@ namespace synthese
 
 
 
-		void SchedulesBasedService::decodeStops(
+		SchedulesBasedService::ServedVertices SchedulesBasedService::decodeStops(
 			const std::string& value,
 			util::Env& env
-		){
-			_vertices.clear();
+		) const {
+			SchedulesBasedService::ServedVertices result;
+
 			if(!value.empty())
 			{
 				vector<string> stops;
@@ -739,21 +759,21 @@ namespace synthese
 							StopPoint* stop(StopPointTableSync::GetEditable(stopId, env).get());
 							if(stop->getHub() == _path->getEdge(rank)->getHub())
 							{
-								_vertices.push_back(stop);
+								result.push_back(stop);
 							}
 							else
 							{
-								_vertices.push_back(NULL);
+								result.push_back(NULL);
 							}
 						}
 						catch(ObjectNotFoundException<StopPoint>&)
 						{
-							_vertices.push_back(NULL);
+							result.push_back(NULL);
 						}
 					}
 					else
 					{
-						_vertices.push_back(NULL);
+						result.push_back(NULL);
 					}
 					++rank;
 				}
@@ -764,7 +784,7 @@ namespace synthese
 					Log::GetInstance().warn("Inconsistent vertices size in service "+ lexical_cast<string>(getKey()));
 					for(; rank<_path->getEdges().size(); ++rank)
 					{
-						_vertices.push_back(NULL);
+						result.push_back(NULL);
 					}
 				}
 			}
@@ -772,9 +792,11 @@ namespace synthese
 			{
 				for(size_t rank(0); rank<_path->getEdges().size(); ++rank)
 				{
-					_vertices.push_back(NULL);
+					result.push_back(NULL);
 				}
 			}
+
+			return result;
 		}
 
 

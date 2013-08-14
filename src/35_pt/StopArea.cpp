@@ -29,6 +29,7 @@
 #include "Env.h"
 #include "ForbiddenUseRule.h"
 #include "FreeDRTArea.hpp"
+#include "DRTArea.hpp"
 #include "JourneyPattern.hpp"
 #include "ParametersMap.h"
 #include "PTModule.h"
@@ -260,7 +261,11 @@ namespace synthese
 			const AccessParameters& accessParameters,
 			const geography::Place::GraphTypes& whatToSearch
 		) const {
-			if(whatToSearch.find(RoadModule::GRAPH_ID) != whatToSearch.end())
+			/*
+			 * If StopArea isn't in a DRTArea, then attempt to use crossings arround stop.
+			 * Else AVOID IT : if user want to start from a stopArea (to make a reservation) we musn't change the starting stopArea without notification !!
+			 */
+			if(whatToSearch.find(RoadModule::GRAPH_ID) != whatToSearch.end() && !isInDRT())
 			{
 				BOOST_FOREACH(
 					const PhysicalStops::value_type& it,
@@ -270,22 +275,22 @@ namespace synthese
 					{
 						continue;
 					}
-                    result.insert(
-                        it.second->getProjectedPoint().getRoadChunk()->getFromCrossing(),
-                        VertexAccess(minutes(static_cast<long>(it.second->getProjectedPoint().getMetricOffset() / 50)), it.second->getProjectedPoint().getMetricOffset())
-                    );
-                    /*
-                     * If next edge exist try add next crossing to vam (see issue #23315)
-                     */
-                    if(it.second->getProjectedPoint().getRoadChunk()->getNext())
-                    {
-                        result.insert(
-                            it.second->getProjectedPoint().getRoadChunk()->getNext()->getFromVertex(),
-                            VertexAccess(
-                                minutes(static_cast<long>(ceil(((it.second->getProjectedPoint().getRoadChunk()->getEndMetricOffset() - it.second->getProjectedPoint().getRoadChunk()->getMetricOffset() - it.second->getProjectedPoint().getMetricOffset()) / 50.0)))),
-                                it.second->getProjectedPoint().getRoadChunk()->getEndMetricOffset() - it.second->getProjectedPoint().getRoadChunk()->getMetricOffset() - it.second->getProjectedPoint().getMetricOffset()
-                        )	);
-                    }
+					result.insert(
+						it.second->getProjectedPoint().getRoadChunk()->getFromCrossing(),
+						VertexAccess(minutes(static_cast<long>(it.second->getProjectedPoint().getMetricOffset() / 50)), it.second->getProjectedPoint().getMetricOffset())
+					);
+					/*
+					 * If next edge exist try add next crossing to vam (see issue #23315)
+					 */
+					if(it.second->getProjectedPoint().getRoadChunk()->getNext())
+					{
+						result.insert(
+                            				it.second->getProjectedPoint().getRoadChunk()->getNext()->getFromVertex(),
+                            				VertexAccess(
+                                				minutes(static_cast<long>(ceil(((it.second->getProjectedPoint().getRoadChunk()->getEndMetricOffset() - it.second->getProjectedPoint().getRoadChunk()->getMetricOffset() - it.second->getProjectedPoint().getMetricOffset()) / 50.0)))),
+                                				it.second->getProjectedPoint().getRoadChunk()->getEndMetricOffset() - it.second->getProjectedPoint().getRoadChunk()->getMetricOffset() - it.second->getProjectedPoint().getMetricOffset()
+							)	);
+					}
 				}
 			}
 
@@ -304,8 +309,12 @@ namespace synthese
 
 
 
-		const shared_ptr<Point>& StopArea::getPoint() const
+		const boost::shared_ptr<Point>& StopArea::getPoint() const
 		{
+			if (_location.get())
+			{
+				return _location;
+			}
 			if (!_isoBarycentre.get())
 			{
 				Envelope e;
@@ -518,7 +527,7 @@ namespace synthese
 			}
 			if(coordinatesSystem && getPoint())
 			{
-				shared_ptr<Point> pg(
+				boost::shared_ptr<Point> pg(
 					coordinatesSystem->convertPoint(*getPoint())
 				);
 				{
@@ -533,6 +542,17 @@ namespace synthese
 				}
 				pm.setGeometry(static_pointer_cast<Geometry,Point>(getPoint()));
 			}
+		}
+
+
+
+		void StopArea::toParametersMap( util::ParametersMap& pm, bool withAdditionalParameters, boost::logic::tribool withFiles /*= boost::logic::indeterminate*/, std::string prefix /*= std::string() */ ) const
+		{
+			toParametersMap(
+				pm,
+				&CoordinatesSystem::GetInstanceCoordinatesSystem(),
+				prefix
+			);
 		}
 
 
@@ -557,7 +577,15 @@ namespace synthese
 			return result;
 		}
 
-
+		bool StopArea::isInDRT() const
+		{
+			BOOST_FOREACH(const DRTArea::Registry::value_type& item, Env::GetOfficialEnv().getRegistry<DRTArea>())
+			{
+				if(item.second->contains(*this))
+					return true;
+			}
+			return false;
+		}
 
 		Hub::Vertices StopArea::getVertices(
 			GraphIdType graphId

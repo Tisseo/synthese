@@ -30,6 +30,7 @@
 #include "ServerConstants.h"
 #include "ServerModule.h"
 #include "VDVClient.hpp"
+#include "VDVClientSubscription.hpp"
 #include "XmlToolkit.h"
 
 #include <boost/date_time/local_time_adjustor.hpp>
@@ -86,7 +87,16 @@ namespace synthese
 			try
 			{
 				string sender(allNode.getAttribute("Sender"));
-				_client = &DataExchangeModule::GetVDVClient(sender);
+				try
+				{
+					_client = &DataExchangeModule::GetVDVClient(sender);
+				}
+				catch (...)
+				{
+					//Client was not found
+					_ok = false;
+					return;
+				}
 
 				// Trace
 				_client->trace("StatusAnfrage", request);
@@ -123,6 +133,24 @@ namespace synthese
 			now -= diff_from_utc;
 			ptime serverStartingTime(DataExchangeModule::GetVDVStartingTime());
 			serverStartingTime -= diff_from_utc;
+
+			// Check if new data
+			bool newData = false;
+			if (_client)
+			{
+				BOOST_FOREACH(const VDVClient::Subscriptions::value_type& it, _client->getSubscriptions())
+				{
+					// Run an update
+					it.second->checkUpdate();
+					if(it.second->getDeletions().empty() && it.second->getAddings().empty())
+					{
+						continue;
+					}
+					// There is new data
+					newData = true;
+					break;
+				}
+			}
 			
 			// XML
 			stringstream result;
@@ -136,7 +164,7 @@ namespace synthese
 				(_ok ? "ok" : "notok") <<
 				"\" />" <<
 				"<DatenBereit>" <<
-				(_ok ? "true" : "false")
+				(newData ? "true" : "false")
 				<< "</DatenBereit>" <<
 				"<StartDienstZst>";
 			ToXsdDateTime(result, serverStartingTime);
@@ -150,7 +178,10 @@ namespace synthese
 			stream << result.str();
 
 			// Trace
-			_client->trace("StatusAntwort", result.str());
+			if (_client)
+			{
+				_client->trace("StatusAntwort", result.str());
+			}
 
 			// Map return
 			return map;

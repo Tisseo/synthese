@@ -25,6 +25,7 @@
 #include "LineStopUpdateAction.hpp"
 
 #include "ActionException.h"
+#include "ContinuousServiceTableSync.h"
 #include "DBModule.h"
 #include "DesignatedLinePhysicalStop.hpp"
 #include "LineStopTableSync.h"
@@ -36,6 +37,7 @@
 #include "ParametersMap.h"
 #include "Profile.h"
 #include "Request.h"
+#include "ScheduledServiceTableSync.h"
 #include "Session.h"
 #include "StopPointTableSync.hpp"
 #include "TransportNetworkRight.h"
@@ -73,13 +75,16 @@ namespace synthese
 		const string LineStopUpdateAction::PARAMETER_ALLOWED_INTERNAL = Action_PARAMETER_PREFIX + "ai";
 		const string LineStopUpdateAction::PARAMETER_WITH_SCHEDULES = Action_PARAMETER_PREFIX + "with_schedules";
 		const string LineStopUpdateAction::PARAMETER_READ_LENGTH_FROM_GEOMETRY = Action_PARAMETER_PREFIX + "read_length_from_geometry";
+		const string LineStopUpdateAction::PARAMETER_RESERVATION_NEEDED = Action_PARAMETER_PREFIX + "_reservation_needed";
+		const string LineStopUpdateAction::PARAMETER_CLEAR_GEOM = Action_PARAMETER_PREFIX + "_clear_geom";
 
 
 
 		LineStopUpdateAction::LineStopUpdateAction():
 			_nextLineStop(NULL),
 			_prevLineStop(NULL),
-			_readLengthFromGeometry(false)
+			_readLengthFromGeometry(false),
+			_clearGeom(false)
 		{}
 
 
@@ -111,6 +116,10 @@ namespace synthese
 			{
 				map.insert(PARAMETER_WITH_SCHEDULES, *_withSchedules);
 			}
+			if(_reservationNeeded)
+			{
+				map.insert(PARAMETER_RESERVATION_NEEDED, *_reservationNeeded);
+			}
 			if(_geometry)
 			{
 				WKTWriter writer;
@@ -120,6 +129,7 @@ namespace synthese
 				);
 			}
 			map.insert(PARAMETER_READ_LENGTH_FROM_GEOMETRY, _readLengthFromGeometry);
+			map.insert(PARAMETER_CLEAR_GEOM, _clearGeom);
 			return map;
 		}
 
@@ -199,18 +209,42 @@ namespace synthese
 				_withSchedules = map.get<bool>(PARAMETER_WITH_SCHEDULES);
 			}
 
+			// Reservation needed
+			if(map.isDefined(PARAMETER_RESERVATION_NEEDED))
+			{
+				_reservationNeeded = map.get<bool>(PARAMETER_RESERVATION_NEEDED);
+			}
+
+			// Clear geom
+			_clearGeom = map.getDefault<bool>(PARAMETER_CLEAR_GEOM, false);
+
 			// Geometry
 			if(map.isDefined(ObjectUpdateAction::GetInputName<LineStringGeometry>()))
 			{
 				WKTReader reader(&CoordinatesSystem::GetStorageCoordinatesSystem().getGeometryFactory());
-				_geometry = shared_ptr<LineString>(
+				_geometry = boost::shared_ptr<LineString>(
 					static_cast<LineString*>(
 						reader.read(map.get<string>(ObjectUpdateAction::GetInputName<LineStringGeometry>()))
 				)	);
+				_clearGeom = false;
 			}
-
+			
 			// Read length from geometry
 			_readLengthFromGeometry = map.getDefault<bool>(PARAMETER_READ_LENGTH_FROM_GEOMETRY, false);
+
+			// Load services if update should be necessary
+			if(	(_readLengthFromGeometry && _lineStop->getGeometry()) ||
+				_withSchedules
+			){
+				ScheduledServiceTableSync::Search(
+					*_env,
+					_lineStop->getParentPath()->getKey()
+				);
+				ContinuousServiceTableSync::Search(
+					*_env,
+					_lineStop->getParentPath()->getKey()
+				);
+			}
 		}
 
 
@@ -234,7 +268,7 @@ namespace synthese
 				if(_prevLineStop)
 				{
 					Env env2;
-					shared_ptr<DesignatedLinePhysicalStop> templateObject(
+					boost::shared_ptr<DesignatedLinePhysicalStop> templateObject(
 						LineStopTableSync::SearchSimilarLineStop(
 							*_prevLineStop->getPhysicalStop(),
 							*_physicalStop,
@@ -250,7 +284,7 @@ namespace synthese
 				if(_nextLineStop && !_geometry)
 				{
 					Env env2;
-					shared_ptr<DesignatedLinePhysicalStop> templateObject(
+					boost::shared_ptr<DesignatedLinePhysicalStop> templateObject(
 						LineStopTableSync::SearchSimilarLineStop(
 							*_physicalStop,
 							*_nextLineStop->getPhysicalStop(),
@@ -290,10 +324,22 @@ namespace synthese
 				 dynamic_cast<DesignatedLinePhysicalStop*>(_lineStop.get())->setScheduleInput(*_withSchedules);
 			}
 
+			// With schedules
+			if(_reservationNeeded && dynamic_cast<DesignatedLinePhysicalStop*>(_lineStop.get()))
+			{
+				dynamic_cast<DesignatedLinePhysicalStop*>(_lineStop.get())->setReservationNeeded(*_reservationNeeded);
+			}
+
 			// Geometry
 			if(_geometry)
 			{
 				_lineStop->setGeometry(*_geometry);
+			}
+
+			// Clear geometry
+			if(_clearGeom)
+			{
+				_lineStop->setGeometry(boost::shared_ptr<LineString>());
 			}
 
 			// Savings
@@ -304,18 +350,25 @@ namespace synthese
 			}
 			LineStopTableSync::Save(_lineStop.get(), transaction);
 
-			if(_readLengthFromGeometry && _lineStop->getGeometry())
+			if(	_readLengthFromGeometry && _lineStop->getGeometry())
 			{
 				LineStopTableSync::ChangeLength(
 					*_lineStop,
 					floor(_lineStop->getGeometry()->getLength()),
 					transaction
 				);
-				JourneyPatternTableSync::ReloadServices(
-					_lineStop->getKey(),
-					transaction
-				);
 			}
+
+			// Some line stop updates can impact the service schedules
+			BOOST_FOREACH(const ScheduledService::Registry::value_type& it, _env->getRegistry<ScheduledService>())
+			{
+				ScheduledServiceTableSync::Save(it.second.get(), transaction);
+			}
+			BOOST_FOREACH(const ContinuousService::Registry::value_type& it, _env->getRegistry<ContinuousService>())
+			{
+				ContinuousServiceTableSync::Save(it.second.get(), transaction);
+			}
+
 			transaction.run();
 
 			//			::AddUpdateEntry(*_object, text.str(), request.getUser().get());

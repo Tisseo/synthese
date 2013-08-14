@@ -21,8 +21,10 @@
 */
 
 #include "IfFunction.hpp"
+#include "ServerModule.h"
 #include "StrLenFunction.hpp"
 #include "StrFillFunction.hpp"
+#include "VersionService.hpp"
 #include "ParametersMap.h"
 #include "Webpage.h"
 #include "WebPageDisplayFunction.h"
@@ -45,6 +47,7 @@ BOOST_AUTO_TEST_CASE (WebpageContentTest)
 	IfFunction::integrate();
 	StrLenFunction::integrate();
 	StrFillFunction::integrate();
+	VersionService::integrate();
 
 	StaticFunctionRequest<WebPageDisplayFunction> request;
 	ParametersMap additionalParametersMap;
@@ -827,6 +830,19 @@ BOOST_AUTO_TEST_CASE (WebpageContentTest)
 	}
 
 	{ // Unique access to sub map
+		string code("<@variable=21@>test<@item[26].item[variable]@>");
+		CMSScript wpc(code);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), false);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "test33");
+		BOOST_CHECK_EQUAL(variables.getMap().size(), 4);
+		BOOST_CHECK_EQUAL(variables.get<int>("variable"), 21);
+		BOOST_CHECK_EQUAL(variables.get<int>("_variable"), 37);
+	}
+
+	{ // Unique access to sub map
 		string code("test<@item[26].item[21].other@>");
 		CMSScript wpc(code);
 		BOOST_CHECK_EQUAL(wpc.getCode(), code);
@@ -835,7 +851,7 @@ BOOST_AUTO_TEST_CASE (WebpageContentTest)
 		string eval(wpc.eval(request, additionalParametersMap, page, variables));
 		BOOST_CHECK_EQUAL(eval, "test57");
 		BOOST_CHECK_EQUAL(variables.getMap().size(), 4);
-		BOOST_CHECK_EQUAL(variables.get<int>("variable"), 8);
+		BOOST_CHECK_EQUAL(variables.get<int>("variable"), 21);
 		BOOST_CHECK_EQUAL(variables.get<int>("_variable"), 37);
 	}
 
@@ -848,7 +864,7 @@ BOOST_AUTO_TEST_CASE (WebpageContentTest)
 		string eval(wpc.eval(request, additionalParametersMap, page, variables));
 		BOOST_CHECK_EQUAL(eval, "");
 		BOOST_CHECK_EQUAL(variables.getMap().size(), 4);
-		BOOST_CHECK_EQUAL(variables.get<int>("variable"), 8);
+		BOOST_CHECK_EQUAL(variables.get<int>("variable"), 21);
 		BOOST_CHECK_EQUAL(variables.get<int>("_variable"), 37);
 		BOOST_CHECK_EQUAL(variables.hasSubMaps("submap"), true);
 		BOOST_CHECK_EQUAL((*variables.getSubMaps("submap").begin())->getDefault<string>("id"), "idx");
@@ -864,12 +880,70 @@ BOOST_AUTO_TEST_CASE (WebpageContentTest)
 		string eval(wpc.eval(request, additionalParametersMap, page, variables));
 		BOOST_CHECK_EQUAL(eval, "");
 		BOOST_CHECK_EQUAL(variables.getMap().size(), 4);
-		BOOST_CHECK_EQUAL(variables.get<int>("variable"), 8);
+		BOOST_CHECK_EQUAL(variables.get<int>("variable"), 21);
 		BOOST_CHECK_EQUAL(variables.get<int>("_variable"), 37);
 		BOOST_CHECK_EQUAL(variables.hasSubMaps("submap"), true);
 		BOOST_CHECK_EQUAL((*variables.getSubMaps("submap").begin())->getDefault<string>("id"), "idx");
 		BOOST_CHECK_EQUAL((*variables.getSubMaps("submap").begin())->getDefault<string>("value"), "test1");
 		BOOST_CHECK_EQUAL((*variables.getSubMaps("submap").begin())->getDefault<string>("variable"), "test2");
+	}
+
+	{ // Create submap in CMS
+		string code("<@submap[\"idx\"].submap2[\"idx\"]=test3@>");
+		CMSScript wpc(code);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), false);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "");
+		BOOST_CHECK_EQUAL(variables.getMap().size(), 4);
+		BOOST_CHECK_EQUAL(variables.get<int>("variable"), 21);
+		BOOST_CHECK_EQUAL(variables.get<int>("_variable"), 37);
+		BOOST_CHECK_EQUAL(variables.hasSubMaps("submap"), true);
+		if(variables.hasSubMaps("submap"))
+		{
+			const ParametersMap& submap(**variables.getSubMaps("submap").begin());
+			BOOST_CHECK_EQUAL(submap.getDefault<string>("id"), "idx");
+			BOOST_CHECK_EQUAL(submap.getDefault<string>("value"), "test1");
+			BOOST_CHECK_EQUAL(submap.getDefault<string>("variable"), "test2");
+			BOOST_CHECK_EQUAL(submap.hasSubMaps("submap2"), true);
+			if(submap.hasSubMaps("submap2"))
+			{
+				const ParametersMap& submap2(**submap.getSubMaps("submap2").begin());
+				BOOST_CHECK_EQUAL(submap2.getDefault<string>("id"), "idx");
+				BOOST_CHECK_EQUAL(submap2.getDefault<string>("value"), "test3");
+			}
+		}
+	}
+
+	{ // Access to a sub sub map through <{
+		string code("<{submap.submap2&template=<@value@>}>");
+		CMSScript wpc(code);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), false);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "test3");
+	}
+
+	{ // Access to a sub sub map through <{
+		string code("<{submap[\"idx\"].submap2&template=<@value@>}>");
+		CMSScript wpc(code);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), false);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "test3");
+	}
+
+	{ // Access to a sub sub map through <{
+		string code("<{submap[\"idx2\"].submap2&template=<@value@>}>");
+		CMSScript wpc(code);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), false);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, string());
 	}
 
 	{ // Strlen
@@ -921,6 +995,118 @@ BOOST_AUTO_TEST_CASE (WebpageContentTest)
 		BOOST_CHECK_EQUAL(wpc.empty(), false);
 		string eval(wpc.eval(request, additionalParametersMap, page, variables));
 		BOOST_CHECK_EQUAL(eval, "testa=b");
+	}
+
+	{ // Variable map set
+		string code("test<@newmap:=<?version?>@>");
+		CMSScript wpc(code);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), false);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "test");
+		BOOST_CHECK_EQUAL(variables.getMap().size(), 4);
+		BOOST_CHECK_EQUAL(variables.hasSubMaps("newmap"), true);
+		if(variables.hasSubMaps("newmap"))
+		{
+			BOOST_CHECK_EQUAL(variables.getSubMaps("newmap").size(), 1);
+			BOOST_CHECK_EQUAL((*variables.getSubMaps("newmap").begin())->getDefault<string>(VersionService::ATTR_VERSION), ServerModule::VERSION);
+		}
+	}
+
+	{ // Second variable map set : should overwrite the first set
+		string code("test<@newmap:=<?version?>@>");
+		CMSScript wpc(code);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), false);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "test");
+		BOOST_CHECK_EQUAL(variables.getMap().size(), 4);
+		BOOST_CHECK_EQUAL(variables.hasSubMaps("newmap"), true);
+		if(variables.hasSubMaps("newmap"))
+		{
+			BOOST_CHECK_EQUAL(variables.getSubMaps("newmap").size(), 1);
+			BOOST_CHECK_EQUAL((*variables.getSubMaps("newmap").begin())->getDefault<string>(VersionService::ATTR_VERSION), ServerModule::VERSION);
+		}
+	}
+
+	{ // Variable get in a map
+		string code("test<@newmap."+ VersionService::ATTR_VERSION +"@>");
+		CMSScript wpc(code);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), false);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "test"+ ServerModule::VERSION);
+	}
+
+	{ // Variable get in a map through ~variable
+		string code("test<@~variable(\"newmap."+ VersionService::ATTR_VERSION +"\")@>");
+		CMSScript wpc(code);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), false);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "test"+ ServerModule::VERSION);
+	}
+
+	{ // Variable map set : two service calls
+		string code("test<@newmap:=<?version?><?version?>@>");
+		CMSScript wpc(code);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), false);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "test");
+		BOOST_CHECK_EQUAL(variables.getMap().size(), 4);
+		BOOST_CHECK_EQUAL(variables.hasSubMaps("newmap"), true);
+		if(variables.hasSubMaps("newmap"))
+		{
+			BOOST_CHECK_EQUAL(variables.getSubMaps("newmap").size(), 2);
+			BOOST_CHECK_EQUAL((*variables.getSubMaps("newmap").begin())->getDefault<string>(VersionService::ATTR_VERSION), ServerModule::VERSION);
+			BOOST_CHECK_EQUAL((*variables.getSubMaps("newmap").rbegin())->getDefault<string>(VersionService::ATTR_VERSION), ServerModule::VERSION);
+		}
+	}
+
+	{ // Ignore white chars
+		string code("   test <?strlen&t= T E S T ?>  ");
+		CMSScript wpc(code, true);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), true);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "test4");
+	}
+
+	{ // Ignore white chars
+		string code("   test <{submap.submap2&template=   <@value@>   }>  ");
+		CMSScript wpc(code, true);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), true);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "testtest3");
+	}
+
+	{ // Ignore white chars
+		string code("   test <{submap.submap2&template=   <@value@>  <{submap.submap2&template=   <@value@>   }> }>  ");
+		CMSScript wpc(code, true);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), true);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "testtest3test3");
+	}
+
+	{ // Ignore white chars
+		string code("   test <?if&cond=1&then=  test4  ?>  ");
+		CMSScript wpc(code, true);
+		BOOST_CHECK_EQUAL(wpc.getCode(), code);
+		BOOST_CHECK_EQUAL(wpc.getIgnoreWhiteChars(), true);
+		BOOST_CHECK_EQUAL(wpc.empty(), false);
+		string eval(wpc.eval(request, additionalParametersMap, page, variables));
+		BOOST_CHECK_EQUAL(eval, "testtest4");
 	}
 }
 

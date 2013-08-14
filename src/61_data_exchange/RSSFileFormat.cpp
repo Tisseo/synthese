@@ -26,7 +26,7 @@
 #include "AlarmRecipient.h"
 #include "AlarmTableSync.h"
 #include "BasicClient.h"
-#include "DisplayScreenAlarmRecipient.h"
+#include "BroadcastPointAlarmRecipient.hpp"
 #include "Import.hpp"
 #include "LineAlarmRecipient.hpp"
 #include "ScenarioTableSync.h"
@@ -40,7 +40,6 @@ namespace synthese
 {
 	using namespace data_exchange;
 	using namespace db;
-	using namespace departure_boards;
 	using namespace impex;
 	using namespace messages;
 	using namespace pt;
@@ -61,7 +60,6 @@ namespace synthese
 
 
 		bool RSSFileFormat::Importer_::_read(
-			boost::optional<const server::Request&> adminRequest
 		) const	{
 
 			// Get the content
@@ -152,8 +150,8 @@ namespace synthese
 				// Loop on imported items
 				BOOST_FOREACH(const Item& item, items)
 				{
-					shared_ptr<SentScenario> updatedScenario;
-					shared_ptr<Alarm> updatedMessage;
+					boost::shared_ptr<SentScenario> updatedScenario;
+					boost::shared_ptr<Alarm> updatedMessage;
 					SentScenario* scenario(
 						static_cast<SentScenario*>(
 							dataSource.getObjectByCode<Scenario>(lexical_cast<string>(item.guid))
@@ -187,7 +185,7 @@ namespace synthese
 						// Links creation
 						if(_lineRecipientId)
 						{
-							shared_ptr<AlarmObjectLink> link(new AlarmObjectLink);
+							boost::shared_ptr<AlarmObjectLink> link(new AlarmObjectLink);
 							link->setKey(AlarmObjectLinkTableSync::getId());
 							link->setAlarm(message);
 							link->setObjectId(*_lineRecipientId);
@@ -196,7 +194,7 @@ namespace synthese
 						}
 						if(_stopRecipientId)
 						{
-							shared_ptr<AlarmObjectLink> link(new AlarmObjectLink);
+							boost::shared_ptr<AlarmObjectLink> link(new AlarmObjectLink);
 							link->setKey(AlarmObjectLinkTableSync::getId());
 							link->setAlarm(message);
 							link->setObjectId(*_stopRecipientId);
@@ -205,11 +203,11 @@ namespace synthese
 						}
 						if(_broadcastPointRecipientId)
 						{
-							shared_ptr<AlarmObjectLink> link(new AlarmObjectLink);
+							boost::shared_ptr<AlarmObjectLink> link(new AlarmObjectLink);
 							link->setKey(AlarmObjectLinkTableSync::getId());
 							link->setAlarm(message);
 							link->setObjectId(*_broadcastPointRecipientId);
-							link->setRecipient(DisplayScreenAlarmRecipient::FACTORY_KEY);
+							link->setRecipient(BroadcastPointAlarmRecipient::FACTORY_KEY);
 							_env.getEditableRegistry<AlarmObjectLink>().add(link);
 						}
 
@@ -268,10 +266,10 @@ namespace synthese
 			}
 			catch(...)
 			{
-				
+				return false;
 			}
 			
-			return false;
+			return true;
 		}
 
 
@@ -279,9 +277,12 @@ namespace synthese
 		RSSFileFormat::Importer_::Importer_(
 			util::Env& env,
 			const impex::Import& import,
-			const impex::ImportLogger& logger
-		):	Importer(env, import, logger),
-			ConnectionImporter<RSSFileFormat>(env, import, logger)
+			impex::ImportLogLevel minLogLevel,
+			const std::string& logPath,
+			boost::optional<std::ostream&> outputStream,
+			util::ParametersMap& pm
+		):	Importer(env, import, minLogLevel, logPath, outputStream, pm),
+			ConnectionImporter<RSSFileFormat>(env, import, minLogLevel, logPath, outputStream, pm)
 		{}
 
 

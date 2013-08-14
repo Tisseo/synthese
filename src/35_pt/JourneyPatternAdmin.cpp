@@ -88,10 +88,11 @@ using namespace geos::geom;
 namespace synthese
 {
 	using namespace admin;
+	using namespace html;
+	using namespace pt;
 	using namespace server;
 	using namespace util;
-	using namespace pt;
-	using namespace html;
+	using namespace vehicle;
 	using namespace security;
 	using namespace graph;
 	using namespace impex;
@@ -215,9 +216,8 @@ namespace synthese
 				v.push_back("pm");
 				v.push_back("A");
 				v.push_back("D");
-				v.push_back("Hor");
-// 				if (reservation)
-// 					v.push_back("Resa");
+				v.push_back("H");
+				v.push_back("R");
 				v.push_back("Action");
 				HTMLTable t(v, ResultHTMLTable::CSS_CLASS);
 
@@ -237,17 +237,17 @@ namespace synthese
 					}
 					++expectedRank;
 
-					shared_ptr<const DesignatedLinePhysicalStop> linePhysicalStop(
+					boost::shared_ptr<const DesignatedLinePhysicalStop> linePhysicalStop(
 						dynamic_cast<const DesignatedLinePhysicalStop*>(edge) ?
 						static_pointer_cast<const DesignatedLinePhysicalStop, const LineStop>(Env::GetOfficialEnv().getSPtr(static_cast<const LineStop*>(edge))) :
-						shared_ptr<const DesignatedLinePhysicalStop>()
+						boost::shared_ptr<const DesignatedLinePhysicalStop>()
 					);
-					shared_ptr<const LineArea> lineArea(
+					boost::shared_ptr<const LineArea> lineArea(
 						dynamic_cast<const LineArea*>(edge) ?
 						static_pointer_cast<const LineArea, const LineStop>(Env::GetOfficialEnv().getSPtr(static_cast<const LineStop*>(edge))) :
-						shared_ptr<const LineArea>()
+						boost::shared_ptr<const LineArea>()
 					);
-					shared_ptr<const LineStop> lineStop(
+					boost::shared_ptr<const LineStop> lineStop(
 						linePhysicalStop.get() ?
 						static_pointer_cast<const LineStop, const LinePhysicalStop>(linePhysicalStop) :
 						static_pointer_cast<const LineStop, const LineArea>(lineArea)
@@ -339,7 +339,7 @@ namespace synthese
 								lineStopUpdateAction.getHTMLForm().getURL(),
 								ps.second->getName().empty() ? lexical_cast<string>(ps.second->getKey()) : ps.second->getName()
 							);
-							lineStopUpdateAction.getAction()->setPhysicalStop(shared_ptr<StopPoint>());
+							lineStopUpdateAction.getAction()->setPhysicalStop(boost::shared_ptr<StopPoint>());
 
 							if(ps.second == linePhysicalStop->getPhysicalStop())
 							{
@@ -364,6 +364,14 @@ namespace synthese
 							);
 						lineStopUpdateAction.getAction()->setReadLengthFromGeometry(false);
 					}
+					lineStopUpdateAction.getAction()->setClearGeom(true);
+					stream <<
+						HTMLModule::getHTMLLink(
+							lineStopUpdateAction.getHTMLForm().getURL(),
+							HTMLModule::getHTMLImage("/admin/img/cross.png", "Supprimer géométrie"),
+							"Etes-vous sûr de vouloir supprimer la géométrie ?"
+						);
+					lineStopUpdateAction.getAction()->setClearGeom(false);
 
 					// DRT area
 					if(lineArea.get())
@@ -416,7 +424,7 @@ namespace synthese
 						t.col() <<
 						HTMLModule::getHTMLLink(
 							lineStopUpdateAction.getHTMLForm().getURL(),
-							(lineStop->isDepartureAllowed() ? HTMLModule::getHTMLImage("/admin/img/bullet_green.png", "Départ possible") : HTMLModule::getHTMLImage("bullet_white.png", "Départ impossible"))
+							(lineStop->isDepartureAllowed() ? HTMLModule::getHTMLImage("/admin/img/bullet_green.png", "Départ possible") : HTMLModule::getHTMLImage("/admin/img/bullet_white.png", "Départ impossible"))
 						);
 					lineStopUpdateAction.getAction()->setAllowedDeparture(optional<bool>());
 
@@ -434,8 +442,7 @@ namespace synthese
 							HTMLModule::getHTMLImage("/admin/img/ftv2vertline.png", "Horaire non fourni à cet arrêt")
 						);
 
-						if(	_line->getServices().empty() &&
-							edge->getRankInPath() != 0 &&
+						if(	edge->getRankInPath() != 0 &&
 							edge->getRankInPath() != (*_line->getEdges().rbegin())->getRankInPath()
 						){
 							lineStopUpdateAction.getAction()->setWithSchedules(!linePhysicalStop->getScheduleInput());
@@ -448,8 +455,25 @@ namespace synthese
 						}
 					}
 
-// 					if (reservation)
-// 						stream << t.col() << HTMLModule::getHTMLImage("resa_compulsory.png", "Réservation obligatoire au départ de cet arrêt");
+					// Reservation
+					stream << t.col();
+					if(	lineArea.get())
+					{
+						stream << HTMLModule::getHTMLImage("/admin/img/resa_compulsory.png", "Règle de réservation applicable à cette zone");
+					}
+					else if(linePhysicalStop)
+					{
+						string icon(
+							linePhysicalStop->getReservationNeeded() ?
+							HTMLModule::getHTMLImage("/admin/img/resa_compulsory.png", "Règle de réservation applicable à cet arrêt") :
+							HTMLModule::getHTMLImage("/admin/img/ftv2vertline.png", "Arrêt sans réservation")
+						);
+
+						lineStopUpdateAction.getAction()->setReservationNeeded(!linePhysicalStop->getReservationNeeded());
+						stream << HTMLModule::getHTMLLink(lineStopUpdateAction.getHTMLForm().getURL(), icon);
+						lineStopUpdateAction.getAction()->setReservationNeeded(optional<bool>());
+					}
+
 					stream << t.col() << HTMLModule::getLinkButton(lineStopRemoveAction.getURL(), "Supprimer", "Etes-vous sûr de vouloir supprimer l'arrêt ?");
 				}
 
@@ -481,6 +505,11 @@ namespace synthese
 				);
 
 				stream << t.col(1,string(),false,string(),2);
+				if(!_line->getServices().empty())
+				{
+					stream << "Durée du trajet nouveau : " << f.getTextInput(LineStopAddAction::PARAMETER_DURATION_TO_ADD, string());
+				}
+
 				stream << t.col(1,string(),false,string(),2);
 				stream << t.col(1,string(),false,string(),2);
 				stream << t.col(1,string(),false,string(),2);
@@ -515,7 +544,7 @@ namespace synthese
 
 
 				Envelope e;
-				shared_ptr<geos::geom::Point> center;
+				boost::shared_ptr<geos::geom::Point> center;
 				BOOST_FOREACH(const Path::Edges::value_type& edge, _line->getEdges())
 				{
 					if(edge->getFromVertex()->hasGeometry())
@@ -559,7 +588,7 @@ namespace synthese
 						}
 						if(itEdge+1 != _line->getEdges().end())
 						{
-							shared_ptr<LineString> geom((*itEdge)->getRealGeometry());
+							boost::shared_ptr<LineString> geom((*itEdge)->getRealGeometry());
 							if(geom.get())
 							{
 								map.addLineString(
@@ -574,9 +603,9 @@ namespace synthese
 							map.addPoint(
 								HTMLMap::MapPoint(
 									*(*itEdge)->getFromVertex()->getGeometry(),
-									"arret-rouge-blanc-8px.png",
-									"arret-rouge-blanc-8px.png",
-									"arret-rouge-blanc-8px.png",
+									"/admin/img/arret-rouge-blanc-8px.png",
+									"/admin/img/arret-rouge-blanc-8px.png",
+									"/admin/img/arret-rouge-blanc-8px.png",
 									dynamic_cast<DesignatedLinePhysicalStop*>(*itEdge) ? stopPointUpdateRequest.getURL() : string(),
 									dynamic_cast<DesignatedLinePhysicalStop*>(*itEdge) ?
 										static_cast<StopPoint*>((*itEdge)->getFromVertex())->getConnectionPlace()->getFullName() :
@@ -622,7 +651,7 @@ namespace synthese
 				stream << ts.open();
 
 				size_t i(0);
-				BOOST_FOREACH(const shared_ptr<ScheduledService>& service, sservices)
+				BOOST_FOREACH(const boost::shared_ptr<ScheduledService>& service, sservices)
 				{
 					serviceRequest.getPage()->setService(service);
 					removeRequest.getAction()->setObjectId(service->getKey());
@@ -702,7 +731,7 @@ namespace synthese
 				stream << tc.open();
 
 				size_t i(0);
-				BOOST_FOREACH(const shared_ptr<ContinuousService>& service, cservices)
+				BOOST_FOREACH(const boost::shared_ptr<ContinuousService>& service, cservices)
 				{
 					serviceRequest.getPage()->setService(service);
 					removeRequest.getAction()->setObjectId(service->getKey());
@@ -772,6 +801,17 @@ namespace synthese
 						JourneyPatternUpdateAction::PARAMETER_TRANSPORT_MODE_ID,
 						RollingStockTableSync::GetLabels(),
 						_line->getRollingStock() ? _line->getRollingStock()->getKey() : optional<RegistryKeyType>()
+				)	);
+				stream << p.cell(
+					"Ligne",
+					p.getForm().getSelectInput(
+						JourneyPatternUpdateAction::PARAMETER_LINE_ID,
+						PTModule::getCommercialLineLabels(
+							_request.getUser()->getProfile()->getRightsForModuleClass<TransportNetworkRight>(),
+							_request.getUser()->getProfile()->getGlobalPublicRight<TransportNetworkRight>() >= READ,
+						READ
+						),
+						_line->getCommercialLine() ? _line->getCommercialLine()->getKey() : optional<RegistryKeyType>()
 				)	);
 				stream << p.cell(
 					"Direction (texte)",
@@ -983,9 +1023,9 @@ namespace synthese
 				ScheduledServiceTableSync::SearchResult services(
 					ScheduledServiceTableSync::Search(*_env, _line->getKey())
 				);
-				BOOST_FOREACH(const shared_ptr<const ScheduledService>& service, services)
+				BOOST_FOREACH(const boost::shared_ptr<const ScheduledService>& service, services)
 				{
-					shared_ptr<ServiceAdmin> p(
+					boost::shared_ptr<ServiceAdmin> p(
 						getNewPage<ServiceAdmin>()
 					);
 					p->setService(service);
@@ -994,9 +1034,9 @@ namespace synthese
 				ContinuousServiceTableSync::SearchResult cservices(
 					ContinuousServiceTableSync::Search(*_env, _line->getKey())
 				);
-				BOOST_FOREACH(const shared_ptr<const ContinuousService>& service, cservices)
+				BOOST_FOREACH(const boost::shared_ptr<const ContinuousService>& service, cservices)
 				{
-					shared_ptr<ServiceAdmin> p(
+					boost::shared_ptr<ServiceAdmin> p(
 						getNewPage<ServiceAdmin>()
 					);
 					p->setService(service);
@@ -1011,7 +1051,7 @@ namespace synthese
 
 		AdminInterfaceElement::PageLinks JourneyPatternAdmin::_getCurrentTreeBranch() const
 		{
-			shared_ptr<CommercialLineAdmin> p(
+			boost::shared_ptr<CommercialLineAdmin> p(
 				getNewPage<CommercialLineAdmin>()
 			);
 			p->setCommercialLine(Env::GetOfficialEnv().getSPtr(_line->getCommercialLine()));

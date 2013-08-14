@@ -25,6 +25,7 @@
 #include "JourneyPatternUpdateAction.hpp"
 
 #include "ActionException.h"
+#include "CommercialLineTableSync.h"
 #include "ParametersMap.h"
 #include "Profile.h"
 #include "Session.h"
@@ -44,6 +45,7 @@ namespace synthese
 	using namespace server;
 	using namespace security;
 	using namespace util;
+	using namespace vehicle;
 	using namespace impex;
 	using namespace graph;
 	using namespace db;
@@ -63,6 +65,7 @@ namespace synthese
 		const string JourneyPatternUpdateAction::PARAMETER_WAYBACK = Action_PARAMETER_PREFIX + "wb";
 		const string JourneyPatternUpdateAction::PARAMETER_MAIN = Action_PARAMETER_PREFIX + "ma";
 		const string JourneyPatternUpdateAction::PARAMETER_PLANNED_LENGTH = Action_PARAMETER_PREFIX + "_planned_length";
+		const string JourneyPatternUpdateAction::PARAMETER_LINE_ID = Action_PARAMETER_PREFIX + "_line_id";
 
 
 
@@ -100,6 +103,12 @@ namespace synthese
 			if(_main)
 			{
 				map.insert(PARAMETER_MAIN, *_main);
+			}
+
+			// Line
+			if(_line)
+			{
+				map.insert(PARAMETER_LINE_ID, (*_line)->getKey());
 			}
 			return map;
 		}
@@ -153,7 +162,21 @@ namespace synthese
 				}
 				else
 				{
-					_transportMode = shared_ptr<RollingStock>();
+					_transportMode = boost::shared_ptr<RollingStock>();
+				}
+			}
+
+			// Line
+			if(map.isDefined(PARAMETER_LINE_ID))
+			{
+				RegistryKeyType lid(map.getDefault<RegistryKeyType>(PARAMETER_LINE_ID, 0));
+				if(lid > 0)	try
+				{
+					_line = CommercialLineTableSync::GetEditable(lid, *_env);
+				}
+				catch(ObjectNotFoundException<CommercialLine>&)
+				{
+					throw ActionException("No such line");
 				}
 			}
 
@@ -170,7 +193,7 @@ namespace synthese
 				}
 				else
 				{
-					_directionObj = shared_ptr<Destination>();
+					_directionObj = boost::shared_ptr<Destination>();
 				}
 			}
 
@@ -227,6 +250,12 @@ namespace synthese
 			if(_directionObj)
 			{
 				_route->setDirectionObj(_directionObj->get());
+			}
+
+			// Line
+			if(_line)
+			{
+				_route->setCommercialLine(_line->get());
 			}
 
 			JourneyPatternTableSync::Save(_route.get(), transaction);

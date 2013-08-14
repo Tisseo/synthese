@@ -80,6 +80,8 @@ namespace synthese
 			Services		_services;
 			tTypeOD							_originType;
 			tTypeOD							_destinationType;
+			boost::optional<size_t>	_compressionRank;
+			boost::optional<size_t> _compressionRepeated;
 
 			static const std::string TAG_NOTE;
 			static const std::string TAG_SERVICE;
@@ -89,6 +91,11 @@ namespace synthese
 			static const std::string ATTR_TIME;
 			static const std::string TAG_STOP_POINT;
 			static const std::string TAG_CELL;
+			static const std::string ATTR_IS_COMPRESSION;
+			static const std::string ATTR_COMPRESSION_RANK;
+			static const std::string ATTR_COMPRESSION_REPEATED;
+			static const std::string TAG_JOURNEY_PATTERN;
+			static const std::string TAG_COMPRESSION_CELL;
 
 		public:
 			// Constructor
@@ -116,7 +123,16 @@ namespace synthese
 				/// @param withSchedules export the schedules in sub parameters maps
 				void toParametersMap(
 					util::ParametersMap& pm,
-					bool withSchedules
+					bool withSchedules,
+					boost::optional<const std::vector<TimetableColumn>&> resultForCompressionOutput,
+					size_t rank
+				) const;
+
+
+				long getHour() const;
+				bool isLike(
+					const TimetableColumn& other,
+					const boost::posix_time::time_duration& delta
 				) const;
 			//@}
 
@@ -128,6 +144,10 @@ namespace synthese
 			//! @name Setters
 			//@{
 				void	setWarning(boost::shared_ptr<TimetableWarning> value) { _warning = value; }
+				void setCompression(
+					size_t rank,
+					size_t repeated
+				);
 			//@}
 
 			//! @name Getters
@@ -139,6 +159,9 @@ namespace synthese
 				tTypeOD									getOriginType()			const { return _originType; }
 				tTypeOD									getDestinationType()	const { return _destinationType; }
 				boost::shared_ptr<TimetableWarning>		getWarning()			const { return _warning; }
+				bool isCompression() const { return _compressionRank; }
+				size_t getCompressionRank() const { return *_compressionRank; }
+				size_t getCompressionRepeated() const { return *_compressionRepeated; }
 			//@}
 		};
 	}

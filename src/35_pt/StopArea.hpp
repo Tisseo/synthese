@@ -214,6 +214,11 @@ namespace synthese
 				mutable boost::posix_time::time_duration _minTransferDelay;
 			//@}
 
+			//! @Location
+			//@{
+				boost::shared_ptr<geos::geom::Point> _location;
+			//@}
+
 
 		public:
 
@@ -230,6 +235,7 @@ namespace synthese
 				boost::posix_time::time_duration	getDefaultTransferDelay() const { return _defaultTransferDelay; }
 				const TransferDelaysMap& getTransferDelays() const { return _transferDelays; }
 				const std::string& getTimetableName() const { return _timetableName; }
+				const boost::shared_ptr<geos::geom::Point>& getLocation() const { return _location; }
 			//@}
 
 			//! @name Setters
@@ -239,6 +245,7 @@ namespace synthese
 				);
 				void setTimetableName(const std::string& value){ _timetableName = value; }
 				void setAllowedConnection(bool value) { _allowedConnection = value; }
+				void setLocation(const boost::shared_ptr<geos::geom::Point>& value){ _location = value; }
 			//@}
 
 			//! @name Update methods.
@@ -384,10 +391,16 @@ namespace synthese
 				/// @date 2011
 				void toParametersMap(
 					util::ParametersMap& pm,
-					const CoordinatesSystem* coordinatesSystem = &CoordinatesSystem::GetInstanceCoordinatesSystem(),
+					const CoordinatesSystem* coordinatesSystem,
 					std::string prefix = std::string()
 				) const;
 
+				virtual void toParametersMap(
+					util::ParametersMap& pm,
+					bool withAdditionalParameters,
+					boost::logic::tribool withFiles = boost::logic::indeterminate,
+					std::string prefix = std::string()
+				) const;
 
 
 				typedef std::set<FreeDRTArea*> FreeDRTs;
@@ -395,6 +408,10 @@ namespace synthese
 				//////////////////////////////////////////////////////////////////////////
 				/// Free DRT calling at the stop.
 				FreeDRTs getFreeDRTs() const;
+
+				//////////////////////////////////////////////////////////////////////////
+				/// Retunr true if StopArea is contained in a DRTArea
+				bool isInDRT() const;
 			//@}
 		};
 }	}

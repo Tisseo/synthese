@@ -53,7 +53,6 @@
 #include "SecurityConstants.hpp"
 #include "Right.h"
 #include "PTUseRuleTableSync.h"
-#include "RollingStockTableSync.hpp"
 
 #include <boost/lexical_cast.hpp>
 
@@ -97,41 +96,6 @@ namespace synthese
 
 		template<> void ModuleClassTemplate<PTModule>::Init()
 		{
-			// Creation of each transport mode corresponding to Trident values except "Other" which is used for null pointer
-			Env env;
-			vector<string> tridentKeys;
-			tridentKeys.push_back("Air");
-			tridentKeys.push_back("Train");
-			tridentKeys.push_back("LongDistanceTrain");
-			tridentKeys.push_back("LocalTrain");
-			tridentKeys.push_back("RapidTransit");
-			tridentKeys.push_back("Metro");
-			tridentKeys.push_back("Tramway");
-			tridentKeys.push_back("Coach");
-			tridentKeys.push_back("Bus");
-			tridentKeys.push_back("Ferry");
-			tridentKeys.push_back("Waterborne");
-			tridentKeys.push_back("PrivateVehicle");
-			tridentKeys.push_back("Walk");
-			tridentKeys.push_back("Trolleybus");
-			tridentKeys.push_back("Bicycle");
-			tridentKeys.push_back("Shuttle");
-			tridentKeys.push_back("Taxi");
-			tridentKeys.push_back("VAL");
-
-			BOOST_FOREACH(const string& tridentKey, tridentKeys)
-			{
-				RollingStockTableSync::SearchResult rollingStocks(RollingStockTableSync::Search(env, tridentKey, true));
-				if(rollingStocks.empty())
-				{
-					RollingStock s;
-					s.setName(tridentKey);
-					s.setTridentKey(tridentKey);
-					s.setIsTridentKeyReference(true);
-					RollingStockTableSync::Save(&s);
-				}
-			}
-
 		}
 
 		template<> void ModuleClassTemplate<PTModule>::Start()
@@ -203,7 +167,7 @@ namespace synthese
 			CommercialLineTableSync::SearchResult lines(
 				CommercialLineTableSync::Search(Env::GetOfficialEnv(), rights, totalControl, neededLevel)
 			);
-			BOOST_FOREACH(const shared_ptr<CommercialLine>& line, lines)
+			BOOST_FOREACH(const boost::shared_ptr<CommercialLine>& line, lines)
 				m.push_back(make_pair(line->getKey(), line->getShortName()));
 			return m;
 		}
@@ -224,13 +188,13 @@ namespace synthese
 			);
 
 			m.push_back(make_pair(string(), namePrefix +"--- Réseaux ---"));
-			BOOST_FOREACH(const shared_ptr<TransportNetwork>& network, networks)
+			BOOST_FOREACH(const boost::shared_ptr<TransportNetwork>& network, networks)
 			{
 				m.push_back(make_pair(codePrefix + lexical_cast<string>(network->getKey()), namePrefix + network->getName() ));
 			}
 
 			m.push_back(make_pair(string(), namePrefix + "--- Lignes ---"));
-			BOOST_FOREACH(const shared_ptr<CommercialLine>& line, lines)
+			BOOST_FOREACH(const boost::shared_ptr<CommercialLine>& line, lines)
 			{
 				m.push_back(make_pair(codePrefix + lexical_cast<string>(line->getKey()), namePrefix + line->getName() ));
 			}
@@ -367,7 +331,7 @@ namespace synthese
 					placeName,
 					1
 			)	);
-			return places.empty() ? shared_ptr<Place>() : places.begin()->placeResult.value;
+			return places.empty() ? boost::shared_ptr<Place>() : places.begin()->placeResult.value;
 		}
 
 		void PTModule::ParameterCallback(

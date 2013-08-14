@@ -175,7 +175,7 @@ namespace synthese
 		void ServiceAddAction::run(
 			Request& request
 		){
-			shared_ptr<const SchedulesBasedService> timetemplate(_template);
+			boost::shared_ptr<const SchedulesBasedService> timetemplate(_template);
 			if(!timetemplate.get()) // Attempt to load an other service to read the schedules
 			{
 				ScheduledServiceTableSync::SearchResult services(ScheduledServiceTableSync::Search(*_env, _line->getKey(), optional<RegistryKeyType>(), optional<RegistryKeyType>(), optional<string>(), false, 0, 1));
@@ -258,7 +258,6 @@ namespace synthese
 						object.addCalendarLink(newLink,true);
 						CalendarLinkTableSync::Save(&newLink, transaction);
 					}
-					object.setCalendarFromLinks();
 				}
 
 				request.setActionCreatedId(object.getKey());
@@ -304,7 +303,6 @@ namespace synthese
 								object2.addCalendarLink(newLink,true);
 								CalendarLinkTableSync::Save(&newLink, transaction);
 							}
-							object2.setCalendarFromLinks();
 						}
 					}
 				}

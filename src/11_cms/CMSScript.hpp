@@ -85,8 +85,11 @@ namespace synthese
 			CMSScript(
 				std::string::const_iterator& it,
 				std::string::const_iterator end,
-				std::set<std::string> termination
+				std::set<std::string> termination,
+				bool ignoreWhiteChars = false
 			);
+
+			bool operator==(const CMSScript& other) const; 
 			
 			/// @name Services
 			//@{
@@ -146,7 +149,7 @@ namespace synthese
 
 			void setCode(const std::string& value);
 			
-			void update(
+			bool update(
 				const std::string& code,
 				bool ignoreWhiteChars,
 				bool doNotEvaluate

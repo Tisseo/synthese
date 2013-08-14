@@ -24,6 +24,7 @@
 
 #include "LineStopTableSync.h"
 
+#include "ContinuousServiceTableSync.h"
 #include "DesignatedLinePhysicalStop.hpp"
 #include "DRTAreaTableSync.hpp"
 #include "JourneyPatternCopy.hpp"
@@ -31,6 +32,7 @@
 #include "LineArea.hpp"
 #include "LinkException.h"
 #include "Profile.h"
+#include "ScheduledServiceTableSync.h"
 #include "Session.h"
 #include "StopPointTableSync.hpp"
 #include "User.h"
@@ -70,6 +72,7 @@ namespace synthese
 		const std::string LineStopTableSync::COL_METRICOFFSET("metric_offset");
 		const std::string LineStopTableSync::COL_SCHEDULEINPUT("schedule_input");
 		const std::string LineStopTableSync::COL_INTERNAL_SERVICE("internal_service");
+		const std::string LineStopTableSync::COL_RESERVATION_NEEDED = "reservation_needed";
 	}
 
 	namespace db
@@ -91,6 +94,7 @@ namespace synthese
 			Field(LineStopTableSync::COL_METRICOFFSET, SQL_DOUBLE),
 			Field(LineStopTableSync::COL_SCHEDULEINPUT, SQL_BOOLEAN),
 			Field(LineStopTableSync::COL_INTERNAL_SERVICE, SQL_BOOLEAN),
+			Field(LineStopTableSync::COL_RESERVATION_NEEDED, SQL_BOOLEAN),
 			Field(TABLE_COL_GEOMETRY, SQL_GEOM_LINESTRING),
 			Field()
 		};
@@ -116,13 +120,13 @@ namespace synthese
 
 
 		template<>
-		shared_ptr<LineStop> InheritanceLoadSavePolicy<LineStopTableSync,LineStop>::GetNewObject(
+		boost::shared_ptr<LineStop> InheritanceLoadSavePolicy<LineStopTableSync,LineStop>::GetNewObject(
 			const DBResultSPtr& row
 		){
 			return
 				(decodeTableId(row->getLongLong(LineStopTableSync::COL_PHYSICALSTOPID)) == StopPointTableSync::TABLE.ID) ?
-				shared_ptr<LineStop>(new DesignatedLinePhysicalStop(row->getKey())) :
-				shared_ptr<LineStop>(new LineArea(row->getKey()))
+				boost::shared_ptr<LineStop>(new DesignatedLinePhysicalStop(row->getKey())) :
+				boost::shared_ptr<LineStop>(new LineArea(row->getKey()))
 			;
 		}
 
@@ -135,133 +139,7 @@ namespace synthese
 			Env& env,
 			LinkLevel linkLevel
 		){
-			int rankInPath(rows->getInt (LineStopTableSync::COL_RANKINPATH));
-			bool isDeparture (rows->getBool (LineStopTableSync::COL_ISDEPARTURE));
-			bool isArrival (rows->getBool (LineStopTableSync::COL_ISARRIVAL));
-			double metricOffset (rows->getDouble (LineStopTableSync::COL_METRICOFFSET));
-
-			// Geometry
-			string viaPointsStr(rows->getText(TABLE_COL_GEOMETRY));
-			if(viaPointsStr.empty())
-			{
-				ls->setGeometry(shared_ptr<LineString>());
-			}
-			else
-			{
-				ls->setGeometry(
-					dynamic_pointer_cast<LineString,Geometry>(rows->getGeometryFromWKT(TABLE_COL_GEOMETRY))
-				);
-			}
-
-			ls->setMetricOffset(metricOffset);
-			ls->setIsArrival(isArrival);
-			ls->setIsDeparture(isDeparture);
-			ls->setRankInPath(rankInPath);
-			ls->setLine(NULL);
-
-			if (linkLevel > FIELDS_ONLY_LOAD_LEVEL)
-			{
-				// Line
-				util::RegistryKeyType lineId (rows->getLongLong (LineStopTableSync::COL_LINEID));
-				JourneyPattern* line(JourneyPatternTableSync::GetEditable (lineId, env, linkLevel).get());
-				ls->setLine(line);
-			}
-
-			if(dynamic_cast<DesignatedLinePhysicalStop*>(ls))
-			{
-				DesignatedLinePhysicalStop& dls(static_cast<DesignatedLinePhysicalStop&>(*ls));
-
-				// Schedule input
-				if(!rows->getText(LineStopTableSync::COL_SCHEDULEINPUT).empty())
-				{
-					dls.setScheduleInput(rows->getBool(LineStopTableSync::COL_SCHEDULEINPUT));
-				}
-				else
-				{
-					dls.setScheduleInput(true);
-				}
-
-				if (linkLevel > FIELDS_ONLY_LOAD_LEVEL)
-				{
-					// Stop point
-					util::RegistryKeyType fromPhysicalStopId (
-						rows->getLongLong (LineStopTableSync::COL_PHYSICALSTOPID)
-					);
-					dls.setPhysicalStop(*StopPointTableSync::GetEditable(fromPhysicalStopId, env, linkLevel));
-
-					// Line update
-					dls.getLine()->addEdge(dls);
-
-					// Sublines update
-					BOOST_FOREACH(JourneyPatternCopy* copy, ls->getLine()->getSubLines())
-					{
-						DesignatedLinePhysicalStop* newEdge(
-							new DesignatedLinePhysicalStop(
-								0,
-								copy,
-								dls.getRankInPath(),
-								dls.isDeparture(),
-								dls.isArrival(),
-								dls.getMetricOffset(),
-								dls.getPhysicalStop(),
-								dls.getScheduleInput()
-						)	);
-						copy->addEdge(*newEdge);
-					}
-
-					// Useful transfer calculation
-					dls.getPhysicalStop()->getHub()->clearAndPropagateUsefulTransfer(PTModule::GRAPH_ID);
-				}
-			}
-			else if(dynamic_cast<LineArea*>(ls))
-			{
-				LineArea& lineArea(static_cast<LineArea&>(*ls));
-				lineArea.setInternalService(rows->getBool(LineStopTableSync::COL_INTERNAL_SERVICE));
-
-				if (linkLevel > FIELDS_ONLY_LOAD_LEVEL)
-				{
-					RegistryKeyType areaId(rows->getLongLong(LineStopTableSync::COL_PHYSICALSTOPID));
-					if(areaId) try
-					{
-						lineArea.setArea(
-							*DRTAreaTableSync::GetEditable(areaId, env, linkLevel)
-						);
-					}
-					catch(ObjectNotFoundException<DRTArea>& e)
-					{
-						throw LinkException<DRTAreaTableSync>(rows, LineStopTableSync::COL_PHYSICALSTOPID, e);
-					}
-
-					// Line update
-					lineArea.getLine()->addEdge(lineArea);
-				}
-
-				if (linkLevel > FIELDS_ONLY_LOAD_LEVEL)
-				{
-					// Sublines update
-					BOOST_FOREACH(JourneyPatternCopy* copy, ls->getLine()->getSubLines())
-					{
-						LineArea* newEdge(
-							new LineArea(
-								0,
-								copy,
-								lineArea.getRankInPath(),
-								lineArea.isDeparture(),
-								lineArea.isArrival(),
-								lineArea.getMetricOffset(),
-								lineArea.getArea(),
-								lineArea.getInternalService()
-						)	);
-						copy->addEdge(*newEdge);
-					}
-
-					// Useful transfer calculation
-					BOOST_FOREACH(StopArea* stopArea, lineArea.getArea()->getStops())
-					{
-						stopArea->clearAndPropagateUsefulTransfer(PTModule::GRAPH_ID);
-					}
-				}
-			}
+			ls->loadFromRecord(*rows, env);
 		}
 
 
@@ -286,6 +164,7 @@ namespace synthese
 				query.addField(dls.getMetricOffset());
 				query.addField(dls.getScheduleInput());
 				query.addField(false);
+				query.addField(dls.getReservationNeeded());
 				query.addField(static_pointer_cast<Geometry,LineString>(dls.getGeometry()));
 			}
 			else if(dynamic_cast<LineArea*>(object))
@@ -303,6 +182,7 @@ namespace synthese
 				query.addField(true);
 				query.addField(lineArea.getInternalService());
 				query.addField(static_pointer_cast<Geometry,LineString>(lineArea.getGeometry()));
+				query.addField(true);
 				query.execute(transaction);
 			}
 			query.execute(transaction);
@@ -369,11 +249,45 @@ namespace synthese
 			db::DBTransaction& transaction
 		){
 			Env env;
-			shared_ptr<const LineStop> lineStop(LineStopTableSync::Get(id, env));
+			boost::shared_ptr<LineStop> lineStop(LineStopTableSync::GetEditable(id, env));
 
-			RankUpdateQuery<LineStopTableSync> query(LineStopTableSync::COL_RANKINPATH, -1, lineStop->getRankInPath(), false);
+			RankUpdateQuery<LineStopTableSync> query(LineStopTableSync::COL_RANKINPATH, -1, lineStop->getRankInPath()+1);
 			query.addWhereField(LineStopTableSync::COL_LINEID, lineStop->getLine()->getKey());
 			query.execute(transaction);
+
+			if(lineStop->getScheduleInput())
+			{
+				LineStopTableSync::Search(env, lineStop->getParentPath()->getKey());
+				ScheduledServiceTableSync::Search(
+					env,
+					lineStop->getParentPath()->getKey()
+				);
+				ContinuousServiceTableSync::Search(
+					env,
+					lineStop->getParentPath()->getKey()
+				);
+				lineStop->getParentPath()->removeEdge(*lineStop);
+				BOOST_FOREACH(const ScheduledService::Registry::value_type& it, env.getRegistry<ScheduledService>())
+				{
+					ScheduledService& service(*it.second);
+					ScheduledService::Schedules dp(service.getDepartureSchedules(true, false));
+					dp.erase(dp.begin() + lineStop->getRankInPath());
+					ScheduledService::Schedules ar(service.getDepartureSchedules(true, false));
+					ar.erase(ar.begin() + lineStop->getRankInPath());
+					service.setSchedules(dp, ar, false);
+					ScheduledServiceTableSync::Save(&service, transaction);
+				}
+				BOOST_FOREACH(const ContinuousService::Registry::value_type& it, env.getRegistry<ContinuousService>())
+				{
+					ContinuousService& service(*it.second);
+					ContinuousService::Schedules dp(service.getDepartureSchedules(true, false));
+					dp.erase(dp.begin() + lineStop->getRankInPath());
+					ContinuousService::Schedules ar(service.getDepartureSchedules(true, false));
+					ar.erase(ar.begin() + lineStop->getRankInPath());
+					service.setSchedules(dp, ar, false);
+					ContinuousServiceTableSync::Save(&service, transaction);
+				}
+			}
 		}
 
 
@@ -474,10 +388,9 @@ namespace synthese
 
 
 		void LineStopTableSync::InsertStop(
-			LineStop& lineStop
+			LineStop& lineStop,
+			DBTransaction& transaction
 		){
-			DBTransaction transaction;
-
 			if(!lineStop.getParentPath()->getEdges().empty())
 			{
 				for(size_t rank((*lineStop.getParentPath()->getEdges().rbegin())->getRankInPath()); rank >= lineStop.getRankInPath(); --rank)
@@ -500,8 +413,6 @@ namespace synthese
 			}	}
 
 			Save(&lineStop, transaction);
-
-			transaction.run();
 		}
 
 
@@ -589,7 +500,7 @@ namespace synthese
 				LoadFromQuery(query.str(), env, UP_LINKS_LOAD_LEVEL)
 			);
 			return result.empty() ?
-				shared_ptr<DesignatedLinePhysicalStop>() :
+				boost::shared_ptr<DesignatedLinePhysicalStop>() :
 				static_pointer_cast<DesignatedLinePhysicalStop, LineStop>(*result.begin());
 		}
 
@@ -639,7 +550,7 @@ namespace synthese
 				LoadFromQuery(query.toString(), env, UP_LINKS_LOAD_LEVEL)
 			);
 			return result.empty() ?
-				shared_ptr<DesignatedLinePhysicalStop>() :
+				boost::shared_ptr<DesignatedLinePhysicalStop>() :
 				static_pointer_cast<DesignatedLinePhysicalStop, LineStop>(*result.begin())
 			;
 		}

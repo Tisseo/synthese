@@ -60,7 +60,8 @@ namespace synthese
 			_transferTimetableBefore(NULL),
 			_transferTimetableAfter(NULL),
 			_ignoreEmptyRows(false),
-			_mergeColsWithSameTimetables(true)
+			_mergeColsWithSameTimetables(true),
+			_compression(false)
 		{}
 
 
@@ -117,6 +118,7 @@ namespace synthese
 				g->setAuthorizedPhysicalStops(_authorizedPhysicalStops);
 				g->setWaybackFilter(_wayBackFilter);
 				g->setAutoIntermediateStops(_autoIntermediateStops);
+				g->setCompression(_compression);
 				if(_transferTimetableBefore)
 				{
 					g->setBeforeTransferTimetable(_transferTimetableBefore->getGenerator(env, mask));
@@ -331,7 +333,10 @@ namespace synthese
 
 
 		void Timetable::toParametersMap(
-			util::ParametersMap& pm
+			util::ParametersMap& pm,
+			bool withAdditionalParameters,
+			boost::logic::tribool withFiles,
+			std::string prefix
 		) const	{
 			// Common parameters
 			pm.insert(DATA_GENERATOR_TYPE, GetTimetableTypeCode(getContentType()));

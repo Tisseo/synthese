@@ -20,14 +20,18 @@
 	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include "ActionException.h"
 #include "InterSYNTHESESlave.hpp"
 
+#include "ActionException.h"
 #include "BasicClient.h"
 #include "InterSYNTHESEConfigItem.hpp"
 #include "InterSYNTHESEQueue.hpp"
 #include "InterSYNTHESEQueueTableSync.hpp"
+#include "InterSYNTHESESlaveTableSync.hpp"
 #include "InterSYNTHESESlaveUpdateService.hpp"
 #include "InterSYNTHESESyncTypeFactory.hpp"
+#include "ServerModule.h"
 
 using namespace boost;
 using namespace std;
@@ -50,6 +54,7 @@ namespace synthese
 	namespace inter_synthese
 	{
 		const string InterSYNTHESESlave::TAG_QUEUE_ITEM = "queue_item";
+		const string InterSYNTHESESlave::TAG_QUEUE_SIZE = "queue_size";
 
 
 
@@ -66,16 +71,29 @@ namespace synthese
 					FIELD_DEFAULT_CONSTRUCTOR(InterSYNTHESEConfig),
 					FIELD_VALUE_CONSTRUCTOR(Active, false)
 			)	),
-			_lastSentRange(make_pair(_queue.end(), _queue.end()))
+			_lastSentRange(make_pair(_queue.end(), _queue.end())),
+			_previousConfig(NULL)
 		{
 		}
 
+		InterSYNTHESESlave::~InterSYNTHESESlave()
+		{
+			if(_previousConfig)
+			{
+				_previousConfig->eraseSlave(this);
+			}
+		}
 
 
 		void InterSYNTHESESlave::link( util::Env& env, bool withAlgorithmOptimizations /*= false*/ )
 		{
-			if(get<InterSYNTHESEConfig>())
+			if(get<InterSYNTHESEConfig>() && _previousConfig != get_pointer(get<InterSYNTHESEConfig>()))
 			{
+				if(_previousConfig)
+				{
+					_previousConfig->eraseSlave(this);
+					_previousConfig = NULL;
+				}
 				get<InterSYNTHESEConfig>()->insertSlave(this);
 			}
 		}
@@ -86,7 +104,7 @@ namespace synthese
 		{
 			if(get<InterSYNTHESEConfig>())
 			{
-				get<InterSYNTHESEConfig>()->eraseSlave(this);
+				_previousConfig = get_pointer(get<InterSYNTHESEConfig>());
 			}
 		}
 
@@ -117,6 +135,7 @@ namespace synthese
 
 		void InterSYNTHESESlave::queue( InterSYNTHESEQueue& obj ) const
 		{
+			recursive_mutex::scoped_lock lock(_queueMutex);
 			_queue.insert(make_pair(obj.get<Key>(), &obj));
 		}
 
@@ -124,6 +143,7 @@ namespace synthese
 
 		void InterSYNTHESESlave::removeFromQueue( util::RegistryKeyType id ) const
 		{
+			recursive_mutex::scoped_lock lock(_queueMutex);
 			_queue.erase(id);
 		}
 
@@ -133,36 +153,65 @@ namespace synthese
 			util::ParametersMap& map,
 			std::string prefix /*= std::string() */
 		) const	{
+			recursive_mutex::scoped_lock lock(_queueMutex);
+			map.insert(prefix + TAG_QUEUE_SIZE, _queue.size());
 			
+			size_t count(30);
 			BOOST_FOREACH(const Queue::value_type& it, _queue)
 			{
-				shared_ptr<ParametersMap> itemPM(new ParametersMap);
+				boost::shared_ptr<ParametersMap> itemPM(new ParametersMap);
 
 				it.second->toParametersMap(*itemPM);
 
 				map.insert(prefix + TAG_QUEUE_ITEM, itemPM);
+
+				if(--count == 0)
+				{
+					// We don't want to publish this way all the queue content
+					// as it may be huge.
+					break;
 			}
+		}
 		}
 
 
-
-		InterSYNTHESESlave::QueueRange InterSYNTHESESlave::getQueueRange() const
+		bool InterSYNTHESESlave::fullUpdateNeeded() const
 		{
 			if(!get<InterSYNTHESEConfig>())
 			{
 				throw Exception("Invalid slave configuration");
 			}
 
-			mutex::scoped_lock lock(_queueMutex);
+			return(isObsolete() || get<InterSYNTHESEConfig>()->get<ForceDump>());
+		}
+
+		void InterSYNTHESESlave::processFullUpdate() const
+		{
+			if(!get<InterSYNTHESEConfig>())
+			{
+				throw Exception("Invalid slave configuration");
+			}
+
 			if(isObsolete() || get<InterSYNTHESEConfig>()->get<ForceDump>())
 			{
 				// Clean the obsolete queue items
 				DBTransaction deleteTransaction;
+				{
+					// Do no run transation with the lock or we will deadlock if
+					// a transaction triggers a real time update
+					recursive_mutex::scoped_lock lock(_queueMutex);
 				BOOST_FOREACH(const Queue::value_type& it, _queue)
 				{
 					DBModule::GetDB()->deleteStmt(it.first, deleteTransaction);
 				}
+				}
 				deleteTransaction.run();
+
+				boost::unique_lock<shared_mutex> lock(ServerModule::baseWriterMutex, boost::try_to_lock);
+				if(!lock.owns_lock())
+				{
+					throw ActionException("InterSYNTHESESlaveUpdateService: Already running a base update");
+				}
 
 				// Load new queue items
 				BOOST_FOREACH(
@@ -176,6 +225,15 @@ namespace synthese
 				}
 			}
 
+		}
+
+		InterSYNTHESESlave::QueueRange InterSYNTHESESlave::getQueueRange() const
+		{
+			if(!get<InterSYNTHESEConfig>())
+			{
+				throw Exception("Invalid slave configuration");
+			}
+
 			if(_queue.empty())
 			{
 				return make_pair(_queue.end(), _queue.end());
@@ -183,16 +241,36 @@ namespace synthese
 
 			Queue::iterator itEnd(_queue.end());
 			--itEnd;
+			if(_queue.size() > get<InterSYNTHESEConfig>()->get<MaxQueriesNumber>())
+			{
+				itEnd = _queue.begin();
+				size_t count(get<InterSYNTHESEConfig>()->get<MaxQueriesNumber>());
+				while(--count)
+				{
+					++itEnd;
+				}
+			}
 			return make_pair(
 				_queue.begin(),
 				itEnd
 			);
 		}
 
-
+		// In the Master/Slave communication, it is possible to have one
+		// thread calling isObsolete() and one calling markAsUpToDate()
+		// In this case we can have a race around our config that is
+		// rewritten by the DB stack.
+		void InterSYNTHESESlave::markAsUpToDate()
+		{
+			recursive_mutex::scoped_lock lock(_slaveChangeMutex);
+			ptime now(second_clock::local_time());
+			set<LastActivityReport>(now);
+			InterSYNTHESESlaveTableSync::Save(this);
+		}
 
 		bool InterSYNTHESESlave::isObsolete() const
 		{
+			recursive_mutex::scoped_lock lock(_slaveChangeMutex);
 			ptime now(second_clock::local_time());
 			return
 				get<LastActivityReport>().is_not_a_date_time() ||
@@ -206,16 +284,30 @@ namespace synthese
 		void InterSYNTHESESlave::clearLastSentRange() const
 		{
 			DBTransaction transaction;
+			{
+				// Do no run transation with the lock or we will deadlock if
+				// a transaction triggers a real time update
+				recursive_mutex::scoped_lock lock(_queueMutex);
 
 			for(Queue::iterator it(_lastSentRange.first);
 				it != _queue.end();
 				++it
 			){
 				DBModule::GetDB()->deleteStmt(it->first, transaction);
+					// Exit on last item
+					if(it == _lastSentRange.second)
+					{
+						break;
 			}
+					// Exit on last item
+					if(it == _lastSentRange.second)
+					{
+						break;
+					}
+				}
 
 			_lastSentRange = make_pair(_queue.end(), _queue.end());
-
+			}
 			transaction.run();
 		}
 }	}

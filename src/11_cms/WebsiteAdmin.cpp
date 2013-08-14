@@ -290,6 +290,13 @@ namespace synthese
 							SVNWorkingCopyCreateAction::PARAMETER_PASSWORD,
 							string()
 					)	);
+					stream << pt.cell(
+						"Ne pas commiter, sauvegarde uniquement en local",
+						pt.getForm().getCheckBox(
+						SVNWorkingCopyCreateAction::PARAMETER_NO_COMMIT,
+						string(),
+						false
+					)	);
 					stream << pt.close();
 				}
 				else
@@ -329,6 +336,13 @@ namespace synthese
 								SVNUpdateAction::PARAMETER_PASSWORD,
 								string()
 						)	);
+						stream << pt.cell(
+							"Écraser mes modifications",
+							pt.getForm().getCheckBox(
+								SVNUpdateAction::PARAMETER_NO_WC_SAVE,
+								string(),
+								false
+						)	);
 						stream << pt.close();
 					}
 
@@ -364,6 +378,20 @@ namespace synthese
 							pt.getForm().getPasswordInput(
 								SVNCommitAction::PARAMETER_PASSWORD,
 								string()
+						)	);
+						stream << pt.cell(
+							"Ne pas commiter, sauvegarde uniquement en local",
+							pt.getForm().getCheckBox(
+								SVNCommitAction::PARAMETER_NO_COMMIT,
+								string(),
+								false
+						)	);
+						stream << pt.cell(
+							"Ne pas mettre à jour la copie de travail",
+							pt.getForm().getCheckBox(
+								SVNCommitAction::PARAMETER_NO_UPDATE,
+								string(),
+								false
 						)	);
 						stream << pt.close();
 					}
@@ -401,9 +429,9 @@ namespace synthese
 				WebsiteTableSync::SearchResult sites(
 					WebsiteTableSync::Search(Env::GetOfficialEnv())
 				);
-				BOOST_FOREACH(const shared_ptr<Website>& site, sites)
+				BOOST_FOREACH(const boost::shared_ptr<Website>& site, sites)
 				{
-					shared_ptr<WebsiteAdmin> p(
+					boost::shared_ptr<WebsiteAdmin> p(
 						getNewPage<WebsiteAdmin>()
 					);
 					p->_site = const_pointer_cast<const Website>(site);
@@ -424,9 +452,9 @@ namespace synthese
 				dynamic_cast<const WebPageAdmin*>(&currentPage)
 			){
 				WebPageTableSync::SearchResult pages(WebPageTableSync::Search(Env::GetOfficialEnv(), _site->getKey(), RegistryKeyType(0)));
-				BOOST_FOREACH(const shared_ptr<Webpage>& page, pages)
+				BOOST_FOREACH(const boost::shared_ptr<Webpage>& page, pages)
 				{
-					shared_ptr<WebPageAdmin> p(
+					boost::shared_ptr<WebPageAdmin> p(
 						getNewPage<WebPageAdmin>()
 					);
 					p->setPage(const_pointer_cast<const Webpage>(page));

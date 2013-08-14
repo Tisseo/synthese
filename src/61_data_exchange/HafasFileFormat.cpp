@@ -35,20 +35,7 @@
 #include "CommercialLineTableSync.h"
 #include "LineStopTableSync.h"
 #include "Calendar.h"
-#include "ImportFunction.h"
-#include "AdminFunctionRequest.hpp"
-#include "PropertiesHTMLTable.h"
-#include "DataSourceAdmin.h"
-#include "PTFileFormat.hpp"
 #include "DesignatedLinePhysicalStop.hpp"
-#include "AdminActionFunctionRequest.hpp"
-#include "HTMLModule.h"
-#include "HTMLForm.h"
-#include "StopPointAddAction.hpp"
-#include "StopPointUpdateAction.hpp"
-#include "PTPlaceAdmin.h"
-#include "StopPointAdmin.hpp"
-#include "StopAreaAddAction.h"
 #include "TransportNetworkTableSync.h"
 #include "RollingStockTableSync.hpp"
 #include "ContinuousServiceTableSync.h"
@@ -71,6 +58,7 @@ namespace synthese
 {
 	using namespace data_exchange;
 	using namespace util;
+	using namespace vehicle;
 	using namespace impex;
 	using namespace pt;
 	using namespace road;
@@ -320,10 +308,8 @@ namespace synthese
 
 		bool HafasFileFormat::Importer_::_parse(
 			const path& filePath,
-			const std::string& key,
-			boost::optional<const server::Request&> adminRequest
+			const std::string& key
 		) const {
-			bool error(false);
 			if(!_openFile(filePath))
 			{
 				throw Exception("Could no open the file " + filePath.file_string());
@@ -385,7 +371,7 @@ namespace synthese
 					{
 						itService = _gleisMap.insert(
 							make_pair(
-								make_tuple(
+								boost::make_tuple(
 									_getField(3, 5),
 									_getField(9, 6),
 									lexical_cast<size_t>(_getField(16, 2))
@@ -450,7 +436,7 @@ namespace synthese
 					{
 						_interServiceTransferDurationMap.insert(
 							make_pair(
-								make_tuple(
+								boost::make_tuple(
 									_getField(0, 7), // Stop code
 									make_pair(
 										_getField(8, 5), // Service code
@@ -514,7 +500,6 @@ namespace synthese
 			else if(key == FILE_ECKDATEN)
 			{
 				// This file should already loaded at parameters reading
-				error = _calendar.empty();
 
 			} // 2 : Nodes
 			else if(key == FILE_BITFELD)
@@ -689,8 +674,7 @@ namespace synthese
 						Bahnhofs::iterator itBahnhof(_bahnhofs.find(stopCode));
 						if(itBahnhof == _bahnhofs.end())
 						{
-							_log(
-								ImportLogger::WARN,
+							_logWarning(
 								"Inconsistent service "+ zugNumber +" : stop "+ stopCode +" is not present in koord file. Service is ignored"
 							);
 							if(itZug != _zugs.end())
@@ -739,12 +723,12 @@ namespace synthese
 						// Gleis
 						GleisMap::const_iterator itGleis(
 							_gleisMap.find(
-								make_tuple(itZug->number, itZug->lineNumber, itZug->version)
+								boost::make_tuple(itZug->number, itZug->lineNumber, itZug->version)
 						)	);
 						if(itGleis == _gleisMap.end())
 						{
 							itGleis = _gleisMap.find(
-								make_tuple(itZug->number, itZug->lineNumber, 0)
+								boost::make_tuple(itZug->number, itZug->lineNumber, 0)
 							);
 						}
 						if(itGleis != _gleisMap.end())
@@ -765,40 +749,6 @@ namespace synthese
 			}
 
 			return true;
-		}
-
-
-
-		void HafasFileFormat::Importer_::displayAdmin(
-			std::ostream& stream,
-			const Request& request
-		) const {
-
-			stream << "<h1>Horaires</h1>";
-			AdminFunctionRequest<DataSourceAdmin> importRequest(request);
-			PropertiesHTMLTable t(importRequest.getHTMLForm());
-			stream << t.open();
-			stream << t.title("Propriétés");
-			stream << t.cell("Effectuer import", t.getForm().getOuiNonRadioInput(DataSourceAdmin::PARAMETER_DO_IMPORT, false));
-			stream << t.title("Données");
-			stream << t.cell("Gleis", t.getForm().getTextInput(_getFileParameterName(FILE_GLEIS), _pathsMap[FILE_GLEIS].file_string()));
-			stream << t.cell("Koord", t.getForm().getTextInput(_getFileParameterName(FILE_KOORD), _pathsMap[FILE_KOORD].file_string()));
-			stream << t.cell("Eckdaten", t.getForm().getTextInput(_getFileParameterName(FILE_ECKDATEN), _pathsMap[FILE_ECKDATEN].file_string()));
-			stream << t.cell("Bitfield", t.getForm().getTextInput(_getFileParameterName(FILE_BITFELD), _pathsMap[FILE_BITFELD].file_string()));
-			stream << t.cell("Zugdat", t.getForm().getTextInput(_getFileParameterName(FILE_ZUGDAT), _pathsMap[FILE_ZUGDAT].file_string()));
-			stream << t.cell("Umsteigb", t.getForm().getTextInput(_getFileParameterName(FILE_UMSTEIGB), _pathsMap[FILE_UMSTEIGB].file_string()));
-			stream << t.cell("Umsteigz", t.getForm().getTextInput(_getFileParameterName(FILE_UMSTEIGZ), _pathsMap[FILE_UMSTEIGZ].file_string()));
-			stream << t.cell("Metabhf", t.getForm().getTextInput(_getFileParameterName(FILE_METABHF), _pathsMap[FILE_METABHF].file_string()));
-			stream << t.title("Paramètres");
-			stream << t.cell("Uniquement afficher liste d'arrêts", t.getForm().getOuiNonRadioInput(PARAMETER_SHOW_STOPS_ONLY, _showStopsOnly));
-			stream << t.cell("Effacer données existantes", t.getForm().getOuiNonRadioInput(PTDataCleanerFileFormat::PARAMETER_CLEAN_OLD_DATA, _cleanOldData));
-			stream << t.cell("Ne pas importer données anciennes", t.getForm().getOuiNonRadioInput(PTDataCleanerFileFormat::PARAMETER_FROM_TODAY, _fromToday));
-			stream << t.cell("Position du chiffre aller retour", t.getForm().getTextInput(PARAMETER_WAYBACK_BIT_POSITION, lexical_cast<string>(_wayBackBitPosition)));
-			stream << t.cell("Importer les services complets", t.getForm().getOuiNonRadioInput(PARAMETER_IMPORT_FULL_SERVICES, _importFullServices));
-			stream << t.cell("Importer les arrêts", t.getForm().getOuiNonRadioInput(PARAMETER_IMPORT_STOPS, _importStops));
-			stream << t.cell("Filtre lignes", t.getForm().getTextInput(PARAMETER_LINES_FILTER, LinesFilterToString(_linesFilter)));
-
-			stream << t.close();
 		}
 
 
@@ -970,238 +920,6 @@ namespace synthese
 
 
 
-		void HafasFileFormat::Importer_::_showBahnhofScreen(
-			boost::optional<const server::Request&> adminRequest
-		) const	{
-
-			DataSource& dataSource(*_import.get<DataSource>());
-			stringstream os;
-
-			// If at least a stop import has failed, no import but an admin screen if possible
-			if(!_nonLinkedBahnhofs.empty() && adminRequest)
-			{
-				os << "<h1>Arrêts non liés à SYNTHESE</h1>";
-
-				HTMLTable::ColsVector c;
-				c.push_back("Code");
-				c.push_back("Localité");
-				c.push_back("Nom");
-				c.push_back("Coords fichier");
-				c.push_back("Coords fichier");
-				c.push_back("Coords fichier (origine)");
-				c.push_back("Coords fichier (origine)");
-				c.push_back("Actions");
-
-				HTMLTable t(c, ResultHTMLTable::CSS_CLASS);
-				os << t.open();
-				os.precision(0);
-				BOOST_FOREACH(const Bahnhofs::value_type& bahnhof, _nonLinkedBahnhofs)
-				{
-					// Projected point
-					shared_ptr<Point> projected;
-					if(bahnhof.second.point.get())
-					{
-						projected = CoordinatesSystem::GetInstanceCoordinatesSystem().convertPoint(
-							*bahnhof.second.point
-						);
-					}
-
-					os << t.row();
-					os << t.col();
-					os << bahnhof.first;
-
-					os << t.col();
-					os << bahnhof.second.cityName;
-
-					os << t.col();
-					os << bahnhof.second.name;
-
-					if(projected.get())
-					{
-						os << t.col();
-						os << fixed << projected->getX();
-
-						os << t.col();
-						os << fixed << projected->getY();
-					}
-					else
-					{
-						os << t.col();
-						os << t.col();
-					}
-
-					if(bahnhof.second.point.get())
-					{
-						os << t.col();
-						os << fixed << bahnhof.second.point->getX();
-
-						os << t.col();
-						os << fixed << bahnhof.second.point->getY();
-
-						os << t.col();
-						AdminActionFunctionRequest<StopPointAddAction, DataSourceAdmin> addRequest(*adminRequest);
-						addRequest.getAction()->setName(bahnhof.second.name);
-						addRequest.getAction()->setCityName(bahnhof.second.cityName);
-						addRequest.getAction()->setCreateCityIfNecessary(true);
-						Importable::DataSourceLinks links;
-						links.insert(make_pair(&dataSource, bahnhof.first));
-						addRequest.getAction()->setDataSourceLinks(links);
-						addRequest.getAction()->setPoint(CoordinatesSystem::GetStorageCoordinatesSystem().convertPoint(*bahnhof.second.point));
-						os << HTMLModule::getLinkButton(addRequest.getURL(), "Ajouter");
-					}
-					else
-					{
-						os << t.col();
-						os << t.col();
-						os << t.col();
-					}
-
-				}
-				os << t.close();
-			}
-
-			// Display of linked stops if specified
-			if(_showStopsOnly && adminRequest && !_linkedBahnhofs.empty())
-			{
-				os << "<h1>Arrêts liés à SYNTHESE</h1>";
-
-				HTMLTable::ColsVector c;
-				c.push_back("Code");
-				c.push_back("Zone d'arrêt SYNTHESE");
-				c.push_back("Arrêt physique");
-				c.push_back("Localité");
-				c.push_back("Nom");
-				c.push_back("Coords SYNTHESE");
-				c.push_back("Coords SYNTHESE");
-				c.push_back("Coords fichier");
-				c.push_back("Coords fichier");
-				c.push_back("Coords fichier (origine)");
-				c.push_back("Coords fichier (origine)");
-				c.push_back("Distance");
-				c.push_back("Actions");
-
-				AdminFunctionRequest<PTPlaceAdmin> openRequest(*adminRequest);
-				AdminFunctionRequest<StopPointAdmin> openPhysicalRequest(*adminRequest);
-
-				HTMLTable t(c, ResultHTMLTable::CSS_CLASS);
-				os << t.open();
-				os.precision(0);
-				BOOST_FOREACH(const Bahnhofs::value_type& bahnhof, _linkedBahnhofs)
-				{
-					// Projected point
-					shared_ptr<Point> projected;
-					if(bahnhof.second.point.get())
-					{
-						projected = CoordinatesSystem::GetInstanceCoordinatesSystem().convertPoint(
-							*bahnhof.second.point
-						);
-					}
-
-					os << t.row();
-					os << t.col();
-					os << bahnhof.first;
-
-					os << t.col();
-					openRequest.getPage()->setConnectionPlace(_env.getSPtr((*bahnhof.second.stops.begin())->getConnectionPlace()));
-					os << HTMLModule::getHTMLLink(openRequest.getURL(), (*bahnhof.second.stops.begin())->getConnectionPlace()->getFullName());
-
-					os << t.col();
-					openPhysicalRequest.getPage()->setStop(_env.getSPtr(*bahnhof.second.stops.begin()));
-					os << HTMLModule::getHTMLLink(openPhysicalRequest.getURL(), (*bahnhof.second.stops.begin())->getName());
-
-					os << t.col();
-					os << bahnhof.second.cityName;
-
-					os << t.col();
-					os << bahnhof.second.name;
-
-					if((*bahnhof.second.stops.begin())->getGeometry().get())
-					{
-						os << t.col() << std::fixed << (*bahnhof.second.stops.begin())->getGeometry()->getX();
-						os << t.col() << std::fixed << (*bahnhof.second.stops.begin())->getGeometry()->getY();
-					}
-					else
-					{
-						os << t.col() << "(non localisé)";
-						os << t.col() << "(non localisé)";
-					}
-
-					if(bahnhof.second.point.get())
-					{
-						double distance(-1);
-						if ((*bahnhof.second.stops.begin())->getGeometry().get() && projected.get())
-						{
-							distance = geos::operation::distance::DistanceOp::distance(
-								*projected,
-								*(*bahnhof.second.stops.begin())->getGeometry()
-							);
-						}
-
-						if(projected.get())
-						{
-							os << t.col();
-							os << fixed << projected->getX();
-
-							os << t.col();
-							os << fixed << projected->getY();
-						}
-						else
-						{
-							os << t.col();
-							os << t.col();
-						}
-
-						if(bahnhof.second.point.get())
-						{
-							os << t.col();
-							os << fixed << bahnhof.second.point->getX();
-
-							os << t.col();
-							os << fixed << bahnhof.second.point->getY();
-						}
-						else
-						{
-							os << t.col();
-							os << t.col();
-						}
-
-						os << t.col();
-						if(distance == 0)
-						{
-							os << "identiques";
-						}
-						else if(distance > 0)
-						{
-							os << distance << " m";
-						}
-
-						os << t.col();
-						if(distance != 0)
-						{
-							AdminActionFunctionRequest<StopPointUpdateAction, DataSourceAdmin> moveRequest(*adminRequest);
-							moveRequest.getAction()->setStop(_env.getEditableSPtr(*bahnhof.second.stops.begin()));
-							moveRequest.getAction()->setPoint(CoordinatesSystem::GetStorageCoordinatesSystem().convertPoint(*bahnhof.second.point));
-							os << HTMLModule::getLinkButton(moveRequest.getHTMLForm().getURL(), "Mettre à jour coordonnées");
-						}
-					}
-					else
-					{
-						os << t.col();
-						os << t.col();
-						os << t.col();
-						os << t.col();
-						os << t.col();
-						os << t.col();
-					}
-				}
-				os << t.close();
-			}
-
-			_logger.logRaw(os.str());
-		}
-
-
-
 		bool HafasFileFormat::Importer_::_importObjects(
 		) const	{
 
@@ -1222,7 +940,7 @@ namespace synthese
 					CityTableSync::Search(
 						_env
 				)	);
-				BOOST_FOREACH(const shared_ptr<City>& city, cities)
+				BOOST_FOREACH(const boost::shared_ptr<City>& city, cities)
 				{
 					citiesByName.insert(make_pair(city->getName(), city.get()));
 				}
@@ -1260,18 +978,17 @@ namespace synthese
 								CityTableSync::getId(),
 								bahnhof.cityName
 							);
-							_env.getEditableRegistry<City>().add(shared_ptr<City>(city));
+							_env.getEditableRegistry<City>().add(boost::shared_ptr<City>(city));
 							citiesByName.insert(make_pair(city->getName(), city));
 						}
 					}
 
 					// Search if a new stop area must be created
 					set<StopArea*> stopAreasSet(
-						PTFileFormat::GetStopAreas(
+						_getStopAreas(
 							stopAreas,
 							bahnhof.operatorCode,
 							optional<const string&>(),
-							_logger,
 							false
 					)	);
 					// Associated stop areas
@@ -1285,11 +1002,10 @@ namespace synthese
 						{
 							BOOST_FOREACH(const string& otherCode, itMappedStopAreas->second)
 							{
-								stopAreasSet = PTFileFormat::GetStopAreas(
+								stopAreasSet = _getStopAreas(
 									stopAreas,
 									otherCode,
 									optional<const string&>(),
-									_logger,
 									false
 								);
 								if(!stopAreasSet.empty())
@@ -1349,16 +1065,14 @@ namespace synthese
 
 						// Creation
 						StopArea* newStopArea(
-							PTFileFormat::CreateStopArea(
+							_createStopArea(
 								stopAreas,
 								bahnhof.operatorCode,
 								name.str(),
 								*city,
 								bahnhof.defaultTransferDuration,
 								mainStop,
-								dataSource,
-								_env,
-								_logger
+								dataSource
 						)	);
 
 						// Links
@@ -1407,8 +1121,7 @@ namespace synthese
 						);
 						if(stopAreasSet.size() > 1)
 						{
-							_log(
-								ImportLogger::WARN,
+							_logWarning(
 								"Multiple stop areas with code "+ bahnhof.operatorCode
 							);
 						}
@@ -1420,7 +1133,7 @@ namespace synthese
 					if(bahnhof.gleisSet.empty())
 					{
 						// One stop for the bahnhof
-						bahnhof.stops = PTFileFormat::CreateOrUpdateStop(
+						bahnhof.stops = _createOrUpdateStop(
 							stopPoints,
 							bahnhof.operatorCode,
 							bahnhof.name,
@@ -1428,19 +1141,16 @@ namespace synthese
 							stopArea,
 							bahnhof.point.get() ? optional<const Point*>(bahnhof.point.get()) : optional<const Point*>(),
 							dataSource,
-							_env,
-							_logger,
 							true
     					);
 					}
 					else
 					{
 						set<StopPoint*> stopsSet(
-							PTFileFormat::GetStopPoints(
+							_getStopPoints(
 								stopPoints,
 								bahnhof.operatorCode,
 								optional<const string&>(),
-								_logger,
 								false
 						)	);
 						BOOST_FOREACH(const string& gleis, bahnhof.gleisSet)
@@ -1460,14 +1170,12 @@ namespace synthese
 							{
 								// Creation
 								StopPoint* newStop(
-									PTFileFormat::CreateStop(
+									_createStop(
 										stopPoints,
 										bahnhof.operatorCode,
 										gleis,
 										*stopArea,
-										dataSource,
-										_env,
-										_logger
+										dataSource
 								)	);
 
 								// Source links with gleis number
@@ -1514,7 +1222,7 @@ namespace synthese
 			{
 				// Line
 				CommercialLine* line(NULL);
-				line = PTFileFormat::CreateOrUpdateLine(
+				line = _createOrUpdateLine(
 					lines,
 					zug.lineNumber,
 					optional<const string&>(),
@@ -1522,8 +1230,6 @@ namespace synthese
 					optional<RGBColor>(),
 					*zug.lineFilter->network,
 					dataSource,
-					_env,
-					_logger,
 					zug.lineFilter->linesByStopsPair || (zug.lineFilter->lineNumberStart && zug.lineFilter->lineNumberEnd)
 				);
 				if(!line)
@@ -1572,10 +1278,9 @@ namespace synthese
 
 				// Transport mode (can be NULL)
 				RollingStock* transportMode(
-					PTFileFormat::GetTransportMode(
+					_getTransportMode(
 						transportModes,
-						zug.transportModeCode,
-						_logger
+						zug.transportModeCode
 				)	);
 
 				// Calendars
@@ -1645,8 +1350,7 @@ namespace synthese
 							// Check if at least a stop was found
 							if(stop._stop.empty())
 							{
-								_log(
-									ImportLogger::WARN,
+								_logWarning(
 									"The stop "+ zugStop.stopCode +"/"+ zugStop.gleisCode +" was not found : the service "+ zug.number +"/"+ zug.lineNumber +" is ignored"
 								);
 								ignoreService = true;
@@ -1683,7 +1387,7 @@ namespace synthese
 
 						// Journey pattern
 						JourneyPattern* route(
-							PTFileFormat::CreateOrUpdateRoute(
+							_createOrUpdateRoute(
 								*line,
 								optional<const string&>(),
 								optional<const string&>(),
@@ -1694,8 +1398,6 @@ namespace synthese
 								transportMode,
 								stops,
 								dataSource,
-								_env,
-								_logger,
 								true,
 								true,
 								true,
@@ -1707,14 +1409,12 @@ namespace synthese
 						if(	zug.continuousServiceRange.is_not_a_date_time() ||
 							zug.continuousServiceRange.total_seconds() == 0
 						){
-							service = PTFileFormat::CreateOrUpdateService(
+							service = _createOrUpdateService(
 								*route,
 								departures,
 								arrivals,
 								zug.number,
 								dataSource,
-								_env,
-								_logger,
 								optional<const string&>(),
 								optional<const RuleUser::Rules&>(),
 								optional<const JourneyPattern::StopsWithDepartureArrivalAuthorization&>(stops)
@@ -1722,16 +1422,14 @@ namespace synthese
 						}
 						else
 						{
-							service = PTFileFormat::CreateOrUpdateContinuousService(
+							service = _createOrUpdateContinuousService(
 								*route,
 								departures,
 								arrivals,
 								zug.number,
 								zug.continuousServiceRange,
 								zug.continuousServiceWaitingTime,
-								dataSource,
-								_env,
-								_logger
+								dataSource
 							);
 						}
 
@@ -1792,10 +1490,14 @@ namespace synthese
 		HafasFileFormat::Importer_::Importer_(
 			util::Env& env,
 			const impex::Import& import,
-			const impex::ImportLogger& logger
-		):	impex::Importer(env, import, logger),
-			impex::MultipleFileTypesImporter<HafasFileFormat>(env, import, logger),
-			PTDataCleanerFileFormat(env, import, logger),
+			impex::ImportLogLevel minLogLevel,
+			const std::string& logPath,
+			boost::optional<std::ostream&> outputStream,
+			util::ParametersMap& pm
+		):	impex::Importer(env, import, minLogLevel, logPath, outputStream, pm),
+			impex::MultipleFileTypesImporter<HafasFileFormat>(env, import, minLogLevel, logPath, outputStream, pm),
+			PTDataCleanerFileFormat(env, import, minLogLevel, logPath, outputStream, pm),
+			PTFileFormat(env, import, minLogLevel, logPath, outputStream, pm),
 			_networks(*import.get<DataSource>(), env),
 			_showStopsOnly(false),
 			_wayBackBitPosition(0),

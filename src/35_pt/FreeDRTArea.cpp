@@ -42,6 +42,7 @@ namespace synthese
 	using namespace util;
 	using namespace graph;
 	using namespace geography;
+	using namespace vehicle;
 
 	namespace util
 	{
@@ -250,7 +251,7 @@ namespace synthese
 				BOOST_FOREACH(const City::PlacesMatcher::Map::value_type& item, city->getLexicalMatcher(StopArea::FACTORY_KEY).entries())
 				{
 					// Declaration
-					shared_ptr<StopArea> stopArea(static_pointer_cast<StopArea, NamedPlace>(item.second));
+					boost::shared_ptr<StopArea> stopArea(static_pointer_cast<StopArea, NamedPlace>(item.second));
 
 					// Storage of the attempt
 					attemptedStopAreas.insert(stopArea.get());

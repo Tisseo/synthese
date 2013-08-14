@@ -190,7 +190,7 @@ namespace synthese
 			try
 			{
 				Env env;
-				shared_ptr<const AlarmObjectLink> aol(AlarmObjectLinkTableSync::Get(object_id, env));
+				boost::shared_ptr<const AlarmObjectLink> aol(AlarmObjectLinkTableSync::Get(object_id, env));
 				if(dynamic_cast<AlarmTemplate*>(aol->getAlarm()))
 				{
 					return session && session->hasProfile() && session->getUser()->getProfile()->isAuthorized<MessagesLibraryRight>(WRITE);
@@ -229,7 +229,7 @@ namespace synthese
 			util::RegistryKeyType id
 		){
 			Env env;
-			shared_ptr<const AlarmObjectLink> aol(AlarmObjectLinkTableSync::Get(id, env));
+			boost::shared_ptr<const AlarmObjectLink> aol(AlarmObjectLinkTableSync::Get(id, env));
 			if (dynamic_cast<AlarmTemplate*>(aol->getAlarm()))
 			{
 				MessagesLibraryLog::addUpdateEntry(
@@ -251,9 +251,10 @@ namespace synthese
 
 	namespace messages
 	{
-		void AlarmObjectLinkTableSync::Remove(
+		void AlarmObjectLinkTableSync::RemoveByMessage(
 			RegistryKeyType alarmId,
-			optional<RegistryKeyType> objectId
+			optional<RegistryKeyType> objectId,
+			optional<DBTransaction&> transaction
 		){
 			DeleteQuery<AlarmObjectLinkTableSync> query;
 			query.addWhereField(COL_ALARM_ID, alarmId);
@@ -261,7 +262,7 @@ namespace synthese
 			{
 				query.addWhereField(COL_OBJECT_ID, *objectId);
 			}
-			query.execute();
+			query.execute(transaction);
 		}
 
 
@@ -275,7 +276,7 @@ namespace synthese
 			SearchResult links(
 				Search(lenv, sourceId)
 			);
-			BOOST_FOREACH(const shared_ptr<AlarmObjectLink>& aol, links)
+			BOOST_FOREACH(const boost::shared_ptr<AlarmObjectLink>& aol, links)
 			{
 				AlarmObjectLink naol;
 				naol.setAlarm(&destAlarm);
@@ -319,5 +320,4 @@ namespace synthese
 			query.addWhereField(COL_OBJECT_ID, objectId);
 			query.execute(transaction);
 		}
-	}
-}
+}	}

@@ -24,6 +24,9 @@
 #define SYNTHESE_IneoFileFormat_H__
 
 #include "FileFormatTemplate.h"
+#include "PTDataCleanerFileFormat.hpp"
+#include "PTFileFormat.hpp"
+#include "PTOperationFileFormat.hpp"
 
 #include "Calendar.h"
 #include "CommercialLineTableSync.h"
@@ -31,7 +34,6 @@
 #include "DestinationTableSync.hpp"
 #include "MultipleFileTypesImporter.hpp"
 #include "NoExportPolicy.hpp"
-#include "PTDataCleanerFileFormat.hpp"
 #include "ImportableTableSync.hpp"
 #include "StopPointTableSync.hpp"
 #include "TransportNetworkTableSync.h"
@@ -55,6 +57,11 @@ namespace synthese
 		class City;
 	}
 
+	namespace vehicle
+	{
+		class RollingStock;
+	}
+
 	namespace pt
 	{
 		class PTUseRule;
@@ -62,7 +69,6 @@ namespace synthese
 		class JourneyPattern;
 		class CommercialLine;
 		class ScheduledService;
-		class RollingStock;
 	}
 
 	namespace data_exchange
@@ -79,7 +85,9 @@ namespace synthese
 			//////////////////////////////////////////////////////////////////////////
 			class Importer_:
 				public impex::MultipleFileTypesImporter<IneoFileFormat>,
-				public PTDataCleanerFileFormat
+				public PTDataCleanerFileFormat,
+				public PTFileFormat,
+				public PTOperationFileFormat
 			{
 			public:
 				static const std::string FILE_PNT; // Stops
@@ -238,8 +246,7 @@ namespace synthese
 
 				virtual bool _parse(
 					const boost::filesystem::path& filePath,
-					const std::string& key,
-					boost::optional<const server::Request&> adminRequest
+					const std::string& key
 				) const;
 
 
@@ -247,7 +254,10 @@ namespace synthese
 				Importer_(
 					util::Env& env,
 					const impex::Import& import,
-					const impex::ImportLogger& logger
+					impex::ImportLogLevel minLogLevel,
+					const std::string& logPath,
+					boost::optional<std::ostream&> outputStream,
+					util::ParametersMap& pm
 				);
 
 
@@ -277,7 +287,6 @@ namespace synthese
 
 			typedef impex::NoExportPolicy<IneoFileFormat> Exporter_;
 		};
-	}
-}
+}	}
 
 #endif

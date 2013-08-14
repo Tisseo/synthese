@@ -22,10 +22,12 @@
 	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include "ScenariosListFunction.hpp"
+
+#include "MessagesSection.hpp"
 #include "RequestException.h"
 #include "Request.h"
 #include "MessagesRight.h"
-#include "ScenariosListFunction.hpp"
 #include "ScenarioFolderTableSync.h"
 #include "Webpage.h"
 #include "ScenarioFolder.h"
@@ -142,9 +144,13 @@ namespace synthese
 			{
 				try
 				{
-					_sectionIn = map.get<int>(PARAMETER_SECTION_IN);
+					_sectionIn = *Env::GetOfficialEnv().get<MessagesSection>(map.get<RegistryKeyType>(PARAMETER_SECTION_IN));
 				}
 				catch (bad_lexical_cast&)
+				{
+					throw RequestException("No such section");
+				}
+				catch(ObjectNotFoundException<MessagesSection>&)
 				{
 					throw RequestException("No such section");
 				}
@@ -155,9 +161,13 @@ namespace synthese
 			{
 				try
 				{
-					_sectionOut = map.get<int>(PARAMETER_SECTION_OUT);
+					_sectionOut = *Env::GetOfficialEnv().get<MessagesSection>(map.get<RegistryKeyType>(PARAMETER_SECTION_OUT));
 				}
 				catch (bad_lexical_cast&)
+				{
+					throw RequestException("No such section");
+				}
+				catch(ObjectNotFoundException<MessagesSection>&)
 				{
 					throw RequestException("No such section");
 				}
@@ -208,10 +218,11 @@ namespace synthese
 			if(_textSearch)
 			{
 				ScenarioTableSync::SearchResult newScenarios;
-				BOOST_FOREACH(const shared_ptr<Scenario>& scenario, scenarios)
+				BOOST_FOREACH(const boost::shared_ptr<Scenario>& scenario, scenarios)
 				{
 					// Try in the scenario name
-					if(find_first(scenario->getName(), *_textSearch))
+					string scenarioName(scenario->getName());
+					if(find_first(scenarioName, *_textSearch))
 					{
 						newScenarios.push_back(scenario);
 						continue;
@@ -231,19 +242,23 @@ namespace synthese
 				scenarios = newScenarios;
 			}
 
-			BOOST_FOREACH(const shared_ptr<Scenario>& scenario, scenarios)
+			BOOST_FOREACH(const boost::shared_ptr<Scenario>& scenario, scenarios)
 			{
 				// Section filter
 				const Scenario::Sections& sections(scenario->getSections());
-				if(	(	_sectionIn && sections.find(*_sectionIn) == sections.end()) ||
-					(	_sectionOut && sections.find(*_sectionOut) != sections.end())
+				if(	(	_sectionIn && sections.find(&*_sectionIn) == sections.end()) ||
+					(	_sectionOut && sections.find(&*_sectionOut) != sections.end())
 				){
 					continue;
 				}
 
 				// Export of the scenario
-				shared_ptr<ParametersMap> scenarioPM(new ParametersMap);
-				scenario->toParametersMap(*scenarioPM);
+				boost::shared_ptr<ParametersMap> scenarioPM(new ParametersMap);
+				scenario->toParametersMap(*scenarioPM, true);
+				if(dynamic_cast<const SentScenario*>(scenario.get()))
+				{
+					static_cast<const SentScenario*>(scenario.get())->toParametersMap(*scenarioPM);
+				}
 				pm.insert(TAG_SCENARIO, scenarioPM);
 			}
 

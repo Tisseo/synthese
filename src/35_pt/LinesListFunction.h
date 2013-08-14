@@ -67,11 +67,15 @@ namespace synthese
 		class CustomBroadcastPoint;
 	}
 
+	namespace vehicle
+	{
+		class RollingStock;
+	}
+
 	namespace pt
 	{
 		class CommercialLine;
 		class TransportNetwork;
-		class RollingStock;
 		class ReservationContact;
 
 		////////////////////////////////////////////////////////////////////
@@ -108,9 +112,13 @@ namespace synthese
 			static const std::string PARAMETER_RUNS_SOON_FILTER;
 			static const std::string PARAMETER_DISPLAY_DURATION_BEFORE_FIRST_DEPARTURE_FILTER;
 			static const std::string PARAMETER_BROADCAST_POINT_ID;
+			static const std::string PARAMETER_WITH_DIRECTIONS;
 
 			static const std::string FORMAT_WKT;
 
+			static const std::string TAG_FORWARD_DIRECTION;
+			static const std::string TAG_BACKWARD_DIRECTION;
+			static const std::string ATTR_DIRECTION;
 			static const std::string TAG_LINE;
 			static const std::string DATA_LINES;
 			static const std::string DATA_STOP_AREAS;
@@ -142,11 +150,11 @@ namespace synthese
 				bool _ignoreJourneyPlannerExcludedLines;
 				bool _ignoreDeparturesBoardExcludedLines;
 				bool _ignoreLineShortName;
-				bool _outputMessages;
+				bool _withDirections;
 				bool _lettersBeforeNumbers;
 				std::string _outputGeometry;
 				boost::shared_ptr<const pt_website::RollingStockFilter>	_rollingStockFilter;
-				typedef std::vector<boost::shared_ptr<const RollingStock> > TransportModeSorting;
+				typedef std::vector<boost::shared_ptr<const vehicle::RollingStock> > TransportModeSorting;
 				TransportModeSorting _sortByTransportMode;
 				std::string _rightClass;
 				boost::optional<security::RightLevel> _rightLevel;

@@ -68,8 +68,11 @@ namespace synthese
 		PTDataCleanerFileFormat::PTDataCleanerFileFormat(
 			util::Env& env,
 			const Import& import,
-			const impex::ImportLogger& importLogger
-		):	Importer(env, import, importLogger),
+			ImportLogLevel minLogLevel,
+			const std::string& logPath,
+			boost::optional<std::ostream&> outputStream,
+			util::ParametersMap& pm
+		):	Importer(env, import, minLogLevel, logPath, outputStream, pm),
 			_fromToday(false),
 			_cleanOldData(true),
 			_cleanUnusedStops(false),
@@ -199,19 +202,19 @@ namespace synthese
 			}
 
 			// Scheduled services to delete are removed from the environment to avoid useless saving
-			BOOST_FOREACH(const shared_ptr<ScheduledService>& sservice, _scheduledServicesToRemove)
+			BOOST_FOREACH(const boost::shared_ptr<ScheduledService>& sservice, _scheduledServicesToRemove)
 			{
 				_env.getEditableRegistry<ScheduledService>().remove(sservice->getKey());
 			}
 
 			// Continuous services to delete are removed from the environment to avoid useless saving
-			BOOST_FOREACH(const shared_ptr<ContinuousService>& cservice, _continuousServicesToRemove)
+			BOOST_FOREACH(const boost::shared_ptr<ContinuousService>& cservice, _continuousServicesToRemove)
 			{
 				_env.getEditableRegistry<ContinuousService>().remove(cservice->getKey());
 			}
 
 			// Journey patterns to delete are removed from the environment to avoid useless saving
-			BOOST_FOREACH(const shared_ptr<JourneyPattern>& journeyPattern, _journeyPatternsToRemove)
+			BOOST_FOREACH(const boost::shared_ptr<JourneyPattern>& journeyPattern, _journeyPatternsToRemove)
 			{
 				BOOST_FOREACH(const Edge* edge, journeyPattern->getEdges())
 				{
@@ -253,7 +256,7 @@ namespace synthese
 			}
 
 			// Vehicle services
-			BOOST_FOREACH(const shared_ptr<const VehicleService>& vehicleService, _vehicleServicesToRemove)
+			BOOST_FOREACH(const boost::shared_ptr<const VehicleService>& vehicleService, _vehicleServicesToRemove)
 			{
 				_env.getEditableRegistry<VehicleService>().remove(vehicleService->getKey());
 			}
@@ -262,7 +265,7 @@ namespace synthese
 			{
 				// Stops without Journey patterns without any service
 				Env checkEnv;
-				shared_ptr<const DataSource> dataSourceInCheckEnv(DataSourceTableSync::Get(dataSource.getKey(), _env));
+				boost::shared_ptr<const DataSource> dataSourceInCheckEnv(DataSourceTableSync::Get(dataSource.getKey(), _env));
 				DRTAreaTableSync::Search(_env);
 				BOOST_FOREACH(const Registry<StopPoint>::value_type& itStopPoint, _env.getRegistry<StopPoint>())
 				{
@@ -285,7 +288,7 @@ namespace synthese
 							optional<RegistryKeyType>(),
 							stop.getKey()
 					)	);
-					BOOST_FOREACH(const shared_ptr<LineStop>& lineStop, lineStops)
+					BOOST_FOREACH(const boost::shared_ptr<LineStop>& lineStop, lineStops)
 					{
 						if(	dynamic_cast<const JourneyPattern*>(lineStop->getParentPath()) &&
 							!static_cast<const JourneyPattern*>(lineStop->getParentPath())->hasLinkWithSource(*dataSourceInCheckEnv)
@@ -326,13 +329,13 @@ namespace synthese
 				}
 
 				// Stops to delete are removed from the environment to avoid useless saving
-				BOOST_FOREACH(const shared_ptr<StopPoint>& stop, _stopsToRemove)
+				BOOST_FOREACH(const boost::shared_ptr<StopPoint>& stop, _stopsToRemove)
 				{
 					_env.getEditableRegistry<StopPoint>().remove(stop->getKey());
 				}
 
 				// Stop areas to delete are removed from the environment to avoid useless saving
-				BOOST_FOREACH(const shared_ptr<StopArea>& stopArea, _stopAreasToRemove)
+				BOOST_FOREACH(const boost::shared_ptr<StopArea>& stopArea, _stopAreasToRemove)
 				{
 					_env.getEditableRegistry<StopArea>().remove(stopArea->getKey());
 				}
@@ -345,7 +348,7 @@ namespace synthese
 		{
 
 			// Vehicle services
-			BOOST_FOREACH(const shared_ptr<const VehicleService>& vehicleService, _vehicleServicesToRemove)
+			BOOST_FOREACH(const boost::shared_ptr<const VehicleService>& vehicleService, _vehicleServicesToRemove)
 			{
 				VehicleServiceTableSync::Remove(
 					NULL, 
@@ -355,7 +358,7 @@ namespace synthese
 				);
 			}
 
-			BOOST_FOREACH(const shared_ptr<ScheduledService>& sservice, _scheduledServicesToRemove)
+			BOOST_FOREACH(const boost::shared_ptr<ScheduledService>& sservice, _scheduledServicesToRemove)
 			{
 				ScheduledServiceTableSync::Remove(
 					NULL,
@@ -364,7 +367,7 @@ namespace synthese
 					false
 				);
 			}
-			BOOST_FOREACH(const shared_ptr<ContinuousService>& cservice, _continuousServicesToRemove)
+			BOOST_FOREACH(const boost::shared_ptr<ContinuousService>& cservice, _continuousServicesToRemove)
 			{
 				ContinuousServiceTableSync::Remove(
 					NULL,
@@ -373,7 +376,7 @@ namespace synthese
 					false
 				);
 			}
-			BOOST_FOREACH(const shared_ptr<JourneyPattern>& journeyPattern, _journeyPatternsToRemove)
+			BOOST_FOREACH(const boost::shared_ptr<JourneyPattern>& journeyPattern, _journeyPatternsToRemove)
 			{
 				JourneyPatternTableSync::Remove(
 					NULL,
@@ -382,7 +385,7 @@ namespace synthese
 					false
 				);
 			}
-			BOOST_FOREACH(const shared_ptr<StopPoint>& stop, _stopsToRemove)
+			BOOST_FOREACH(const boost::shared_ptr<StopPoint>& stop, _stopsToRemove)
 			{
 				StopPointTableSync::Remove(
 					NULL,
@@ -391,7 +394,7 @@ namespace synthese
 					false
 				);
 			}
-			BOOST_FOREACH(const shared_ptr<StopArea>& stopArea, _stopAreasToRemove)
+			BOOST_FOREACH(const boost::shared_ptr<StopArea>& stopArea, _stopAreasToRemove)
 			{
 				StopAreaTableSync::Remove(
 					NULL,

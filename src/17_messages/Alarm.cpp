@@ -28,6 +28,7 @@
 #include "DBConstants.h"
 #include "Factory.h"
 #include "MessageAlternative.hpp"
+#include "MessagesSection.hpp"
 #include "Scenario.h"
 #include "AlarmTemplate.h"
 #include "ParametersMap.h"
@@ -55,9 +56,11 @@ namespace synthese
 
 		const string Alarm::TAG_MESSAGE_ALTERNATIVE = "message_alternative";
 		const string Alarm::TAG_RECIPIENTS = "recipients";
+		const string Alarm::TAG_SECTION = "section";
 
 		const string Alarm::ATTR_LINK_ID = "link_id";
 		const string Alarm::ATTR_LINK_PARAMETER = "link_parameter";
+		const string Alarm::ATTR_CALENDAR_ID = "calendar_id";
 
 
 		Alarm::Alarm(
@@ -67,7 +70,9 @@ namespace synthese
 			_level(ALARM_LEVEL_INFO),
 			_scenario(scenario),
 			_rawEditor(false),
-			_done(true)
+			_done(true),
+			_section(NULL),
+			_calendar(NULL)
 		{}
 
 
@@ -80,21 +85,26 @@ namespace synthese
 			_longMessage(source._longMessage),
 			_scenario(source._scenario),
 			_rawEditor(source._rawEditor),
-			_done(source._done)
+			_done(source._done),
+			_section(source._section),
+			_calendar(source._calendar)
 		{}
 
 
 
 		Alarm::Alarm(
 			const Alarm& source,
-			const Scenario* scenario
+			const Scenario* scenario,
+			const ScenarioCalendar* calendar
 		):	Registrable(0),
 			_level(source._level),
 			_shortMessage(source._shortMessage),
 			_longMessage(source._longMessage),
 			_scenario(scenario),
 			_rawEditor(source._rawEditor),
-			_done(source._done)
+			_done(source._done),
+			_section(source._section),
+			_calendar(calendar)
 		{}
 
 
@@ -122,17 +132,25 @@ namespace synthese
 				pm.insert(prefix + DATA_SCENARIO_NAME, getScenario()->getName());
 			}
 
+			// Section
+			if(_section)
+			{
+				boost::shared_ptr<ParametersMap> sectionPM(new ParametersMap);
+				_section->toParametersMap(*sectionPM, true);
+				pm.insert(TAG_SECTION, sectionPM);
+			}
+
 			// Message alternatives
 			BOOST_FOREACH(const MessageAlternatives::value_type& it, _messageAlternatives)
 			{
-				shared_ptr<ParametersMap> altPM(new ParametersMap);
+				boost::shared_ptr<ParametersMap> altPM(new ParametersMap);
 				it.second->toParametersMap(*altPM);
 				pm.insert(TAG_MESSAGE_ALTERNATIVE, altPM);
 			}
 
 			if(withRecipients)
 			{
-				shared_ptr<ParametersMap> recipientsPM(new ParametersMap);
+				boost::shared_ptr<ParametersMap> recipientsPM(new ParametersMap);
 
 				// Locks the linked objects
 				mutex::scoped_lock(_linkedObjectsMutex);
@@ -144,13 +162,8 @@ namespace synthese
 				);
 				pm.insert(TAG_RECIPIENTS, recipientsPM);
 			}
-		}
 
-
-
-		void Alarm::toParametersMap( util::ParametersMap& pm ) const
-		{
-			toParametersMap(pm, true);
+			pm.insert(ATTR_CALENDAR_ID, _calendar ? _calendar->getKey() : 0);
 		}
 
 
@@ -238,7 +251,7 @@ namespace synthese
 			{
 				BOOST_FOREACH(const LinkedObjects::mapped_type::value_type& it, ar.second)
 				{
-					shared_ptr<ParametersMap> arPM(new ParametersMap);
+					boost::shared_ptr<ParametersMap> arPM(new ParametersMap);
 					arPM->insert(TABLE_COL_ID, it->getObjectId());
 					arPM->insert(ATTR_LINK_ID, it->getKey());
 					arPM->insert(ATTR_LINK_PARAMETER, it->getParameter());

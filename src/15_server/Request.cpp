@@ -69,7 +69,7 @@ namespace synthese
 
 		void Request::setCookie(string name, string value, int maxAge)
 		{
-			_cookiesMap[name] = make_pair<string, int>(value, maxAge);
+			_cookiesMap[name] = make_pair(value, maxAge);
 		}
 
 
@@ -85,7 +85,7 @@ namespace synthese
 		{
 			if(_session.get())
 			{
-				setSession(shared_ptr<Session>());
+				setSession(boost::shared_ptr<Session>());
 			}
 		}
 
@@ -296,7 +296,7 @@ namespace synthese
 
 
 
-		void Request::setSession( shared_ptr<Session> session )
+		void Request::setSession( boost::shared_ptr<Session> session )
 		{
 			if(_session.get())
 			{
@@ -330,9 +330,23 @@ namespace synthese
 
 		Request::~Request()
 		{
+			// Run the "on destroy" functions
+			BOOST_FOREACH(OnDestroyFunction f, _onDestroyFunctions)
+			{
+				f(*this);
+			}
+
+			// Unlink the request from the session
 			if(_session)
 			{
 				_session->unregisterRequest(*this);
 			}
+		}
+
+
+
+		void Request::addOnDestroyFunction( OnDestroyFunction f ) const
+		{
+			_onDestroyFunctions.insert(f);
 		}
 }	}

@@ -110,11 +110,11 @@ namespace synthese
 				}
 				record.insert(
 					item.first.substr(PARAMETER_FIELD_PREFIX.size()),
-					item.second
+					map.getValue(item.first)
 				);
 			}
 			ParametersMap existingMap;
-			_object->toParametersMap(existingMap);
+			_object->toParametersMap(existingMap, false);
 			record.merge(existingMap);
 
 			// Record read

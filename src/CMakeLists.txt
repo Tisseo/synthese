@@ -45,6 +45,7 @@ set(MODULES
 18_graph
 19_inter_synthese
 20_tree
+30_fare
 31_calendar
 32_geography
 33_algorithm
@@ -53,6 +54,7 @@ set(MODULES
 37_pt_operation
 38_vehicle
 39_map
+40_pdf_cms
 51_resa
 52_forum
 53_pt_journey_planner

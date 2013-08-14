@@ -44,6 +44,7 @@ namespace synthese
 	FIELD_DEFINITION_OF_TYPE(AutoImportTime, "auto_import_time", SQL_TEXT)
 	FIELD_DEFINITION_OF_TYPE(LogPath, "log_path", SQL_TEXT)
 	FIELD_DEFINITION_OF_TYPE(MinLogLevel, "min_log_level", SQL_INTEGER)
+	FIELD_DEFINITION_OF_TYPE(Documentation, "documentation", SQL_TEXT)
 
 	namespace impex
 	{
@@ -61,7 +62,8 @@ namespace synthese
 					FIELD_VALUE_CONSTRUCTOR(AutoImportTime, time_duration(not_a_date_time)),
 					FIELD_VALUE_CONSTRUCTOR(Active, true),
 					FIELD_DEFAULT_CONSTRUCTOR(LogPath),
-					FIELD_VALUE_CONSTRUCTOR(MinLogLevel, ImportLogger::WARN)
+					FIELD_VALUE_CONSTRUCTOR(MinLogLevel, IMPORT_LOG_WARN),
+					FIELD_DEFAULT_CONSTRUCTOR(Documentation)
 			)	),
 			_nextAutoImport(not_a_date_time)
 		{}
@@ -75,11 +77,14 @@ namespace synthese
 		/// @param logPath if defined, override the the log path with the specified value
 		boost::shared_ptr<Importer> Import::getImporter(
 			util::Env& env,
-			const ImportLogger& importLogger
+			ImportLogLevel minLogLevel,
+			const std::string& logPath,
+			boost::optional<std::ostream&> outputStream,
+			util::ParametersMap& pm
 		) const {
 
-			shared_ptr<FileFormat> fileFormat(Factory<FileFormat>::create(get<FileFormatKey>()));
-			return fileFormat->getImporter(env, *this, importLogger);
+			boost::shared_ptr<FileFormat> fileFormat(Factory<FileFormat>::create(get<FileFormatKey>()));
+			return fileFormat->getImporter(env, *this, minLogLevel, logPath, outputStream, pm);
 		}
 
 
@@ -91,7 +96,7 @@ namespace synthese
 				return false;
 			}
 
-			shared_ptr<FileFormat> fileFormat(Factory<FileFormat>::create(get<FileFormatKey>()));
+			boost::shared_ptr<FileFormat> fileFormat(Factory<FileFormat>::create(get<FileFormatKey>()));
 			return fileFormat->canImport();
 		}
 
@@ -99,6 +104,8 @@ namespace synthese
 
 		void Import::link( util::Env& env, bool withAlgorithmOptimizations /*= false*/ )
 		{
+			// Compute the time of the next auto import
+			_computeNextAutoImport();
 		}
 
 
@@ -134,21 +141,24 @@ namespace synthese
 
 		void Import::runAutoImport() const
 		{
+			ParametersMap pm;
 			if(!_autoImporter.get())
 			{
-				shared_ptr<FileFormat> fileFormat(Factory<FileFormat>::create(get<FileFormatKey>()));
+				boost::shared_ptr<FileFormat> fileFormat(Factory<FileFormat>::create(get<FileFormatKey>()));
 				_autoImporterEnv.reset(new Env);
-				ImportLogger importLogger(
+				_autoImporter = fileFormat->getImporter(
+					*_autoImporterEnv,
+					*this,
 					get<MinLogLevel>(),
 					get<LogPath>(),
-					optional<ostream&>()
+					optional<ostream&>(),
+					pm
 				);
-				_autoImporter = fileFormat->getImporter(*_autoImporterEnv, *this, importLogger);
 				_autoImporter->setFromParametersMap(get<Parameters>(), true);
 			}
 
 			_autoImporterEnv->clear();
-			bool result(_autoImporter->parseFiles(optional<const Request&>()));
+			bool result(_autoImporter->parseFiles());
 			if(result)
 			{
 				_autoImporter->save();
@@ -168,6 +178,9 @@ namespace synthese
 		) const	{
 
 			map.merge(get<Parameters>());
+
+			// Compute the time of the next auto import
+			_computeNextAutoImport();
 
 		}
 }	}

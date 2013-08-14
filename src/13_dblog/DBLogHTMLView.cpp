@@ -73,7 +73,11 @@ namespace synthese
 			_fixedText(true),
 			_fixedObjectId(true),
 			_fixedObjectId2(true)
-		{}
+		{
+			_requestParameters.orderField = _getParameterName(PARAMETER_START_DATE);
+			_requestParameters.raisingOrder = false;
+			_requestParameters.maxSize = 200;
+		}
 
 
 
@@ -301,9 +305,9 @@ namespace synthese
 			);
 
 			stream << t.open();
-			BOOST_FOREACH(const shared_ptr<DBLogEntry>& dbe, entries)
+			BOOST_FOREACH(const boost::shared_ptr<DBLogEntry>& dbe, entries)
 			{
-				shared_ptr<const User> user;
+				boost::shared_ptr<const User> user;
 				try
 				{
 					user = UserTableSync::Get(dbe->getUserId(), _env);
@@ -404,7 +408,7 @@ namespace synthese
 
 		ParametersMap DBLogHTMLView::getParametersMap(
 		) const {
-			ParametersMap m(_requestParameters.getParametersMap());
+			ParametersMap m(_requestParameters.getParametersMap(PARAMETER_PREFIX + _code));
 			if(_searchUserId)
 			{
 				m.insert(_getParameterName(PARAMETER_SEARCH_USER), *_searchUserId);

@@ -253,9 +253,9 @@ class Builder(object):
         self._download(url, '00b516f4704d4a7cb50a1d97e6e8e15b')
         created_dir = self._extract(url, self.env.c.thirdparty_dir)
         
-        ZLIB_ARCHIVE = 'zlib-1.2.7'
-        url = 'http://zlib.net/zlib-1.2.7.tar.gz'
-        self._download(url, '60df6a37c56e7c1366cca812414f7b85')
+        ZLIB_ARCHIVE = 'zlib-1.2.8'
+        url = 'http://zlib.net/zlib-1.2.8.tar.gz'
+        self._download(url, '44d667c142d7cda120332623eab69f40')
         created_dir = self._extract(url, self.env.c.thirdparty_dir)
 
         url = 'http://switch.dl.sourceforge.net/project/boost/boost/1.42.0/boost_1_42_0.zip'
@@ -387,6 +387,19 @@ class Builder(object):
             env['BOOST_ROOT'] = self.boost_dir
         if self.boost_lib_dir:
             env['BOOST_LIBRARYDIR'] = self.boost_lib_dir
+
+        # Enable subdirs
+        args.append('-DWITH_TEST:BOOL=ON')
+        if self.config.do_not_build_python:
+            args.append('-DWITH_PACKAGES:BOOL=OFF')
+            args.append('-DWITH_PROJECTS:BOOL=OFF')
+            args.append('-DWITH_TOOLS:BOOL=OFF')
+            args.append('-DWITH_UTILS:BOOL=OFF')
+        else:
+            args.append('-DWITH_PACKAGES:BOOL=ON')
+            args.append('-DWITH_PROJECTS:BOOL=ON')
+            args.append('-DWITH_TOOLS:BOOL=ON')
+            args.append('-DWITH_UTILS:BOOL=ON')
 
         # TODO: check that Python Cygwin is not in the path?
 

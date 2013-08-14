@@ -45,6 +45,19 @@ namespace synthese
 			public db::DBDirectTableSyncTemplate<MessageApplicationPeriodTableSync, MessageApplicationPeriod>
 		{
 		public:
+			//////////////////////////////////////////////////////////////////////////
+			/// Copy of the periods from a calendar to an other one.
+			/// @param sourceId the id of the calendar to copy
+			/// @param calendar the calendar to populate
+			/// @param transaction the transaction to populate with the queries
+			static void CopyPeriods(
+				util::RegistryKeyType sourceId,
+				ScenarioCalendar& calendar,
+				boost::optional<db::DBTransaction&> transaction
+			);
+
+
+
 			/** Message type search.
 				@param first First Message type to answer
 				@param number Number of Message types to answer (0 = all) The size of the vector is less or equal to number, then all users were returned despite of the number limit. If the size is greater than number (actually equal to number + 1) then there is others accounts to show. Test it to know if the situation needs a "click for more" button.
@@ -54,15 +67,14 @@ namespace synthese
 			*/
 			static SearchResult Search(
 				util::Env& env,
-				std::string name = std::string()
-				, int first = 0
-				, boost::optional<std::size_t> number = boost::optional<std::size_t>()
-				, bool orderByName = true
-				, bool raisingOrder = true,
+				boost::optional<util::RegistryKeyType> calendarId = boost::optional<util::RegistryKeyType>(),
+				int first = 0,
+				boost::optional<size_t> number = boost::optional<size_t>(),
+				bool orderByName = true,
+				bool raisingOrder = true,
 				util::LinkLevel linkLevel = util::UP_LINKS_LOAD_LEVEL
 			);
 		};
-	}
-}
+}	}
 
 #endif

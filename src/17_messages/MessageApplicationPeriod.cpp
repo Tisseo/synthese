@@ -27,6 +27,7 @@
 
 using namespace boost;
 using namespace std;
+using namespace boost::gregorian;
 
 namespace synthese
 {
@@ -35,20 +36,19 @@ namespace synthese
 
 	CLASS_DEFINITION(MessageApplicationPeriod, "t104_message_application_periods", 104)
 
-	FIELD_DEFINITION_OF_TYPE(AlarmPointer, "message_id", SQL_INTEGER)
-	FIELD_DEFINITION_OF_TYPE(ScenarioPointer, "scenario_id", SQL_INTEGER)
-    FIELD_DEFINITION_OF_TYPE(Dates, "dates", SQL_TEXT)
-
 	namespace messages
 	{
+		const string MessageApplicationPeriod::TAG_DATE = "date";
+
+
+
 		MessageApplicationPeriod::MessageApplicationPeriod(
 			util::RegistryKeyType id /*= 0 */
 		):	Registrable(id),
 			Object<MessageApplicationPeriod, MessageApplicationPeriodRecord>(
 				Schema(
 					FIELD_VALUE_CONSTRUCTOR(Key, id),
-					FIELD_DEFAULT_CONSTRUCTOR(AlarmPointer),
-					FIELD_DEFAULT_CONSTRUCTOR(ScenarioPointer),
+					FIELD_DEFAULT_CONSTRUCTOR(ScenarioCalendar),
 					FIELD_DEFAULT_CONSTRUCTOR(StartHour),
 					FIELD_DEFAULT_CONSTRUCTOR(EndHour),
 					FIELD_DEFAULT_CONSTRUCTOR(StartTime),
@@ -64,22 +64,11 @@ namespace synthese
 			util::Env& env,
 			bool withAlgorithmOptimizations /*= false*/
 		){
-			optional<Alarm&> message(get<AlarmPointer>());
-			if(message)
+			if(get<ScenarioCalendar>())
 			{
-				ApplicationPeriods ap(dynamic_cast<SentAlarm&>(*message).getApplicationPeriods());
+				ScenarioCalendar::ApplicationPeriods ap(get<ScenarioCalendar>()->getApplicationPeriods());
 				ap.insert(this);
-				dynamic_cast<SentAlarm&>(*message).setApplicationPeriods(ap);
-			}
-			else
-			{
-				optional<Scenario&> scenario(get<ScenarioPointer>());
-				if(scenario)
-				{
-					ApplicationPeriods ap(dynamic_cast<SentScenario&>(*scenario).getApplicationPeriods());
-					ap.insert(this);
-					dynamic_cast<SentScenario&>(*scenario).setApplicationPeriods(ap);
-				}
+				get<ScenarioCalendar>()->setApplicationPeriods(ap);
 			}
 		}
 
@@ -87,30 +76,15 @@ namespace synthese
 
 		void MessageApplicationPeriod::unlink()
 		{
-			optional<Alarm&> message(get<AlarmPointer>());
-			if(message)
+			if(get<ScenarioCalendar>())
 			{
-				ApplicationPeriods ap(dynamic_cast<SentAlarm&>(*message).getApplicationPeriods());
-				ApplicationPeriods::iterator it(ap.find(this));
+				ScenarioCalendar::ApplicationPeriods ap(get<ScenarioCalendar>()->getApplicationPeriods());
+				ScenarioCalendar::ApplicationPeriods::iterator it(ap.find(this));
 				if(it != ap.end())
 				{
 					ap.erase(it);
 				}
-				dynamic_cast<SentAlarm&>(*message).setApplicationPeriods(ap);
-			}
-			else
-			{
-				optional<Scenario&> scenario(get<ScenarioPointer>());
-				if(scenario)
-				{
-					ApplicationPeriods ap(dynamic_cast<SentScenario&>(*scenario).getApplicationPeriods());
-					ApplicationPeriods::iterator it(ap.find(this));
-					if(it != ap.end())
-					{
-						ap.erase(it);
-					}
-					dynamic_cast<SentScenario&>(*scenario).setApplicationPeriods(ap);
-				}
+				get<ScenarioCalendar>()->setApplicationPeriods(ap);
 			}
 		}
 
@@ -122,6 +96,48 @@ namespace synthese
 		/// @return true if the time is in the defined period
 		bool MessageApplicationPeriod::getValue( const boost::posix_time::ptime& time ) const
 		{
-			return isActive(time.date()) && time.time_of_day() > get<StartHour>() && time.time_of_day() < get<EndHour>();
+			// If dates are defined, the current time must belong to the dates list
+			if(	!Calendar::empty() && !isActive(time.date()))
+			{
+				return false;
+			}
+			// If start time is defined, the current time must be after it
+			if(	!get<StartTime>().is_not_a_date_time() && time < get<StartTime>())
+			{
+				return false;
+			}
+			// If end time is defined, the current time must be before it
+			if(	!get<EndTime>().is_not_a_date_time() && time > get<EndTime>())
+			{
+				return false;
+			}
+			// If start hour is defined, the current time must be after it
+			if(	!get<StartHour>().is_not_a_date_time() && time.time_of_day() < get<StartHour>())
+			{
+				return false;
+			}
+			// If end hour is defined, the current time must be before it
+			if(	!get<EndHour>().is_not_a_date_time() && time.time_of_day() > get<EndHour>())
+			{
+				return false;
+			}
+
+			// No filter has been activated, then the message must be displayed
+			return true;
+		}
+
+
+
+		void MessageApplicationPeriod::addAdditionalParameters(
+			util::ParametersMap& map,
+			std::string prefix /*= std::string() */
+		) const	{
+
+			BOOST_FOREACH(const date& d, getActiveDates())
+			{
+				shared_ptr<ParametersMap> datePM(new ParametersMap);
+				datePM->insert(TAG_DATE, to_iso_extended_string(d));
+				map.insert(TAG_DATE, datePM);
+			}
 		}
 }	}

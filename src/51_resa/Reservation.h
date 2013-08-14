@@ -68,6 +68,11 @@ namespace synthese
 		public:
 			static const std::string DATA_NAME;
 			static const std::string DATA_PHONE;
+			static const std::string DATA_EMAIL;
+			static const std::string DATA_ADDRESS;
+			static const std::string DATA_POSTCODE;
+			static const std::string DATA_CITYTEXT;
+			static const std::string DATA_COUNTRY;
 			static const std::string DATA_LANGUAGE;
             static const std::string DATA_DEPARTURE_CITY_NAME;
             static const std::string DATA_DEPARTURE_PLACE_NAME_NO_CITY;
@@ -240,6 +245,13 @@ namespace synthese
 				void toParametersMap(
 					util::ParametersMap& pm,
 					boost::optional<Language> language,
+					std::string prefix = std::string()
+				) const;
+
+				virtual void toParametersMap(
+					util::ParametersMap& pm,
+					bool withAdditionalParameters,
+					boost::logic::tribool withFiles = boost::logic::indeterminate,
 					std::string prefix = std::string()
 				) const;
 			//@}

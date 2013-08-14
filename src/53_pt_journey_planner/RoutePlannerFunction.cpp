@@ -22,12 +22,13 @@
 
 #include "RoutePlannerFunction.h"
 
-#include "SentScenario.h"
 #include "AccessParameters.h"
 #include "AlgorithmLogger.hpp"
 #include "Edge.h"
 #include "HourPeriod.h"
 #include "ObjectNotFoundException.h"
+#include "ReservationRuleInterfacePage.h"
+#include "SentScenario.h"
 #include "Session.h"
 #include "JourneyPattern.hpp"
 #include "PlacesListService.hpp"
@@ -66,13 +67,12 @@
 #include "StopArea.hpp"
 #include "StaticFunctionRequest.h"
 #include "RoutePlannerFunction.h"
-#include "ReservationRuleInterfacePage.h"
 #include "LineMarkerInterfacePage.h"
 #include "SentAlarm.h"
 #include "PTModule.h"
 #include "Destination.hpp"
 #include "Junction.hpp"
-#include "Fare.h"
+#include "Fare.hpp"
 #include "FareTicket.hpp"
 #include "HTMLForm.h"
 #include "CMSModule.hpp"
@@ -96,11 +96,13 @@ using namespace geos::io;
 namespace synthese
 {
 	using namespace algorithm;
-	using namespace util;
-	using namespace server;
+	using namespace db;
+	using namespace fare;
 	using namespace pt;
 	using namespace pt_website;
-	using namespace db;
+	using namespace server;
+	using namespace util;
+	using namespace vehicle;
 	using namespace graph;
 	using namespace geography;
 	using namespace road;
@@ -145,6 +147,7 @@ namespace synthese
 		const string RoutePlannerFunction::PARAMETER_SRID = "srid";
 		const string RoutePlannerFunction::PARAMETER_DEPARTURE_PLACE_XY("departure_place_XY");
 		const string RoutePlannerFunction::PARAMETER_ARRIVAL_PLACE_XY("arrival_place_XY");
+		const string RoutePlannerFunction::PARAMETER_INVERT_XY("invert_XY");
 
 		const string RoutePlannerFunction::PARAMETER_OUTPUT_FORMAT = "output_format";
 		const string RoutePlannerFunction::VALUE_ADMIN_HTML = "admin";
@@ -165,15 +168,17 @@ namespace synthese
 		const string RoutePlannerFunction::PARAMETER_DATE_TIME_PAGE("date_time_page");
 		const string RoutePlannerFunction::PARAMETER_STOP_CELL_PAGE("stop_cell_page");
 		const string RoutePlannerFunction::PARAMETER_SERVICE_CELL_PAGE("service_cell_page");
-		const string RoutePlannerFunction::PARAMETER_JUNCTION_CELL_PAGE("junction_cell_page");
+		const string RoutePlannerFunction::PARAMETER_ROAD_CELL_PAGE("junction_cell_page");
+		const string RoutePlannerFunction::PARAMETER_JUNCTION_CELL_PAGE("external_junction_cell_page");
 		const string RoutePlannerFunction::PARAMETER_TICKET_CELL_PAGE("ticket_cell_page");
 		const string RoutePlannerFunction::PARAMETER_MAP_STOP_PAGE("map_stop_page");
 		const string RoutePlannerFunction::PARAMETER_MAP_SERVICE_PAGE("map_service_page");
-		const string RoutePlannerFunction::PARAMETER_MAP_JUNCTION_PAGE("map_junction_page");
+		const string RoutePlannerFunction::PARAMETER_MAP_ROAD_PAGE("map_junction_page");
+		const string RoutePlannerFunction::PARAMETER_MAP_JUNCTION_PAGE("map_external_junction_page");
 		const string RoutePlannerFunction::PARAMETER_RESULT_ROW_PAGE("result_row_page");
 		const string RoutePlannerFunction::PARAMETER_IGNORE_RESERVATION_RULES("irr");
 
-		//XML output only:
+		//XML output only: 
 		const string RoutePlannerFunction::PARAMETER_SHOW_RESULT_TABLE("showResTab");
 		const string RoutePlannerFunction::PARAMETER_SHOW_COORDINATES("showCoords");
 
@@ -284,10 +289,14 @@ namespace synthese
 		const string RoutePlannerFunction::DATA_IS_FIRST_LEG("is_first_leg");
 		const string RoutePlannerFunction::DATA_USER_CLASS_CODE("ac");
 
-		// Junction cells
+		// Road cells
 		const string RoutePlannerFunction::DATA_REACHED_PLACE_IS_NAMED("reached_place_is_named");
 		const string RoutePlannerFunction::DATA_ROAD_NAME("road_name");
 		const string RoutePlannerFunction::DATA_LENGTH("length");
+
+		// Junction cells
+		const string RoutePlannerFunction::DATA_START_STOP_NAME("startStop");
+		const string RoutePlannerFunction::DATA_END_STOP_NAME("endStop");
 
 		// Service cells
 		const string RoutePlannerFunction::DATA_FIRST_DEPARTURE_TIME("first_departure_time");
@@ -305,6 +314,7 @@ namespace synthese
 		const string RoutePlannerFunction::DATA_WKT("wkt");
 		const string RoutePlannerFunction::DATA_LINE_MARKERS("line_markers");
 		const string RoutePlannerFunction::DATA_NETWORK("network");
+		const string RoutePlannerFunction::DATA_SERVICE_NUMBER("service_number");
 
 		RoutePlannerFunction::RoutePlannerFunction(
 		):	_startDate(not_a_date_time),
@@ -560,7 +570,7 @@ namespace synthese
 				else
 				{
 					_accessParameters = AccessParameters(
-						USER_PEDESTRIAN, false, false, 1000, posix_time::hours(24), 0.833, boost::optional<size_t>(), allowedPathClasses, allowedNetworks
+						USER_PEDESTRIAN, false, false, 1000, posix_time::hours(24), 1.111, boost::optional<size_t>(), allowedPathClasses, allowedNetworks
 					);
 				}
 			}
@@ -601,6 +611,7 @@ namespace synthese
 
 				string originPlaceXY = map.getDefault<string>(PARAMETER_DEPARTURE_PLACE_XY);
 				string destinationPlaceXY = map.getDefault<string>(PARAMETER_ARRIVAL_PLACE_XY);
+				bool invertXY = map.getDefault<bool>(PARAMETER_INVERT_XY);
 
 				// Get departure place
 
@@ -649,7 +660,7 @@ namespace synthese
 					placesListService.setCoordinatesSystem(_coordinatesSystem);
 					placesListService.setCitiesWithAtLeastAStop(false);
 					placesListService.addRequiredUserClass(_accessParameters.getUserClass());
-					placesListService.setCoordinatesXY(originPlaceXY);
+					placesListService.setCoordinatesXY(originPlaceXY, invertXY);
 					_departure_place.placeResult = placesListService.getPlaceFromBestResult(placesListService.runWithoutOutput());
 				}
 
@@ -700,7 +711,7 @@ namespace synthese
 					placesListService.setCoordinatesSystem(_coordinatesSystem);
 					placesListService.setCitiesWithAtLeastAStop(false);
 					placesListService.addRequiredUserClass(_accessParameters.getUserClass());
-					placesListService.setCoordinatesXY(destinationPlaceXY);
+					placesListService.setCoordinatesXY(destinationPlaceXY, invertXY);
 					_arrival_place.placeResult = placesListService.getPlaceFromBestResult(placesListService.runWithoutOutput());
 				}
 			}
@@ -981,6 +992,18 @@ namespace synthese
 			}
 			try
 			{
+				optional<RegistryKeyType> id(map.getOptional<RegistryKeyType>(PARAMETER_ROAD_CELL_PAGE));
+				if(id)
+				{
+					_roadPage = Env::GetOfficialEnv().get<Webpage>(*id);
+				}
+			}
+			catch (ObjectNotFoundException<Webpage>& e)
+			{
+				throw RequestException("No such road cell page : "+ e.getMessage());
+			}
+			try
+			{
 				optional<RegistryKeyType> id(map.getOptional<RegistryKeyType>(PARAMETER_JUNCTION_CELL_PAGE));
 				if(id)
 				{
@@ -989,7 +1012,7 @@ namespace synthese
 			}
 			catch (ObjectNotFoundException<Webpage>& e)
 			{
-				throw RequestException("No such junction cell page : "+ e.getMessage());
+				throw RequestException("No such junction (external) cell page : "+ e.getMessage());
 			}
 			try
 			{
@@ -1028,6 +1051,20 @@ namespace synthese
 				throw RequestException("No such map service page : "+ e.getMessage());
 			}
 
+			// Map road page
+			try
+			{
+				optional<RegistryKeyType> id(map.getOptional<RegistryKeyType>(PARAMETER_MAP_ROAD_PAGE));
+				if(id)
+				{
+					_mapRoadPage = Env::GetOfficialEnv().get<Webpage>(*id);
+				}
+			}
+			catch (ObjectNotFoundException<Webpage>& e)
+			{
+				throw RequestException("No such map road page : "+ e.getMessage());
+			}
+
 			// Map junction page
 			try
 			{
@@ -1039,7 +1076,7 @@ namespace synthese
 			}
 			catch (ObjectNotFoundException<Webpage>& e)
 			{
-				throw RequestException("No such map junction page : "+ e.getMessage());
+				throw RequestException("No such map junction (external) page : "+ e.getMessage());
 			}
 
 			// Warning check page
@@ -1189,18 +1226,13 @@ namespace synthese
 				_ignoreReservationRules,
 				*_logger,
 				_maxTransferDuration,
+				_minMaxDurationRatioFilter,
 				PTModule::isTheoreticalAllowed(),
 				PTModule::isRealTimeAllowed()
 			);
 
 			// Computing
 			_result.reset(new PTRoutePlannerResult(r.run()));
-
-			// Min max duration filter
-			if(_minMaxDurationRatioFilter)
-			{
-				_result->filterOnDurationRatio(*_minMaxDurationRatioFilter);
-			}
 
 			// Min waiting time filter
 			if(_minWaitingTimeFilter)
@@ -1267,10 +1299,46 @@ namespace synthese
 						_period->getCaption() << "\" />"
 					;
 				}
-				stream <<
-					"<places departureCity=\"" << _departure_place.cityResult.key.getSource() << "\" departureCityNameTrust=\"" << _departure_place.cityResult.score.phoneticScore << "\"" <<
-					" arrivalCity=\"" << _arrival_place.cityResult.key.getSource() << "\" arrivalCityNameTrust=\"" << _arrival_place.cityResult.score.phoneticScore << "\""
-				;
+	
+				stream << "<places";
+ 
+				if(_departure_place.cityResult.value.get())
+				{
+					stream << " departureCity=\"" << _departure_place.placeResult.key.getSource() << "\" departureCityNameTrust=\"" << _departure_place.cityResult.score.phoneticScore << "\"";
+				}
+				else
+				{
+					string cityName;
+					if(dynamic_cast<const NamedPlace*>(_departure_place.placeResult.value.get()))
+					{
+						cityName = dynamic_cast<const NamedPlace*>(_departure_place.placeResult.value.get())->getCity()->getName();
+					}
+					else
+					{
+						cityName = dynamic_cast<const City*>(_departure_place.placeResult.value.get())->getName();
+					}
+					stream << " departureCity=\"" << cityName << "\" departureCityNameTrust=\"1\"";
+				}
+
+				if(_arrival_place.cityResult.value.get())
+				{
+					stream << " arrivalCity=\"" << _arrival_place.cityResult.key.getSource() << "\" arrivalCityNameTrust=\"" << _arrival_place.cityResult.score.phoneticScore << "\"";
+				}
+				else
+				{
+					string cityName;
+					if(dynamic_cast<const NamedPlace*>(_arrival_place.placeResult.value.get()))
+					{
+						cityName = dynamic_cast<const NamedPlace*>(_arrival_place.placeResult.value.get())->getCity()->getName();
+					}
+					else
+					{
+						cityName = dynamic_cast<const City*>(_arrival_place.placeResult.value.get())->getName();
+					}
+					stream << " arrivalCity=\"" << cityName << "\" arrivalCityNameTrust=\"1\"";
+				}
+
+
 				if(dynamic_cast<Place*>(_departure_place.cityResult.value.get()) != dynamic_cast<Place*>(_departure_place.placeResult.value.get()))
 				{
 					stream <<
@@ -1314,7 +1382,6 @@ namespace synthese
 					bool hasALineAlert(false); // Interactive
 					bool hasAStopAlert(false); // Interactive
 					bool pedestrianMode = false;
-					bool lastPedestrianMode = false;
 
 					PlacesContentVector::iterator itSheetRow(sheetRows.begin());
 					PTRoutePlannerResult::PlacesListConfiguration::List::const_iterator itPlaces(placesList.begin());
@@ -1379,8 +1446,8 @@ namespace synthese
 						bool onlineBooking(!resaRules.empty());
 						BOOST_FOREACH(const ReservationContact* rc, resaRules)
 						{
-							sPhones << rc->getPhoneExchangeNumber() << " ";
-							sOpeningHours << rc->getPhoneExchangeOpeningHours() << " ";
+							sPhones << rc->get<PhoneExchangeNumber>() << " ";
+							sOpeningHours << rc->get<PhoneExchangeOpeningHours>() << " ";
 							if (!OnlineReservationRule::GetOnlineReservationRule(rc))
 							{
 								onlineBooking = false;
@@ -1453,7 +1520,6 @@ namespace synthese
 							**itSheetRow << " />";
 
 							++itPlaces; ++itSheetRow;
-							lastPedestrianMode = pedestrianMode;
 						}
 
 						if(	PTRoutePlannerResult::HaveToDisplayArrivalStopOnGrid(itl, jl)
@@ -1622,8 +1688,8 @@ namespace synthese
 							}
 							stream <<
 								">";
-							_xmlDisplayPhysicalStop(stream, "startStop", dynamic_cast<const StopPoint&>(*leg.getDepartureEdge()->getFromVertex()),_showCoords);
-							_xmlDisplayPhysicalStop(stream, "endStop", dynamic_cast<const StopPoint&>(*leg.getArrivalEdge()->getFromVertex()),_showCoords);
+							_xmlDisplayPhysicalStop(stream, DATA_START_STOP_NAME, dynamic_cast<const StopPoint&>(*leg.getDepartureEdge()->getFromVertex()),_showCoords);
+							_xmlDisplayPhysicalStop(stream, DATA_END_STOP_NAME, dynamic_cast<const StopPoint&>(*leg.getArrivalEdge()->getFromVertex()),_showCoords);
 							_xmlDisplayPhysicalStop(stream, "destinationStop", dynamic_cast<const StopPoint&>(*(*line->getAllEdges().rbegin())->getFromVertex()),_showCoords);
 							if(!line->isPedestrianMode())
 							{
@@ -1676,8 +1742,8 @@ namespace synthese
 									" length=\"" << ceil(leg.getDistance()) << "\"" <<
 									" departureTime=\"" << posix_time::to_iso_extended_string(leg.getDepartureDateTime()) << "\"" <<
 									" arrivalTime=\"" << posix_time::to_iso_extended_string(leg.getArrivalDateTime()) << "\">";
-							_xmlDisplayPhysicalStop(stream, "startStop", dynamic_cast<const StopPoint&>(*leg.getDepartureEdge()->getFromVertex()),_showCoords);
-							_xmlDisplayPhysicalStop(stream, "endStop", dynamic_cast<const StopPoint&>(*leg.getArrivalEdge()->getFromVertex()),_showCoords);
+							_xmlDisplayPhysicalStop(stream, DATA_START_STOP_NAME, dynamic_cast<const StopPoint&>(*leg.getDepartureEdge()->getFromVertex()),_showCoords);
+							_xmlDisplayPhysicalStop(stream, DATA_END_STOP_NAME, dynamic_cast<const StopPoint&>(*leg.getArrivalEdge()->getFromVertex()),_showCoords);
 							stream << "</junction>";
 						}
 
@@ -1932,7 +1998,7 @@ namespace synthese
 			const NamedPlace& np,
 			bool showCoords
 		) const {
-			shared_ptr<Point> gp;
+			boost::shared_ptr<Point> gp;
 
 			showCoords &= (np.getPoint().get() != NULL && !np.getPoint()->isEmpty());
 
@@ -1984,7 +2050,7 @@ namespace synthese
 			const pt::StopPoint& stop,
 			bool showCoords
 		) const {
-			shared_ptr<Point> gp;
+			boost::shared_ptr<Point> gp;
 			if(stop.getGeometry().get() && !stop.getGeometry()->isEmpty())
 			{
 				gp = _coordinatesSystem->convertPoint(
@@ -2000,7 +2066,7 @@ namespace synthese
 
 			if(showCoords && gp.get())
 			{
-				shared_ptr<Point> pt(stop.getGeometry().get() ? stop.getGeometry() : stop.getConnectionPlace()->getPoint());
+				boost::shared_ptr<Point> pt(stop.getGeometry().get() ? stop.getGeometry() : stop.getConnectionPlace()->getPoint());
 
 				stream <<
 					"<" << tag <<
@@ -2031,7 +2097,7 @@ namespace synthese
 					const NamedPlace& np,
 					bool showCoords
 		) const {
-			shared_ptr<Point> gp;
+			boost::shared_ptr<Point> gp;
 
 			if(	np.getPoint().get() &&
 				!np.getPoint()->isEmpty()
@@ -2073,7 +2139,7 @@ namespace synthese
 			const road::RoadPlace& roadPlace,
 			bool showCoords
 		) const {
-			shared_ptr<Point> gp;
+			boost::shared_ptr<Point> gp;
 
 			if(	address.getGeometry().get() &&
 				!address.getGeometry()->isEmpty()
@@ -2114,7 +2180,7 @@ namespace synthese
 			const road::RoadPlace& roadPlace,
 			bool showCoords
 		) const {
-			shared_ptr<Point> gp;
+			boost::shared_ptr<Point> gp;
 
 			if(	roadPlace.getPoint().get() &&
 				!roadPlace.getPoint()->isEmpty()
@@ -2186,7 +2252,6 @@ namespace synthese
 			pm.insert(DATA_DESTINATION_CITY_TEXT, destinationCity->getName());
 			//pm.insert("" /*lexical_cast<string>(destinationPlace->getKey())*/);
 			pm.insert(DATA_DESTINATION_PLACE_TEXT, destinationPlaceName);
-			pm.insert(DATA_PERIOD_ID, periodId);
 			pm.insert(DATA_FILTERED_JOURNEYS, object.getFiltered());
 
 			// Text formatted date
@@ -2199,6 +2264,7 @@ namespace synthese
 
 			if(period)
 			{
+				pm.insert(DATA_PERIOD_ID, periodId);
 				pm.insert(DATA_PERIOD, period->getCaption());
 			}
 			pm.insert(DATA_SOLUTIONS_NUMBER, object.getJourneys().size());
@@ -2221,7 +2287,7 @@ namespace synthese
 				const PTRoutePlannerResult::PlacesListConfiguration::List& placesList(
 					object.getOrderedPlaces().getResult()
 				);
-				typedef vector<shared_ptr<ostringstream> > PlacesContentVector;
+				typedef vector<boost::shared_ptr<ostringstream> > PlacesContentVector;
 				PlacesContentVector sheetRows(placesList.size());
 				BOOST_FOREACH(PlacesContentVector::value_type& stream, sheetRows)
 				{
@@ -2278,7 +2344,8 @@ namespace synthese
 								true,
 								pedestrianMode && !lastPedestrianMode,
 								itPlaces->isOrigin,
-								itPlaces->isDestination
+								itPlaces->isDestination,
+								leg.getService()->getServiceNumber()
 							);
 							++itPlaces; ++itSheetRow;
 							lastPedestrianMode = pedestrianMode;
@@ -2311,7 +2378,8 @@ namespace synthese
 								itPlaces->isDestination && itl+1 == jl.end(),
 								false,
 								itPlaces->isOrigin,
-								itPlaces->isDestination
+								itPlaces->isDestination,
+								leg.getService()->getServiceNumber()
 							);
 						}
 					}
@@ -2400,6 +2468,7 @@ namespace synthese
 						_boardPage,
 						_stopCellPage,
 						_serviceCellPage,
+						_roadPage,
 						_junctionPage,
 						request,
 						i,
@@ -2590,6 +2659,7 @@ namespace synthese
 						_mapPage,
 						_mapStopCellPage,
 						_mapServiceCellPage,
+						_mapRoadPage,
 						_mapJunctionPage,
 						request,
 						i,
@@ -2675,7 +2745,8 @@ namespace synthese
 			bool isLastWriting,
 			bool isFirstFoot,
 			bool isOriginRow,
-			bool isDestinationRow
+			bool isDestinationRow,
+			string serviceNumber
 		) const {
 			ParametersMap pm(getTemplateParameters());
 
@@ -2702,6 +2773,7 @@ namespace synthese
 			pm.insert(DATA_IS_FIRST_WRITING, isFirstWriting);
 			pm.insert(DATA_IS_LAST_WRITING, isLastWriting);
 			pm.insert(DATA_IS_FIRST_FOOT, isFirstFoot);
+			pm.insert(DATA_SERVICE_NUMBER, serviceNumber);
 
 			_schedulesCellPage->display(stream ,request, pm);
 		}
@@ -2935,6 +3007,7 @@ namespace synthese
 			boost::shared_ptr<const cms::Webpage> page,
 			boost::shared_ptr<const cms::Webpage> stopCellPage,
 			boost::shared_ptr<const cms::Webpage> serviceCellPage,
+			boost::shared_ptr<const cms::Webpage> roadPage,
 			boost::shared_ptr<const cms::Webpage> junctionPage,
 			const server::Request& request,
 			std::size_t n,
@@ -3115,7 +3188,7 @@ namespace synthese
 
 			if(departurePlace.getPoint())
 			{
-				shared_ptr<Point> departurePoint(
+				boost::shared_ptr<Point> departurePoint(
 					_coordinatesSystem->convertPoint(
 						*departurePlace.getPoint()
 				)	);
@@ -3154,7 +3227,7 @@ namespace synthese
 
 			if(arrivalPlace.getPoint())
 			{
-				shared_ptr<Point> arrivalPoint(
+				boost::shared_ptr<Point> arrivalPoint(
 					_coordinatesSystem->convertPoint(
 						*arrivalPlace.getPoint()
 				)	);
@@ -3213,8 +3286,8 @@ namespace synthese
 			BOOST_FOREACH(const ReservationContact* rc, resaRules)
 			{
 				sPhones <<
-					rc->getPhoneExchangeNumber() <<
-					" (" << rc->getPhoneExchangeOpeningHours() << ") "
+					rc->get<PhoneExchangeNumber>() <<
+					" (" << rc->get<PhoneExchangeOpeningHours>() << ") "
 				;
 				if (!OnlineReservationRule::GetOnlineReservationRule(rc))
 				{
@@ -3225,7 +3298,7 @@ namespace synthese
 			pm.insert(DATA_ONLINE_RESERVATION, onlineBooking);
 
 			// Content
-			if(stopCellPage.get() && serviceCellPage.get() && junctionPage.get())
+			if(stopCellPage.get() && serviceCellPage.get() && roadPage.get())
 			{
 				stringstream content;
 
@@ -3320,14 +3393,14 @@ namespace synthese
 						// Distance and geometry
 						double distance(0);
 						vector<Geometry*> geometries;
-						vector<shared_ptr<Geometry> > geometriesSPtr;
+						vector<boost::shared_ptr<Geometry> > geometriesSPtr;
 						BOOST_FOREACH(Journey::ServiceUses::const_iterator itLeg, roadServiceUses)
 						{
 							distance += itLeg->getDistance();
-							shared_ptr<LineString> geometry(itLeg->getGeometry());
+							boost::shared_ptr<LineString> geometry(itLeg->getGeometry());
 							if(geometry.get())
 							{
-								shared_ptr<Geometry> geometryProjected(
+								boost::shared_ptr<Geometry> geometryProjected(
 									_coordinatesSystem->convertGeometry(
 										*static_cast<Geometry*>(geometry.get())
 								)	);
@@ -3336,14 +3409,16 @@ namespace synthese
 							}
 						}
 
-						shared_ptr<MultiLineString> multiLineString(
+						boost::shared_ptr<MultiLineString> multiLineString(
 							_coordinatesSystem->getGeometryFactory().createMultiLineString(
 								geometries
 						)	);
 
-						_displayJunctionCell(
+						if(dynamic_cast<const Road*>(leg.getService()->getPath()))
+						{
+							_displayRoadCell(
 							content,
-							junctionPage,
+								roadPage,
 							request,
 							__Couleur,
 							distance,
@@ -3358,6 +3433,38 @@ namespace synthese
 							(*roadServiceUses.rbegin())->getArrivalDateTime(),
 							(*roadServiceUses.begin())->getUserClassRank()
 						);
+						}
+						else if (dynamic_cast<const Junction*>(leg.getService()->getPath()))
+						{
+							if(junctionPage.get())
+							{
+								string startStopName = (dynamic_cast<const StopPoint&>(*leg.getDepartureEdge()->getFromVertex())).getName();
+								string endStopName =  (dynamic_cast<const StopPoint&>(*leg.getArrivalEdge()->getFromVertex())).getName();
+								_displayJunctionCell(
+									content,
+									roadPage,
+									request,
+									__Couleur,
+									distance,
+									multiLineString.get(),
+									dynamic_cast<const Junction*>(leg.getService()->getPath()),
+									*(*roadServiceUses.begin())->getDepartureEdge()->getFromVertex(),
+									*(*roadServiceUses.rbegin())->getArrivalEdge()->getFromVertex(),
+									it+1 == services.end(),
+									*(roadServiceUses.begin()) == services.begin(),
+									isFirstFoot,
+									(*roadServiceUses.begin())->getDepartureDateTime(),
+									(*roadServiceUses.rbegin())->getArrivalDateTime(),
+									(*roadServiceUses.begin())->getUserClassRank(),
+									startStopName,
+									endStopName
+								);
+							}
+						}
+						else
+						{
+							throw Exception("Leg is not a Road neither a Junction");
+						}
 
 						roadServiceUses.clear();
 						__Couleur = !__Couleur;
@@ -3407,7 +3514,7 @@ namespace synthese
 			if(	place.getPoint().get() &&
 				!place.getPoint()->isEmpty()
 			){
-				shared_ptr<Point> point(
+				boost::shared_ptr<Point> point(
 					_coordinatesSystem->convertPoint(
 						*place.getPoint()
 				)	);
@@ -3427,7 +3534,7 @@ namespace synthese
 				if(	arrivalPhysicalStop->getGeometry().get() &&
 					!arrivalPhysicalStop->getGeometry()->isEmpty()
 				){
-					shared_ptr<Point> point(
+					boost::shared_ptr<Point> point(
 						_coordinatesSystem->convertPoint(
 							*arrivalPhysicalStop->getGeometry()
 					)	);
@@ -3444,7 +3551,7 @@ namespace synthese
 				if(	departurePhysicalStop->getGeometry().get() &&
 					!departurePhysicalStop->getGeometry()->isEmpty()
 				){
-					shared_ptr<Point> point(
+					boost::shared_ptr<Point> point(
 						_coordinatesSystem->convertPoint(
 							*departurePhysicalStop->getGeometry()
 					)	);
@@ -3479,7 +3586,7 @@ namespace synthese
 
 
 
-		void RoutePlannerFunction::_displayJunctionCell(
+		void RoutePlannerFunction::_displayRoadCell(
 			std::ostream& stream,
 			boost::shared_ptr<const cms::Webpage> page,
 			const server::Request& request,
@@ -3502,7 +3609,7 @@ namespace synthese
 			if(	departureVertex.getGeometry().get() &&
 				!departureVertex.getGeometry()->isEmpty()
 			){
-				shared_ptr<Point> point(
+				boost::shared_ptr<Point> point(
 					_coordinatesSystem->convertPoint(
 						*departureVertex.getGeometry()
 				)	);
@@ -3513,7 +3620,7 @@ namespace synthese
 			if(	arrivalVertex.getGeometry().get() &&
 				!arrivalVertex.getGeometry()->isEmpty()
 			){
-				shared_ptr<Point> point(
+				boost::shared_ptr<Point> point(
 					_coordinatesSystem->convertPoint(
 						*arrivalVertex.getGeometry()
 				)	);
@@ -3540,18 +3647,90 @@ namespace synthese
 			// WKT
 			if(geometry)
 			{
-				shared_ptr<Geometry> geometryProjected(
+				boost::shared_ptr<Geometry> geometryProjected(
 					_coordinatesSystem->convertGeometry(
 						*geometry
 				)	);
 
-				shared_ptr<WKTWriter> wktWriter(new WKTWriter);
+				boost::shared_ptr<WKTWriter> wktWriter(new WKTWriter);
 				if(geometryProjected.get() && !geometryProjected->isEmpty())
 				{
 					pm.insert(DATA_WKT, wktWriter->write(geometryProjected.get()));
 				}
 			}
 
+			page->display(stream, request, pm);
+		}
+
+		void RoutePlannerFunction::_displayJunctionCell(
+			std::ostream& stream,
+			boost::shared_ptr<const cms::Webpage> page,
+			const server::Request& request,
+			bool color,
+			double distance,
+			const geos::geom::Geometry* geometry,
+			const pt::Junction* junction,
+			const graph::Vertex& departureVertex,
+			const graph::Vertex& arrivalVertex,
+			bool isLastLeg,
+			bool isFirstLeg,
+			bool isFirstFoot,
+			const posix_time::ptime departureTime,
+			const posix_time::ptime arrivalTime,
+			size_t userClassRank,
+			const string startStopName,
+			const string endStopName
+		) const {
+			ParametersMap pm(getTemplateParameters());
+
+			// Departure point
+			if(	departureVertex.getGeometry().get() &&
+				!departureVertex.getGeometry()->isEmpty()
+			){
+				shared_ptr<Point> point(
+					_coordinatesSystem->convertPoint(
+						*departureVertex.getGeometry()
+				)	);
+				pm.insert(DATA_DEPARTURE_LONGITUDE, point->getX());
+				pm.insert(DATA_DEPARTURE_LATITUDE, point->getY());
+			}
+			// Arrival point
+			if(	arrivalVertex.getGeometry().get() &&
+				!arrivalVertex.getGeometry()->isEmpty()
+			){
+				shared_ptr<Point> point(
+					_coordinatesSystem->convertPoint(
+						*arrivalVertex.getGeometry()
+				)	);
+				pm.insert(DATA_ARRIVAL_LONGITUDE, point->getX());
+				pm.insert(DATA_ARRIVAL_LATITUDE, point->getY());
+			}
+			
+			pm.insert(DATA_ODD_ROW, color);
+			pm.insert(DATA_LENGTH, static_cast<int>(floor(distance)));
+			pm.insert(DATA_IS_FIRST_FOOT, isFirstFoot);
+			
+			pm.insert(DATA_DEPARTURE_TIME, departureTime.time_of_day());
+			pm.insert(DATA_ARRIVAL_TIME, arrivalTime.time_of_day());
+			pm.insert(DATA_DURATION, arrivalTime - departureTime);
+			pm.insert(DATA_USER_CLASS_CODE, USER_CLASS_CODE_OFFSET + userClassRank);
+			
+			pm.insert(DATA_START_STOP_NAME, startStopName);
+			pm.insert(DATA_END_STOP_NAME, endStopName);
+			
+			// WKT
+			if(geometry)
+			{
+				shared_ptr<Geometry> geometryProjected(
+					_coordinatesSystem->convertGeometry(
+						*geometry
+				)	);
+				shared_ptr<WKTWriter> wktWriter(new WKTWriter);
+				if(geometryProjected.get() && !geometryProjected->isEmpty())
+				{
+					pm.insert(DATA_WKT, wktWriter->write(geometryProjected.get()));
+				}
+			}
 			page->display(stream, request, pm);
 		}
 
@@ -3662,8 +3841,8 @@ namespace synthese
 					lexical_cast<string>(*serviceUse.getUseRule().getAccessCapacity ()) :
 				"9999"
 			); // 11
-			commercialLine->toParametersMap(pm);
-			serviceUse.getService()->toParametersMap(pm);
+			commercialLine->toParametersMap(pm, false);
+			serviceUse.getService()->toParametersMap(pm, false);
 			if(continuousService)
 			{
 				pm.insert(DATA_CONTINUOUS_SERVICE_WAITING, continuousService->getMaxWaitingTime().total_seconds() / 60);
@@ -3673,15 +3852,15 @@ namespace synthese
 			pm.insert(DATA_IS_FIRST_LEG, isFirstLeg);
 			pm.insert(DATA_IS_LAST_LEG, isLastLeg);
 
-			shared_ptr<LineString> geometry(serviceUse.getGeometry());
+			boost::shared_ptr<LineString> geometry(serviceUse.getGeometry());
 			if(geometry.get())
 			{
-				shared_ptr<Geometry> geometryProjected(
+				boost::shared_ptr<Geometry> geometryProjected(
 					_coordinatesSystem->convertGeometry(
 						*static_cast<Geometry*>(geometry.get())
 				)	);
 
-				shared_ptr<WKTWriter> wktWriter(new WKTWriter);
+				boost::shared_ptr<WKTWriter> wktWriter(new WKTWriter);
 				if(geometryProjected.get() && !geometryProjected->isEmpty())
 				{
 					pm.insert(DATA_WKT, wktWriter->write(geometryProjected.get()));

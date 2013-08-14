@@ -75,9 +75,13 @@ namespace synthese
 			const time_duration& hourDeadLine
 		){
 			if (hourDeadLine == time_duration(0,0,0))
+			{
 				_hourDeadLine = time_duration(23,59,59);
+			}
 			else
+			{
 				_hourDeadLine = hourDeadLine;
+			}
 		}
 
 
@@ -119,6 +123,11 @@ namespace synthese
 				{
 					daysMoment = ptime(daysMoment.date(), _hourDeadLine);
 				}
+			}
+			else if ( _hourDeadLine.hours() > 0)
+			{
+				daysMoment = daysMoment - time_duration(23,59,59);
+				daysMoment = ptime(daysMoment.date(), _hourDeadLine);
 			}
 
 			// Choosing worse delay
@@ -383,8 +392,12 @@ namespace synthese
 
 
 
-		void PTUseRule::toParametersMap( util::ParametersMap& pm, std::string prefix /*= std::string() */ ) const
-		{
+		void PTUseRule::toParametersMap(
+			util::ParametersMap& pm,
+			bool withAdditionalParameters,
+			boost::logic::tribool withFiles,
+			std::string prefix
+		) const {
 			pm.insert(prefix + DATA_RESERVATION_COMPULSORY, _reservationType == RESERVATION_RULE_COMPULSORY);
 			pm.insert(prefix + DATA_RESERVATION_POSSIBLE, _reservationType != RESERVATION_RULE_FORBIDDEN);
 			if(_reservationType != RESERVATION_RULE_FORBIDDEN)

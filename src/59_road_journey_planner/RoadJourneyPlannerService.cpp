@@ -70,6 +70,7 @@ namespace synthese
 		const std::string RoadJourneyPlannerService::PARAMETER_SRID("srid");
 		const std::string RoadJourneyPlannerService::PARAMETER_DEPARTURE_PLACE_XY("departure_place_XY");
 		const std::string RoadJourneyPlannerService::PARAMETER_ARRIVAL_PLACE_XY("arrival_place_XY");
+		const std::string RoadJourneyPlannerService::PARAMETER_INVERT_XY("invert_XY");
 
 		const std::string RoadJourneyPlannerService::PARAMETER_PAGE("page");
 		const std::string RoadJourneyPlannerService::PARAMETER_BOARD_PAGE("board_page");
@@ -165,13 +166,14 @@ namespace synthese
 			}
 			else
 			{
-				_accessParameters = AccessParameters(userClassCode, false, false, 72000, boost::posix_time::hours(24), 0.833);
+				_accessParameters = AccessParameters(userClassCode, false, false, 72000, boost::posix_time::hours(24), 1.111);
 			}
 
 			string originPlaceText = map.getDefault<string>(PARAMETER_DEPARTURE_PLACE_TEXT);
 			string destinationPlaceText = map.getDefault<string>(PARAMETER_ARRIVAL_PLACE_TEXT);
 			string originPlaceXY = map.getDefault<string>(PARAMETER_DEPARTURE_PLACE_XY);
 			string destinationPlaceXY = map.getDefault<string>(PARAMETER_ARRIVAL_PLACE_XY);
+			bool invertXY = map.getDefault<bool>(PARAMETER_INVERT_XY);
 
 			if(!originPlaceText.empty() || !destinationPlaceText.empty())
 			{
@@ -206,7 +208,7 @@ namespace synthese
 					placesListServiceOrigin.setNumber(1);
 					placesListServiceOrigin.setCoordinatesSystem(_coordinatesSystem);
 					placesListServiceOrigin.addRequiredUserClass(_accessParameters.getUserClass());
-					placesListServiceOrigin.setCoordinatesXY(originPlaceXY);
+					placesListServiceOrigin.setCoordinatesXY(originPlaceXY, invertXY);
 					_departure_place.placeResult = placesListServiceOrigin.getPlaceFromBestResult(placesListServiceOrigin.runWithoutOutput());
 				}
 
@@ -216,7 +218,7 @@ namespace synthese
 					placesListServiceDestination.setNumber(1);
 					placesListServiceDestination.setCoordinatesSystem(_coordinatesSystem);
 					placesListServiceDestination.addRequiredUserClass(_accessParameters.getUserClass());
-					placesListServiceDestination.setCoordinatesXY(destinationPlaceXY);
+					placesListServiceDestination.setCoordinatesXY(destinationPlaceXY, invertXY);
 					_arrival_place.placeResult = placesListServiceDestination.getPlaceFromBestResult(placesListServiceDestination.runWithoutOutput());
 				}
 			}
@@ -301,7 +303,7 @@ namespace synthese
 			Place* departure = _departure_place.placeResult.value.get();
 			Place* arrival = _arrival_place.placeResult.value.get();
 
-			if(departure->getVertexAccessMap(_accessParameters, RoadModule::GRAPH_ID).intersercts(arrival->getVertexAccessMap(_accessParameters, RoadModule::GRAPH_ID)))
+			if(departure->getVertexAccessMap(_accessParameters, RoadModule::GRAPH_ID, 0).intersercts(arrival->getVertexAccessMap(_accessParameters, RoadModule::GRAPH_ID, 0)))
 			{
 				result.insert(DATA_ERROR_MESSAGE, string("Same place"));
 
@@ -379,7 +381,11 @@ namespace synthese
 
 					double distance(0);
 					if(geometry)
-						distance = CGAlgorithms::length(geometry->getCoordinates());
+					{
+						CoordinateSequence* coordinates = geometry->getCoordinates();
+						distance = CGAlgorithms::length(coordinates);
+						delete coordinates;
+					}
 
 					double speed(_accessParameters.getApproachSpeed());
 					if(_accessParameters.getUserClass() == USER_CAR && chunk->getCarSpeed() > 0)
@@ -415,12 +421,20 @@ namespace synthese
 						step->insert(DATA_STEP_DURATION, arrivalTime - departureTime);
 						step->insert(DATA_WKT, multiLineString->toText());
 
+						delete multiLineString;
+
 						board->insert(DATA_STEP_MAP, step);
 
 						curDistance = static_cast<int>(distance);
 						departureTime = arrivalTime;
 						arrivalTime = departureTime + boost::posix_time::seconds(static_cast<int>(distance / speed));
 						curRoadPlace = road->getRoadPlace();
+
+						BOOST_FOREACH(Geometry* geomToDelete, curGeom)
+						{
+							delete geomToDelete;
+						}
+
 						curGeom.clear();
 						curGeom.push_back(geometryProjected.get()->clone());
 						rank++;
@@ -432,6 +446,12 @@ namespace synthese
 				MultiLineString* multiLineString = _coordinatesSystem->getGeometryFactory().createMultiLineString(curGeom);
 				geometries.push_back(multiLineString->clone());
 
+				BOOST_FOREACH(Geometry* geomToDelete, curGeom)
+				{
+					delete geomToDelete;
+				}
+				curGeom.clear();
+
 				boost::shared_ptr<ParametersMap> step(new ParametersMap);
 				step->insert(DATA_RANK, rank);
 				step->insert(DATA_ROAD_NAME, curRoadPlace->getName());
@@ -442,6 +462,8 @@ namespace synthese
 				step->insert(DATA_STEP_DURATION, arrivalTime - departureTime);
 				step->insert(DATA_WKT, multiLineString->toText());
 
+				delete multiLineString;
+
 				board->insert(DATA_STEP_MAP, step);
 				board->insert(DATA_DISTANCE, total_distance);
 
@@ -451,7 +473,14 @@ namespace synthese
 				result.insert(DATA_BOARD_MAP, board);
 
 				GeometryCollection* geometryCollection(_coordinatesSystem->getGeometryFactory().createGeometryCollection(geometries));
+				BOOST_FOREACH(Geometry* geomToDelete, geometries)
+				{
+					delete geomToDelete;
+				}
+				geometries.clear();
+
 				result.insert(DATA_WKT, geometryCollection->toText());
+				delete geometryCollection;
 			}
 			else if(_errorPage.get())
 			{

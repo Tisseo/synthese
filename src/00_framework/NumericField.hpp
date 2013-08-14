@@ -26,6 +26,7 @@
 #include "SimpleObjectFieldDefinition.hpp"
 
 #include "FrameworkTypes.hpp"
+#include "SchemaMacros.hpp"
 
 #include <boost/lexical_cast.hpp>
 
@@ -49,13 +50,13 @@ namespace synthese
 		typedef T Type;
 
 
-		static void LoadFromRecord(
+		static bool LoadFromRecord(
 			typename NumericField<C, T>::Type& fieldObject,
 			ObjectBase& object,
 			const Record& record,
 			const util::Env& env
 		){
-			SimpleObjectFieldDefinition<C>::_LoadFromStringWithDefaultValue(
+			return SimpleObjectFieldDefinition<C>::_LoadFromStringWithDefaultValue(
 				fieldObject,
 				record,
 				boost::lexical_cast<typename NumericField<C, T>::Type, std::string>,

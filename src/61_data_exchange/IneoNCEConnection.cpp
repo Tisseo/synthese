@@ -186,7 +186,7 @@ namespace synthese
 			}
 
 			// Put the actor back to sleep.
-			_deadline.async_wait(bind(&IneoNCEConnection::checkDeadline, this));
+			_deadline.async_wait(boost::bind(&IneoNCEConnection::checkDeadline, this));
 		}
 
 
@@ -341,7 +341,7 @@ namespace synthese
 		{
 			DBTransaction transaction;
 			Env env(Env::GetOfficialEnv());
-			_messages[messageName] = shared_ptr<messages::SentAlarm>(new SentAlarm(AlarmTableSync::getId()));
+			_messages[messageName] = boost::shared_ptr<messages::SentAlarm>(new SentAlarm(AlarmTableSync::getId()));
 			_messages[messageName]->setScenario(_sentScenario.get());
 			_sentScenario->addMessage(*_messages[messageName]);
 			_messages[messageName]->setLongMessage("");
@@ -360,10 +360,10 @@ namespace synthese
 						);
 			{
 				DBTransaction transaction;
-				shared_ptr<Session> session(Session::New("0.0.0.0"));
-				BOOST_FOREACH(shared_ptr<AlarmObjectLink> alarmLink, alarmLinks)
+				boost::shared_ptr<Session> session(Session::New("0.0.0.0"));
+				BOOST_FOREACH(boost::shared_ptr<AlarmObjectLink> alarmLink, alarmLinks)
 				{
-					AlarmObjectLinkTableSync::Remove(alarmLink->getKey());
+					AlarmObjectLinkTableSync::Remove(NULL, alarmLink->getKey(), transaction, false);
 					DBTableSyncTemplate<AlarmObjectLinkTableSync>::Remove(session.get(), alarmLink->getKey(),
 						transaction, false
 					);
@@ -582,9 +582,12 @@ namespace synthese
 						// we are now running in a different vehicle
 						try
 						{
+							if(_theConnection->_dataSource)
+							{
 							VehicleModule::GetCurrentVehiclePosition().setVehicle(
 								_theConnection->_dataSource->getObjectByCode<Vehicle>(vehicleNumber)
 							);
+						}
 						}
 						catch(...)
 						{
@@ -728,10 +731,27 @@ namespace synthese
 					{
 						try
 						{
-							shared_ptr<Point> point(
+							// Convert Longitude suffix W to a negative value
+							string longStr(longNode.getText());
+							string longSuffix(longStr.substr(longStr.size()-1 , 1));
+							double longVal(lexical_cast<double>(longStr.substr(0, longStr.size()-1)));
+							if(longSuffix == "W")
+							{
+								longVal *= -1;
+							}
+							// Convert Latitude suffix S to a negative value
+							string latStr(latNode.getText());
+							string latSuffix(latStr.substr(latStr.size()-1 , 1));
+							double latVal(lexical_cast<double>(latStr.substr(0, latStr.size()-1)));
+							if(latSuffix == "S")
+							{
+								latVal *= -1;
+							}
+							// Create the coordinate point
+							boost::shared_ptr<Point> point(
 								CoordinatesSystem::GetCoordinatesSystem(4326).createPoint(
-									lexical_cast<double>(longNode.getText()),
-									lexical_cast<double>(latNode.getText())
+									longVal,
+									latVal
 							)	);
 							VehicleModule::GetCurrentVehiclePosition().setGeometry(
 								CoordinatesSystem::GetInstanceCoordinatesSystem().convertPoint(
@@ -741,7 +761,7 @@ namespace synthese
 						catch (bad_lexical_cast&)
 						{
 							util::Log::GetInstance().error("IneoNCEConnection : Failed to parse GPS Long / Lat " +
-														   string(longNode.getText()) +
+														   string(longNode.getText()) + " " +
 														   string(latNode.getText()) );
 						}
 					}

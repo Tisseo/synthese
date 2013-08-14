@@ -46,15 +46,16 @@ namespace synthese
 			const Record& record
 		){
 			RegistryKeyType parent_id(record.getDefault<RegistryKeyType>(FIELD.name, 0));
-			if(parent_id > 0)
-			{
+			if(	parent_id > 0 &&
+				decodeTableId(parent_id) > 0
+			){
 				list.push_back(parent_id);
 			}
 		}
 
 
 
-		void TreeFolderDownNodeInterface::LoadFromRecord(
+		bool TreeFolderDownNodeInterface::LoadFromRecord(
 			Type& fieldObject,
 			ObjectBase& object,
 			const Record& record,
@@ -62,29 +63,54 @@ namespace synthese
 		){
 			assert(dynamic_cast<TreeFolderDownNodeInterface*>(&object));
 			TreeFolderDownNodeInterface& node(dynamic_cast<TreeFolderDownNodeInterface&>(object));
-
+			bool result(false);
+			
 			if(record.isDefined(FIELD.name))
 			{
 				// Name
 				try
 				{
 					RegistryKeyType id(record.get<RegistryKeyType>(FIELD.name));
+					RegistryTableType tableId(decodeTableId(id));
 
-					boost::shared_ptr<DBTableSync> ts(DBModule::GetTableSync(decodeTableId(id)));
-					if(!dynamic_cast<DBDirectTableSync*>(ts.get()))
+					if(tableId)
 					{
-						throw ObjectNotFoundException<TreeFolderUpNode>(id, "forbidden class");
+						if(tableId != node.getTableId())
+						{
+							node.setTableId(tableId);
+							result = true;
+						}
+
+						boost::shared_ptr<DBTableSync> ts(DBModule::GetTableSync(node.getTableId()));
+						if(!dynamic_cast<DBDirectTableSync*>(ts.get()))
+						{
+							throw ObjectNotFoundException<TreeFolderUpNode>(id, "forbidden class");
+						}
+
+						const RegistryBase& registry(dynamic_cast<DBDirectTableSync&>(*ts).getRegistry(env));
+						boost::shared_ptr<Registrable> parent(registry.getEditableObject(id));
+
+						if(!dynamic_cast<TreeFolderUpNode*>(parent.get()))
+						{
+							throw ObjectNotFoundException<TreeFolderUpNode>(id, "forbidden class");
+						}
+
+						TreeFolderUpNode* parentValue(dynamic_cast<TreeFolderUpNode*>(parent.get()));
+						if(parentValue != node._getParent())
+						{
+							node._setParent(*parentValue);
+							result = true;
+						}
+						fieldObject = parentValue;
 					}
-
-					const RegistryBase& registry(dynamic_cast<DBDirectTableSync&>(*ts).getRegistry(env));
-					shared_ptr<Registrable> parent(registry.getEditableObject(id));
-
-					if(!dynamic_cast<TreeFolderUpNode*>(parent.get()))
+					else
 					{
-						throw ObjectNotFoundException<TreeFolderUpNode>(id, "forbidden class");
+						if(node.getTableId() != id)
+						{
+							node.setTableId(id);
+							result = true;
+						}
 					}
-					node._setParent(*dynamic_cast<TreeFolderUpNode*>(parent.get()));
-					fieldObject = dynamic_cast<TreeFolderUpNode*>(parent.get());
 				}
 				catch(ObjectNotFoundException<Registrable>&)
 				{
@@ -99,6 +125,8 @@ namespace synthese
 					);
 				}
 			}
+
+			return result;
 		}
 
 
@@ -123,6 +151,10 @@ namespace synthese
 				else if(fieldObject && dynamic_cast<const Registrable*>(fieldObject))
 				{
 					map.insert(prefix + FIELD.name, dynamic_cast<const Registrable*>(fieldObject)->getKey());
+				}
+				else
+				{
+					map.insert(prefix + FIELD.name, static_cast<util::RegistryKeyType>(node.getTableId()));
 				}
 			}
 		}
@@ -161,6 +193,10 @@ namespace synthese
 			{
 				i = dynamic_cast<const Registrable*>(fieldObject)->getKey();
 			}
+			else
+			{
+				i = node.getTableId();
+			}
 			content.push_back(Cell(i));
 		}
 
@@ -185,6 +221,10 @@ namespace synthese
 				else if(fieldObject && dynamic_cast<const Registrable*>(fieldObject))
 				{
 					item.content = lexical_cast<string>(dynamic_cast<const Registrable*>(fieldObject)->getKey());
+				}
+				else
+				{
+					item.content = node.getTableId();
 				}
 				map.insert(
 					SimpleObjectFieldDefinition<Parent>::FIELD.name,

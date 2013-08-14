@@ -22,13 +22,18 @@
 
 #include "JourneyPattern.hpp"
 
-#include "CommercialLine.h"
+#include "CommercialLineTableSync.h"
 #include "DesignatedLinePhysicalStop.hpp"
+#include "DestinationTableSync.hpp"
+#include "ImportableTableSync.hpp"
 #include "JourneyPatternCopy.hpp"
+#include "JourneyPatternTableSync.hpp"
 #include "LineArea.hpp"
 #include "Log.h"
+#include "NonPermanentService.h"
+#include "PTUseRuleTableSync.h"
 #include "Registry.h"
-#include "RollingStock.hpp"
+#include "RollingStockTableSync.hpp"
 #include "TransportNetwork.h"
 #include "Service.h"
 #include "StopArea.hpp"
@@ -48,6 +53,7 @@ namespace synthese
 	using namespace impex;
 	using namespace pt;
 	using namespace calendar;
+	using namespace vehicle;
 
 	namespace util
 	{
@@ -56,13 +62,16 @@ namespace synthese
 
 	namespace pt
 	{
+		const string JourneyPattern::ATTR_DIRECTION_TEXT = "direction_text";
+		const string JourneyPattern::ATTR_ID = "id";
+
+
+
 		JourneyPattern::JourneyPattern(
 			util::RegistryKeyType id,
 			std::string name
 		):	util::Registrable(id),
 			Path(),
-			Named(name),
-			Calendar(),
 			_directionObj(NULL),
 			_isWalkingLine (false),
 			_wayBack(false),
@@ -116,20 +125,28 @@ namespace synthese
 		{
 			return static_cast<RollingStock*>(_pathClass);
 		}
+
+
+
 		TransportNetwork*   JourneyPattern::getNetwork () const
                 {
                         return static_cast<TransportNetwork*>(_pathNetwork);
                 }
 
 
+
 		void JourneyPattern::setRollingStock(RollingStock* rollingStock)
 		{
 			_pathClass = static_cast<PathClass*>(rollingStock);
 		}
+
+
+
 		void JourneyPattern::setNetwork(TransportNetwork* transportNetwork)
                 {
                         _pathNetwork = static_cast<PathClass*>(transportNetwork);
                 }
+
 
 
 		void JourneyPattern::setWalkingLine (bool isWalkingLine)
@@ -255,7 +272,7 @@ namespace synthese
 			return true;
 		}
 
-		const JourneyPattern::SubLines JourneyPattern::getSubLines() const
+		const JourneyPattern::SubLines& JourneyPattern::getSubLines() const
 		{
 			return _subLines;
 		}
@@ -294,7 +311,7 @@ namespace synthese
 					(((rank > 0 && rank+1 < stops.size() && (edge->isDeparture() != stop._departure)) || edge->isArrival() != stop._arrival)) ||
 					((stop._withTimes && dynamic_cast<const DesignatedLinePhysicalStop*>(edge) &&
 					  *stop._withTimes != static_cast<const DesignatedLinePhysicalStop*>(edge)->getScheduleInput())) ||
-					(stop._metricOffset && stop._metricOffset) != edge->getMetricOffset()
+					(stop._metricOffset && stop._metricOffset != edge->getMetricOffset())
 				){
 					return false;
 				}
@@ -361,7 +378,7 @@ namespace synthese
 
 		bool JourneyPattern::isActive( const boost::gregorian::date& date ) const
 		{
-			return Calendar::isActive(date);
+			return getCalendarCache().isActive(date);
 		}
 
 
@@ -444,6 +461,18 @@ namespace synthese
 
 
 
+		void JourneyPattern::toParametersMap(
+			util::ParametersMap& pm,
+			bool withAdditionalParameters,
+			boost::logic::tribool withFiles /*= boost::logic::indeterminate*/,
+			std::string prefix /*= std::string() */
+		) const	{
+			pm.insert(ATTR_ID, getKey());
+			pm.insert(ATTR_DIRECTION_TEXT, _direction);
+		}
+
+
+
 		JourneyPattern::StopWithDepartureArrivalAuthorization::StopWithDepartureArrivalAuthorization(
 			const std::set<StopPoint*>& stop,
 			boost::optional<MetricOffset> metricOffset /*= boost::optional<MetricOffset>()*/,
@@ -458,4 +487,327 @@ namespace synthese
 			_withTimes(withTimes),
 			_geometry(geometry)
 		{}
+
+
+
+		bool JourneyPattern::loadFromRecord(
+			const Record& record,
+			util::Env& env
+		){
+			bool result(false);
+
+			// Name
+			if(record.isDefined(JourneyPatternTableSync::COL_NAME))
+			{
+				string name (
+				    record.get<string>(JourneyPatternTableSync::COL_NAME)
+				);
+				if(name != _name)
+				{
+					_name = name;
+					result = true;
+				}
+			}
+
+			// Timetable name
+			if(record.isDefined(JourneyPatternTableSync::COL_TIMETABLENAME))
+			{
+				string timetableName(
+				    record.get<string>(JourneyPatternTableSync::COL_TIMETABLENAME)
+				);
+				if(timetableName != _timetableName)
+				{
+					_timetableName = timetableName;
+					result = true;
+				}
+			}
+
+			// Direction
+			if(record.isDefined(JourneyPatternTableSync::COL_DIRECTION))
+			{
+				string direction(
+				    record.get<string>(JourneyPatternTableSync::COL_DIRECTION)
+				);
+				if(direction != _direction)
+				{
+					_direction = direction;
+					result = true;
+				}
+			}
+
+			// Is walking line
+			if(record.isDefined(JourneyPatternTableSync::COL_ISWALKINGLINE))
+			{
+				bool isWalkingLine(
+					record.getDefault<bool>(
+						JourneyPatternTableSync::COL_ISWALKINGLINE, false
+				)	);
+				if(isWalkingLine != _isWalkingLine)
+				{
+					_isWalkingLine = isWalkingLine;
+					result = true;
+				}
+			}
+
+			// Wayback
+			if(record.isDefined(JourneyPatternTableSync::COL_WAYBACK))
+			{
+				bool value(
+					record.getDefault<bool>(
+						JourneyPatternTableSync::COL_WAYBACK, false
+				)	);
+				if(value != _wayBack)
+				{
+					_wayBack = value;
+					result = true;
+				}
+			}
+
+			// Main
+			if(record.isDefined(JourneyPatternTableSync::COL_MAIN))
+			{
+				bool value(
+					record.getDefault<bool>(
+						JourneyPatternTableSync::COL_MAIN,
+						false
+				)	);
+				if(value != _main)
+				{
+					_main = value;
+					result = true;
+				}
+			}
+
+			// Planned length
+			if(record.isDefined(JourneyPatternTableSync::COL_PLANNED_LENGTH))
+			{
+				graph::MetricOffset value(
+					record.getDefault<graph::MetricOffset>(
+						JourneyPatternTableSync::COL_PLANNED_LENGTH,
+						0
+				)	);
+				if(value != _plannedLength)
+				{
+					_plannedLength = value;
+					result = true;
+				}
+			}
+
+//			if (linkLevel >= UP_LINKS_LOAD_LEVEL)
+//			{
+				// Commercial line
+				if(record.isDefined(JourneyPatternTableSync::COL_COMMERCIAL_LINE_ID))
+				{
+					CommercialLine* cline(NULL);
+					RegistryKeyType commercialLineId(
+						record.getDefault<RegistryKeyType>(
+							JourneyPatternTableSync::COL_COMMERCIAL_LINE_ID,
+							0
+					)	);
+					if(commercialLineId > 0)
+					try
+					{
+						cline = CommercialLineTableSync::GetEditable(commercialLineId, env).get();
+					}
+					catch(ObjectNotFoundException<CommercialLine>)
+					{
+						Log::GetInstance().warn("Bad value " + lexical_cast<string>(commercialLineId) + " for fare in line " + lexical_cast<string>(getKey()));
+					}
+
+					if(cline != _pathGroup)
+					{
+						setCommercialLine(cline);
+						if(cline)
+						{
+							setNetwork(cline->getNetwork());
+							cline->addPath(this);
+						}
+						else
+						{
+							setNetwork(NULL);
+						}
+						result = true;
+					}
+				}
+
+				// Data sources and operator codes
+				if(record.isDefined(JourneyPatternTableSync::COL_DATASOURCE_ID))
+				{
+					Importable::DataSourceLinks value(
+						ImportableTableSync::GetDataSourceLinksFromSerializedString(
+							record.get<string>(JourneyPatternTableSync::COL_DATASOURCE_ID),
+							env
+					)	);
+					if(value != getDataSourceLinks())
+					{
+						setDataSourceLinksWithoutRegistration(value);
+						result = true;
+					}
+				}
+
+				// Rolling stock
+				if(record.isDefined(JourneyPatternTableSync::COL_ROLLINGSTOCKID))
+				{
+					RollingStock* value(NULL);
+					RegistryKeyType rollingStockId(
+						record.getDefault<RegistryKeyType>(
+							JourneyPatternTableSync::COL_ROLLINGSTOCKID,
+							0
+					)	);
+					if(rollingStockId > 0)
+					{
+						try
+						{
+							value = RollingStockTableSync::GetEditable(rollingStockId, env).get();
+						}
+						catch(ObjectNotFoundException<RollingStock>&)
+						{
+							Log::GetInstance().warn("Bad value " + lexical_cast<string>(rollingStockId) + " for rolling stock in line " + lexical_cast<string>(getKey()));
+}	}
+					if(value != getRollingStock())
+					{
+						setRollingStock(value);
+						result = true;
+					}
+				}
+
+				RuleUser::Rules rules(getRules());
+
+				// Bike use rules
+				if(record.isDefined(JourneyPatternTableSync::COL_BIKECOMPLIANCEID))
+				{
+					rules[USER_BIKE - USER_CLASS_CODE_OFFSET] = NULL;
+					RegistryKeyType bikeComplianceId(
+						record.getDefault<RegistryKeyType>(
+							JourneyPatternTableSync::COL_BIKECOMPLIANCEID,
+							0
+					)	);
+					if(bikeComplianceId > 0)
+					{
+						try
+						{
+							rules[USER_BIKE - USER_CLASS_CODE_OFFSET] = PTUseRuleTableSync::Get(bikeComplianceId, env).get();
+						}
+						catch(ObjectNotFoundException<PTUseRule>&)
+						{
+							Log::GetInstance().warn("Bad value " + lexical_cast<string>(bikeComplianceId) + " for bike compliance in line " + lexical_cast<string>(getKey()));
+					}	}
+				}
+
+				if(record.isDefined(JourneyPatternTableSync::COL_BIKECOMPLIANCEID))
+				{
+					rules[USER_HANDICAPPED - USER_CLASS_CODE_OFFSET] = NULL;
+					RegistryKeyType handicappedComplianceId(
+						record.getDefault<RegistryKeyType>(
+							JourneyPatternTableSync::COL_HANDICAPPEDCOMPLIANCEID,
+							0
+					)	);
+					if(handicappedComplianceId > 0)
+					{
+						try
+						{
+							rules[USER_HANDICAPPED - USER_CLASS_CODE_OFFSET] = PTUseRuleTableSync::Get(handicappedComplianceId, env).get();
+						}
+						catch(ObjectNotFoundException<PTUseRule>&)
+						{
+							Log::GetInstance().warn("Bad value " + lexical_cast<string>(handicappedComplianceId) + " for handicapped compliance in line " + lexical_cast<string>(getKey()));
+					}	}
+				}
+
+				if(record.isDefined(JourneyPatternTableSync::COL_PEDESTRIANCOMPLIANCEID))
+				{
+					rules[USER_PEDESTRIAN - USER_CLASS_CODE_OFFSET] = NULL;
+					RegistryKeyType pedestrianComplianceId(
+						record.getDefault<RegistryKeyType>(
+							JourneyPatternTableSync::COL_PEDESTRIANCOMPLIANCEID,
+							0
+					)	);
+					if(pedestrianComplianceId > 0)
+					{
+						try
+						{
+							rules[USER_PEDESTRIAN - USER_CLASS_CODE_OFFSET] = PTUseRuleTableSync::Get(pedestrianComplianceId, env).get();
+						}
+						catch(ObjectNotFoundException<PTUseRule>&)
+						{
+							Log::GetInstance().warn("Bad value " + lexical_cast<string>(pedestrianComplianceId) + " for pedestrian compliance in line " + lexical_cast<string>(getKey()));
+					}	}
+				}
+
+				if(rules != getRules())
+				{
+					setRules(rules);
+					result = true;
+				}
+
+				// Direction ID
+				if(record.isDefined(JourneyPatternTableSync::COL_DIRECTION_ID))
+				{
+					Destination* value(NULL);
+					RegistryKeyType directionId(
+						record.getDefault<RegistryKeyType>(
+							JourneyPatternTableSync::COL_DIRECTION_ID,
+							0
+					)	);
+					if(directionId > 0)
+					{
+						try
+						{
+							value = DestinationTableSync::GetEditable(directionId, env).get();
+						}
+						catch(ObjectNotFoundException<Destination>&)
+						{
+							Log::GetInstance().warn("Bad value " + lexical_cast<string>(directionId) + " for direction in line " + lexical_cast<string>(getKey()));
+					}	}
+					if(value != _directionObj)
+					{
+						_directionObj = value;
+						result = true;
+					}
+				}
+//			}
+
+
+			return result;
+		}
+
+		synthese::SubObjects JourneyPattern::getSubObjects() const
+		{
+			SubObjects r;
+			BOOST_FOREACH(Edge* edge, getEdges())
+			{
+				r.push_back(edge);
+			}
+			BOOST_FOREACH(Service* service, getServices())
+			{
+				r.push_back(service);
+			}
+			return r;
+
+		}
+
+		Calendar& JourneyPattern::getCalendarCache() const
+		{
+			if(!_calendar)
+			{
+				Calendar value;
+				BOOST_FOREACH(const ServiceSet::value_type& service, getServices())
+				{
+					if(	dynamic_cast<Calendar*>(service) &&
+						dynamic_cast<NonPermanentService*>(service)
+					){
+						Calendar copyCalendar(*dynamic_cast<Calendar*>(service));
+						for(int i(service->getDepartureSchedule(false,0).hours() / 24);
+							i<= dynamic_cast<NonPermanentService*>(service)->getLastArrivalSchedule(false).hours() / 24;
+							++i
+						){
+							value |= copyCalendar;
+							copyCalendar <<= 1;
+						}
+					}
+				}
+				_calendar = value;
+			}
+			return *_calendar;
+		}
 }	}

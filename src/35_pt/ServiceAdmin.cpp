@@ -255,7 +255,7 @@ namespace synthese
 								serviceVertexUpdateAction.getHTMLForm().getURL(),
 								ps.second->getName().empty() ? lexical_cast<string>(ps.second->getKey()) : ps.second->getName()
 								);
-							serviceVertexUpdateAction.getAction()->setPhysicalStop(shared_ptr<StopPoint>());
+							serviceVertexUpdateAction.getAction()->setPhysicalStop(boost::shared_ptr<StopPoint>());
 
 							if(ps.second == linePhysicalStop->getPhysicalStop())
 							{
@@ -532,7 +532,14 @@ namespace synthese
 				stream << ts.close();
 
 				stream << "<h1>Informations temps réel</h1>";
-				stream << "<p>Information temps réel valables jusqu'à : " << posix_time::to_simple_string(_service->getNextRTUpdate()) << "</p>";
+				if(_service->getNextRTUpdate().is_not_a_date_time())
+				{
+					stream << "<p>Aucune</p>";
+				}
+				else
+				{
+					stream << "<p>Information temps réel valables jusqu'à : " << posix_time::to_simple_string(_service->getNextRTUpdate()) << "</p>";
+				}
 			}
 
 			////////////////////////////////////////////////////////////////////
@@ -654,7 +661,7 @@ namespace synthese
 
 		AdminInterfaceElement::PageLinks ServiceAdmin::_getCurrentTreeBranch() const
 		{
-			shared_ptr<JourneyPatternAdmin> p(
+			boost::shared_ptr<JourneyPatternAdmin> p(
 				getNewPage<JourneyPatternAdmin>()
 			);
 			p->setLine(Env::GetOfficialEnv().get<JourneyPattern>(_service->getPath()->getKey()));

@@ -1,6 +1,8 @@
 set_source_groups()
 
 set(data_exchange_SRCS
+  CalendarFileFormat.cpp
+  CalendarFileFormat.hpp
   DataExchangeModule.cpp
   DataExchangeModule.gen.cpp
   DataExchangeModule.inc.cpp
@@ -16,26 +18,44 @@ set(data_exchange_SRCS
   HastusInterfaceFileFormat.hpp
   HeuresFileFormat.cpp
   HeuresFileFormat.hpp
+  HousesCSVFileFormat.cpp
+  HousesCSVFileFormat.hpp
+  IGNstreetsFileFormat.cpp
+  IGNstreetsFileFormat.hpp
   IneoBDSIFileFormat.cpp
   IneoBDSIFileFormat.hpp
+  IneoDepartureBoardsFileFormat.cpp
+  IneoDepartureBoardsFileFormat.hpp
   IneoFileFormat.cpp
   IneoFileFormat.hpp
   IneoNCEConnection.cpp
   IneoNCEConnection.hpp
+  IneoOperationFileFormat.cpp
+  IneoOperationFileFormat.hpp
   IneoRealTimeFileFormat.cpp
   IneoRealTimeFileFormat.hpp
   MGScreenConnection.cpp
   MGScreenConnection.hpp
-  OGTFileFormat.cpp
-  OGTFileFormat.hpp
+  NavstreetsFileFormat.cpp
+  NavstreetsFileFormat.hpp
   ObitiFileFormat.cpp
   ObitiFileFormat.hpp
+  OGTFileFormat.cpp
+  OGTFileFormat.hpp
+  OSMFileFormat.cpp
+  OSMFileFormat.hpp
   PegaseFileFormat.cpp
   PegaseFileFormat.hpp
   PTDataCleanerFileFormat.cpp
   PTDataCleanerFileFormat.hpp
   PTFileFormat.cpp
   PTFileFormat.hpp
+  PTOperationFileFormat.cpp
+  PTOperationFileFormat.hpp
+  RoadFileFormat.cpp
+  RoadFileFormat.hpp
+  RoadShapeFileFormat.cpp
+  RoadShapeFileFormat.hpp
   RTMFileFormat.cpp
   RTMFileFormat.hpp
   RSSFileFormat.cpp
@@ -95,6 +115,7 @@ target_link_libraries(61_data_exchange
   31_calendar
   32_geography
   33_algorithm
+  37_pt_operation
   38_vehicle
   expat
 )

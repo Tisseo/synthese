@@ -95,7 +95,7 @@ namespace synthese
 			content.push_back(string());
 			content.push_back(
 				"Création par copie de "+ scenarioTemplate.getName() +
-				" (modèle "+ scenarioTemplate.getTemplate()->getName() +")"
+				(scenarioTemplate.getTemplate() ? (" (modèle "+ scenarioTemplate.getTemplate()->getName() +")") : "")
 			);
 			_addEntry(FACTORY_KEY, DBLogEntry::DB_LOG_INFO, content, user, sentScenario.getKey());
 		}
@@ -143,12 +143,12 @@ namespace synthese
 			{
 				if (tableId == AlarmTableSync::TABLE.ID)
 				{
-					shared_ptr<const Alarm> alarm(AlarmTableSync::Get(id, env, FIELDS_ONLY_LOAD_LEVEL));
+					boost::shared_ptr<const Alarm> alarm(AlarmTableSync::Get(id, env, FIELDS_ONLY_LOAD_LEVEL));
 					return alarm->getShortMessage();
 				}
 				else if (tableId == ScenarioTableSync::TABLE.ID)
 				{
-					shared_ptr<const Scenario> scenario(ScenarioTableSync::Get(id, env, FIELDS_ONLY_LOAD_LEVEL));
+					boost::shared_ptr<const Scenario> scenario(ScenarioTableSync::Get(id, env, FIELDS_ONLY_LOAD_LEVEL));
 					return scenario->getName();
 				}
 			}

@@ -23,6 +23,9 @@
 #include "SingleOperatorExpression.hpp"
 
 #include "ModuleClass.h"
+#include "ConstantExpression.hpp"
+#include "HTMLModule.h"
+#include "VariableExpression.hpp"
 #include "WebsiteConfig.hpp"
 
 #include <cmath>
@@ -35,7 +38,9 @@ using namespace boost::algorithm;
 
 namespace synthese
 {
+	using namespace html;
 	using namespace server;
+	using namespace util;
 	
 	namespace cms
 	{
@@ -83,6 +88,26 @@ namespace synthese
 					return string();
 				}
 
+			// ID operators
+			case DECODE_TABLE:
+				try
+				{
+					RegistryKeyType id(lexical_cast<RegistryKeyType>(value));
+
+					switch(_operator)
+					{
+					case DECODE_TABLE:
+						return lexical_cast<string>(decodeTableId(id));
+
+					default:
+						break;
+					}
+				}
+				catch(bad_lexical_cast&)
+				{
+					return string();
+				}
+
 			// Type independent operators
 			case NOT:
 				if(value.empty() || value == "0")
@@ -96,6 +121,61 @@ namespace synthese
 
 			case GLOBAL:
 				return ModuleClass::GetParameter(value);
+
+			case VARIABLE:
+				{
+					VariableExpression::Items variable;
+					VariableExpression::Item item;
+					variable.push_back(item);
+
+					// Variable name parsing
+					for(string::const_iterator it(value.begin()); it != value.end(); ++it)
+					{
+						// Alphanum chars
+						if( (*it >= 'a' && *it <= 'z') ||
+							(*it >= 'A' && *it <= 'Z') ||
+							(*it >= '0' && *it <= '9') ||
+							*it == '_'
+						){
+							variable.rbegin()->key.push_back(*it);
+						}
+						else if(*it == '[')
+						{	// Index
+							string index;
+							for(++it; it != value.end() && *it != ']'; ++it)
+							{
+								index.push_back(*it);
+							}
+							variable.rbegin()->index = boost::shared_ptr<Expression>(new ConstantExpression(index));
+						}
+						else if(*it == '.')
+						{	// Sub map
+							VariableExpression::Item item;
+							variable.push_back(item);
+						}
+					}
+
+					// Variable expression
+					VariableExpression v(variable);
+					return v.eval(request, additionalParametersMap,page, variables);
+				}
+
+			case LENGTH:
+				if(additionalParametersMap.hasSubMaps(value))
+				{
+					return lexical_cast<string>(additionalParametersMap.getSubMaps(value).size());
+				}
+				if(variables.hasSubMaps(value))
+				{
+					return lexical_cast<string>(variables.getSubMaps(value).size());
+				}
+				return "0";
+
+			case HTML_ENCODE:
+				return HTMLModule::HTMLEncode(value);
+
+			case ESCAPE_DOUBLE_QUOTES:
+				return HTMLModule::EscapeDoubleQuotes(value);
 
 			case READ_CONFIG:
 				WebsiteConfig* config(
@@ -145,6 +225,26 @@ namespace synthese
 			if(	CompareText(it, end, "~read_config"))
 			{
 				return READ_CONFIG;
+			}
+			if(	CompareText(it, end, "~decode_table"))
+			{
+				return DECODE_TABLE;
+			}
+			if(	CompareText(it, end, "~length"))
+			{
+				return LENGTH;
+			}
+			if(	CompareText(it, end, "~variable"))
+			{
+				return VARIABLE;
+			}
+			if(	CompareText(it, end, "~html_encode"))
+			{
+				return HTML_ENCODE;
+			}
+			if(	CompareText(it, end, "~escape_double_quotes"))
+			{
+				return ESCAPE_DOUBLE_QUOTES;
 			}
 			return optional<Operator>();
 		}

@@ -408,12 +408,12 @@ namespace synthese
 		) const {
 
 			// Head
-			if(first)
-			{
-				os << "{";
-			}
 			if(!tag.empty())
 			{
+				if(first)
+				{
+					os << "{";
+				}
 				os << "\"" << tag << "\":";
 			}
 			os << "{";
@@ -430,7 +430,11 @@ namespace synthese
 				{
 					os << ",";
 				}
-				os << "\"" << itMap.first << "\":\"" << itMap.second << "\"";
+				os << "\"" << itMap.first << "\":\"";
+				string value(itMap.second);
+				algorithm::replace_all(value, "\\", "\\\\");
+				algorithm::replace_all(value, "\"", "\\\"");
+				os << value << "\"";
 			}
 
 			// Child objects
@@ -507,7 +511,7 @@ namespace synthese
 
 			// Foot
 			os << "}";
-			if(first)
+			if(first && !tag.empty())
 			{
 				os << "}";
 			}
@@ -527,7 +531,7 @@ namespace synthese
 
 			// Building field names list
 			set<string> colNames;
-			BOOST_FOREACH(shared_ptr<ParametersMap> item, items)
+			BOOST_FOREACH(boost::shared_ptr<ParametersMap> item, items)
 			{
 				BOOST_FOREACH(const Map::value_type& itMap, item->getMap())
 				{
@@ -555,7 +559,7 @@ namespace synthese
 			}
 
 			// Data output
-			BOOST_FOREACH(shared_ptr<ParametersMap> item, items)
+			BOOST_FOREACH(boost::shared_ptr<ParametersMap> item, items)
 			{
 				bool firstItem(true);
 				BOOST_FOREACH(const Map::value_type& itMap, item->getMap())
@@ -595,7 +599,9 @@ namespace synthese
 				}
 
 				// Insertion of the item in the current map
-				_map.insert(make_pair(key, it.second));
+				_map.insert(
+					make_pair(key, other.getValue(it.first))
+				);
 			}
 
 			// Merge the submap
@@ -605,7 +611,7 @@ namespace synthese
 				{
 					string key(prefix + it.first);
 
-					BOOST_FOREACH(const shared_ptr<ParametersMap>& item, it.second)
+					BOOST_FOREACH(const boost::shared_ptr<ParametersMap>& item, it.second)
 					{
 						insert(key, item);
 					}
@@ -749,4 +755,30 @@ namespace synthese
 		{
 			return _map < rhs._map;
 		}
+
+
+		//////////////////////////////////////////////////////////////////////////
+		/// Removes a submap from a map.
+		/// @param parameterName the submap to remove
+		void ParametersMap::removeSubMap(
+			const std::string& parameterName
+		){
+			SubParametersMap::iterator it(_subMap.find(parameterName));
+			if(it != _subMap.end()) _subMap.erase(it);
+		}
+
+
+		bool ParametersMap::empty() const
+		{
+			return _map.empty() && _files.empty() && _subMap.empty();
+		}
+
+
+
+		bool ParametersMap::operator==(
+			const util::ParametersMap& other
+		) const {
+			return _map == other._map;
+		}
+
 }	}

@@ -35,10 +35,15 @@
 
 namespace synthese
 {
+	namespace vehicle
+	{
+		class RollingStock;
+	}
+
 	namespace pt
 	{
+		class CommercialLine;
 		class JourneyPattern;
-		class RollingStock;
 		class Destination;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -63,17 +68,19 @@ namespace synthese
 			static const std::string PARAMETER_WAYBACK;
 			static const std::string PARAMETER_MAIN;
 			static const std::string PARAMETER_PLANNED_LENGTH;
+			static const std::string PARAMETER_LINE_ID;
 
 		private:
 			boost::shared_ptr<JourneyPattern> _route;
 
-			boost::optional<boost::shared_ptr<RollingStock> > _transportMode;
+			boost::optional<boost::shared_ptr<vehicle::RollingStock> > _transportMode;
 			boost::optional<boost::shared_ptr<Destination> > _directionObj;
 			boost::optional<std::string> _name;
 			boost::optional<std::string> _direction;
 			boost::optional<bool> _wayback;
 			boost::optional<bool> _main;
 			boost::optional<graph::MetricOffset> _plannedLength;
+			boost::optional<boost::shared_ptr<CommercialLine> > _line;
 
 
 		protected:

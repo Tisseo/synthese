@@ -22,7 +22,7 @@
 
 #include "MailingList.hpp"
 
-#include "DisplayScreenAlarmRecipient.h"
+#include "BroadcastPointAlarmRecipient.hpp"
 #include "MailingListSubscription.hpp"
 #include "ServerModule.h"
 
@@ -31,7 +31,6 @@ using namespace std;
 
 namespace synthese
 {
-	using namespace departure_boards;
 	using namespace messages;
 	using namespace server;
 	using namespace util;
@@ -42,6 +41,7 @@ namespace synthese
 	FIELD_DEFINITION_OF_TYPE(Sender, "sender", SQL_TEXT)
 	FIELD_DEFINITION_OF_TYPE(SenderName, "sender_name", SQL_TEXT)
 	FIELD_DEFINITION_OF_TYPE(EMailFormat, "format", SQL_INTEGER)
+	FIELD_DEFINITION_OF_TYPE(ManualSending, "manual_sending", SQL_BOOLEAN)
 
 	namespace util
 	{
@@ -65,7 +65,8 @@ namespace synthese
 					FIELD_DEFAULT_CONSTRUCTOR(Sender),
 					FIELD_DEFAULT_CONSTRUCTOR(SenderName),
 					FIELD_VALUE_CONSTRUCTOR(EMailFormat, EMail::EMAIL_TEXT),
-					FIELD_DEFAULT_CONSTRUCTOR(MessageType)
+					FIELD_DEFAULT_CONSTRUCTOR(MessageType),
+					FIELD_VALUE_CONSTRUCTOR(ManualSending, false)
 			)	)
 		{}
 
@@ -141,7 +142,7 @@ namespace synthese
 			BOOST_FOREACH(const Subscriptions::value_type& subscription, _subscriptions)
 			{
 				// New submap
-				shared_ptr<ParametersMap> subPM(new ParametersMap);
+				boost::shared_ptr<ParametersMap> subPM(new ParametersMap);
 
 				// Populate the submap
 				subscription->toParametersMap(*subPM);
@@ -175,7 +176,7 @@ namespace synthese
 			// in broad cast points recipients
 			Alarm::LinkedObjects::const_iterator it(
 				recipients.find(
-					DisplayScreenAlarmRecipient::FACTORY_KEY
+					BroadcastPointAlarmRecipient::FACTORY_KEY
 			)	);
 
 			// No broadcast recipient = no display

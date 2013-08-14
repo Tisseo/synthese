@@ -32,7 +32,6 @@
 #include "RGBColor.h"
 #include "GraphTypes.h"
 #include "Calendar.h"
-#include "Named.h"
 #include "ImportableTemplate.hpp"
 
 #include <boost/thread/recursive_mutex.hpp>
@@ -60,14 +59,18 @@ namespace synthese
 		class Service;
 	}
 
+	namespace vehicle
+	{
+		class RollingStock;
+	}
+
 	namespace pt
 	{
 		class TransportNetwork;
 		class NonConcurrencyRule;
 		class ReservationContact;
 		class StopArea;
-		class RollingStock;
-
+		
 		/** Commercial line.
 			@ingroup m35
 
@@ -79,7 +82,6 @@ namespace synthese
 		*/
 		class CommercialLine:
 			public graph::PathGroup,
-			public util::Named,
 			public impex::ImportableTemplate<CommercialLine>,
 			public tree::TreeFolderDownNode<TransportNetwork>
 		{
@@ -112,6 +114,7 @@ namespace synthese
 			//@{
 				std::string			_shortName;	//!< Name (cartouche)
 				std::string			_longName;	//!< Name for schedule card
+				std::string _name;
 
 				boost::optional<util::RGBColor>		_color;		//!< JourneyPattern color
 				std::string			_style;		//!< CSS style (cartouche)
@@ -165,6 +168,7 @@ namespace synthese
 				const std::string& getDocURL() const { return _docURL; }
 				util::RegistryKeyType getTimetableId() const { return _timetableId; }
 				const boost::posix_time::time_duration& getDisplayDurationBeforeFirstDeparture() const { return _displayDurationBeforeFirstDeparture; }
+				virtual std::string getName() const { return _name; }
 			//@}
 
 			//! @name Setters
@@ -177,11 +181,12 @@ namespace synthese
 				void setReservationContact(const pt::ReservationContact* value) { _reservationContact = value; }
 				void setCalendarTemplate(calendar::CalendarTemplate* value) { _calendarTemplate = value;}
 				void setNonConcurrencyRules(const NonConcurrencyRules& value) { _nonConcurrencyRules = value; }
-				void setOpionalReservationPlaces(const PlacesSet& value) { _optionalReservationPlaces = value; }
+				void setOptionalReservationPlaces(const PlacesSet& value) { _optionalReservationPlaces = value; }
 				void setMapURL(const std::string& value){ _mapURL = value; }
 				void setDocURL(const std::string& value){ _docURL = value; }
 				void setTimetableId(util::RegistryKeyType value){ _timetableId = value; }
 				void setDisplayDurationBeforeFirstDeparture(const boost::posix_time::time_duration& value){ _displayDurationBeforeFirstDeparture = value; }
+				void setName(const std::string& value){ _name = value; }
 			//@}
 
 			/// @name Indices maintenance
@@ -238,8 +243,10 @@ namespace synthese
 				/// @author Hugues Romain
 				/// @since 3.3.0
 				/// @date 2011
-				void toParametersMap(
+				virtual void toParametersMap(
 					util::ParametersMap& pm,
+					bool withAdditionalParameters,
+					boost::logic::tribool withFiles = boost::logic::indeterminate,
 					std::string prefix = std::string()
 				) const;
 
@@ -255,7 +262,7 @@ namespace synthese
 				/// @since 3.3.0
 				/// @date 2011
 				bool usesTransportMode(
-					const RollingStock& transportMode
+					const vehicle::RollingStock& transportMode
 				) const;
 
 
@@ -299,6 +306,15 @@ namespace synthese
 				/// @param rule the rule to remove
 				/// This method cleans non concurrency cache of all the services of the line.
 				void removeConcurrencyRule( const pt::NonConcurrencyRule* rule );
+
+				
+				
+				virtual bool loadFromRecord(
+					const Record& record,
+					util::Env& env
+				);
+
+				virtual SubObjects getSubObjects() const;
 			//@}
 		};
 }	}

@@ -44,7 +44,9 @@ namespace synthese
 		class BroadcastPoint;
 		class MessageAlternative;
 		class MessageType;
+		class MessagesSection;
 		class Scenario;
+		class ScenarioCalendar;
 
 		class Alarm:
 			public virtual util::Registrable,
@@ -64,8 +66,10 @@ namespace synthese
 
 			static const std::string TAG_MESSAGE_ALTERNATIVE;
 			static const std::string TAG_RECIPIENTS;
+			static const std::string TAG_SECTION;
 			static const std::string ATTR_LINK_PARAMETER;
 			static const std::string ATTR_LINK_ID;
+			static const std::string ATTR_CALENDAR_ID;
 
 			typedef std::map<
 				MessageType*,
@@ -85,6 +89,8 @@ namespace synthese
 			const Scenario* 	_scenario;
 			bool				_rawEditor;
 			bool				_done;
+			const MessagesSection* _section;
+			const ScenarioCalendar* _calendar;
 
 			// Links
 			//@{
@@ -100,7 +106,8 @@ namespace synthese
 			Alarm(const Alarm& source);
 			Alarm(
 				const Alarm& source,
-				const Scenario* scenario
+				const Scenario* scenario,
+				const ScenarioCalendar* calendar
 			);
 
 			bool _isOnBroadcastPoint(
@@ -120,6 +127,8 @@ namespace synthese
 				bool					getRawEditor() const { return _rawEditor; }
 				bool					getDone() const { return _done; }
 				const MessageAlternatives& getMessageAlternatives() const { return _messageAlternatives; }
+				const MessagesSection* getSection() const { return _section; }
+				const ScenarioCalendar* getCalendar() const { return _calendar; }
 			//@}
 
 			//! @name Setters
@@ -133,6 +142,8 @@ namespace synthese
 				void setMessageAlternatives(const MessageAlternatives& value) const { _messageAlternatives = value; }
 				void addLinkedObject(const AlarmObjectLink& link) const;
 				void removeLinkedObject(const AlarmObjectLink& link) const;
+				void setSection(const MessagesSection* value){ _section = value; }
+				void setCalendar(const ScenarioCalendar* value){ _calendar = value; }
 			//@}
 
 			//! @name Services
@@ -153,9 +164,6 @@ namespace synthese
 					bool withRecipients = false
 				) const;
 
-
-
-				virtual void toParametersMap(util::ParametersMap& pm) const;
 
 
 				static void LinkedObjectsToParametersMap(

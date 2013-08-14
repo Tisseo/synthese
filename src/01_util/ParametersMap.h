@@ -278,6 +278,9 @@ namespace synthese
 				) const;
 
 
+				bool empty() const;
+
+
 
 				//////////////////////////////////////////////////////////////////////////
 				/// Gets the value of a field
@@ -351,10 +354,20 @@ namespace synthese
 
 
 
+				bool operator==(
+					const util::ParametersMap& other
+				) const;
+
+
+
 				//////////////////////////////////////////////////////////////////////////
 				/// Removes a parameter from the map.
 				/// @parameterName parameter to remove
 				void remove(const std::string& parameterName);
+
+
+
+				void removeSubMap(const std::string& parameterName);
 
 
 

@@ -66,7 +66,7 @@ namespace synthese
 
 				/** Gets name of this place.
 				*/
-				const std::string& getName () const { return _name; }
+				virtual std::string getName () const { return _name; }
 				const std::string& getName13() const { return _name13; }
 				const std::string& getName26() const { return _name26; }
 
@@ -120,7 +120,7 @@ namespace synthese
 				/** Gets official name of this place.
 				* The default implementation is to return this name.
 				*/
-				virtual const std::string& getOfficialName () const;
+				virtual const std::string getOfficialName () const;
 			//@}
 		};
 }	}

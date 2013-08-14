@@ -16,6 +16,15 @@ ServiceLengthService.cpp
 ServiceLengthService.hpp
 )
 
+#OpeningTime.cpp
+#OpeningTime.hpp
+#OpeningTimeTableSync.cpp
+#OpeningTimeTableSync.hpp
+#TrafficForecast.cpp
+#TrafficForecast.hpp
+#TrafficForecastTableSync.cpp
+#TrafficForecastTableSync.hpp
+
 set_source_files_properties(AnalysisModule.gen.cpp AnalysisModule.inc.cpp PROPERTIES HEADER_FILE_ONLY 1)
 
 add_library(60_analysis ${analysis_SRCS})

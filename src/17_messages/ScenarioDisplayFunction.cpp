@@ -171,7 +171,11 @@ namespace synthese
 
 			ParametersMap pm;
 
-			_scenario->toParametersMap(pm);
+			_scenario->toParametersMap(pm, true);
+			if(dynamic_cast<const SentScenario*>(_scenario.get()))
+			{
+				static_cast<const SentScenario*>(_scenario.get())->toParametersMap(pm);
+			}
 			
 			// Output
 			if(_mainTemplate.get()) // CMS output

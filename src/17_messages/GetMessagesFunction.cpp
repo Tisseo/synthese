@@ -175,6 +175,7 @@ namespace synthese
 			_parameters.remove(PARAMETER_PRIORITY_ORDER);
 			_parameters.remove(PARAMETER_DATE);
 			_parameters.remove(PARAMETER_END_DATE);
+			_parameters.remove(PARAMETER_OUTPUT_FORMAT);
 		}
 
 
@@ -187,11 +188,13 @@ namespace synthese
 			ParametersMap pm;
 
 			// Getting messages
-			MessagesModule::ActivatedMessages messages(
-				MessagesModule::GetActivatedMessages(
+			MessagesModule::ActivatedMessages messages;
+			if (_broadcastPoint)
+			{
+				messages = MessagesModule::GetActivatedMessages(
 					*_broadcastPoint,
-					_parameters
-			)	);
+					_parameters);
+			}
 
 			size_t number(0);
 
@@ -210,8 +213,8 @@ namespace synthese
 					}
 					bestPriority = message->getLevel();
 
-					shared_ptr<ParametersMap> messagePM(new ParametersMap);
-					message->toParametersMap(*messagePM, true);
+					boost::shared_ptr<ParametersMap> messagePM(new ParametersMap);
+					message->toParametersMap(*messagePM, true, string(), true);
 					pm.insert(DATA_MESSAGE, messagePM);
 
 					++number;
@@ -234,8 +237,8 @@ namespace synthese
 					{
 						continue;
 					}
-					shared_ptr<ParametersMap> messagePM(new ParametersMap);
-					message->toParametersMap(*messagePM, true);
+					boost::shared_ptr<ParametersMap> messagePM(new ParametersMap);
+					message->toParametersMap(*messagePM, true, string(), true);
 					pm.insert(DATA_MESSAGE, messagePM);
 					++number;
 				}

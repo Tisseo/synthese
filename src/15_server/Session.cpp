@@ -50,6 +50,7 @@ namespace synthese
 		const string Session::ATTR_LAST_USE = "last_use";
 
 		Session::SessionMap	Session::_sessionMap;
+		boost::mutex Session::_sessionMapMutex;
 
 		const size_t Session::KEY_LENGTH = 20;
 		const string Session::COOKIE_SESSIONID = "sid";
@@ -125,13 +126,13 @@ namespace synthese
 
 
 
-		shared_ptr<Session> Session::New(
+		boost::shared_ptr<Session> Session::New(
 			const string& ip,
 			string key
 		){
-			mutex::scoped_lock(_sessionMapMutex);
-			shared_ptr<Session> session(new Session(ip, key));
-			mutex::scoped_lock(session->_requestsListMutex);
+			mutex::scoped_lock session_lock(_sessionMapMutex);
+			boost::shared_ptr<Session> session(new Session(ip, key));
+			mutex::scoped_lock request_lock(session->_requestsListMutex);
 			_sessionMap.insert(make_pair(session->_key, session));
 			return session;
 		}
@@ -141,7 +142,7 @@ namespace synthese
 		// @return true if the session was found and removed
 		bool Session::_removeSessionFromMap()
 		{
-			mutex::scoped_lock(_sessionMapMutex);
+			mutex::scoped_lock lock(_sessionMapMutex);
 			SessionMap::iterator it(_sessionMap.find(_key));
 			if(it != _sessionMap.end())
 			{
@@ -152,20 +153,20 @@ namespace synthese
 		}
 
 
-		void Session::Delete( shared_ptr<Session> session )
+		void Session::Delete( boost::shared_ptr<Session> session )
 		{
 			session->_removeSessionFromMap();
 		}
 
 
-		shared_ptr<Session> Session::Get(
+		boost::shared_ptr<Session> Session::Get(
 			const std::string& key,
 			const std::string& ip,
 			bool exceptionIfNotFound
 		){
-			shared_ptr<Session> session;
+			boost::shared_ptr<Session> session;
 			{
-				mutex::scoped_lock(_sessionMapMutex);
+				mutex::scoped_lock lock(_sessionMapMutex);
 				SessionMap::iterator it(_sessionMap.find(key));
 				if(it != _sessionMap.end())
 				{
@@ -198,7 +199,7 @@ namespace synthese
 				}
 				else
 				{
-					return shared_ptr<Session>();
+					return boost::shared_ptr<Session>();
 				}
 			}
 			return session;
@@ -233,8 +234,8 @@ namespace synthese
 			// User
 			if(getUser())
 			{
-				shared_ptr<ParametersMap> userPM(new ParametersMap);
-				getUser()->toParametersMap(*userPM);
+				boost::shared_ptr<ParametersMap> userPM(new ParametersMap);
+				getUser()->toParametersMap(*userPM, true);
 				pm.insert(TAG_USER, userPM);
 			}
 
