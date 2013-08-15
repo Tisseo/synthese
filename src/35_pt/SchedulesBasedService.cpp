@@ -879,9 +879,16 @@ namespace synthese
 
 		void SchedulesBasedService::setVertices( const ServedVertices& vertices )
 		{
-			for(size_t i(0); i<_path->getEdges().size(); ++i)
+			if(_vertices.size() != vertices.size())
 			{
-				setVertex(i, vertices[i]);
+				_vertices = vertices;
+			}
+			else
+			{
+				for(size_t i(0); i<_path->getEdges().size(); ++i)
+				{
+					setVertex(i, vertices[i]);
+				}
 			}
 		}
 
