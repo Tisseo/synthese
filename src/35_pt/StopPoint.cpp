@@ -389,7 +389,7 @@ namespace synthese
 				{
 					RuleUser::Rules rules(getRules());
 					RegistryKeyType handicappedComplianceId(
-						record.get<RegistryKeyType>(StopPointTableSync::COL_HANDICAPPED_COMPLIANCE_ID, 0)
+						record.getDefault<RegistryKeyType>(StopPointTableSync::COL_HANDICAPPED_COMPLIANCE_ID, 0)
 					);
 					if(handicappedComplianceId > 0)
 					{
