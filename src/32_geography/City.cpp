@@ -138,6 +138,12 @@ namespace synthese
 			const CoordinatesSystem* coordinatesSystem,
 			const string& prefix
 		) const {
+
+			// TODO remove this method and move the additional elements into addAdditionalParameters
+			pm.insert(prefix + Key::FIELD.name, get<Key>());
+			pm.insert(prefix + Name::FIELD.name, get<Name>());
+			pm.insert(prefix + Code::FIELD.name, get<Code>());
+
 			// Id
 			pm.insert(prefix + DATA_CITY_ID, getKey());
 
