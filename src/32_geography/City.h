@@ -191,6 +191,9 @@ namespace synthese
 					std::string prefix = std::string()
 				) const;
 
+				virtual std::string getName() const { return get<Name>(); }
+
+
 				virtual bool loadFromRecord(
 					const Record& record,
 					util::Env& env
