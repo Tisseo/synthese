@@ -23,6 +23,8 @@
 #include "JourneyPattern.hpp"
 
 #include "CommercialLineTableSync.h"
+#include "DataSourceLinksField.hpp"
+#include "DBConstants.h"
 #include "DesignatedLinePhysicalStop.hpp"
 #include "DestinationTableSync.hpp"
 #include "ImportableTableSync.hpp"
@@ -47,6 +49,7 @@ using namespace std;
 
 namespace synthese
 {
+	using namespace db;
 	using namespace geography;
 	using namespace graph;
 	using namespace util;
@@ -512,7 +515,7 @@ namespace synthese
 			pm.insert(
 				JourneyPatternTableSync::COL_BIKECOMPLIANCEID,
 				(	getRule(USER_BIKE) && dynamic_cast<const PTUseRule*>(getRule(USER_BIKE)) ?
-					static_cast<const PTUseRule*>(object->getRule(USER_BIKE))->getKey() :
+					static_cast<const PTUseRule*>(getRule(USER_BIKE))->getKey() :
 					RegistryKeyType(0)
 			)	);
 			pm.insert(
