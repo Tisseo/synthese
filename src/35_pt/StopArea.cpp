@@ -26,6 +26,7 @@
 #include "CityTableSync.h"
 #include "CommercialLine.h"
 #include "Crossing.h"
+#include "DataSourceLinksField.hpp"
 #include "DBConstants.h"
 #include "Edge.h"
 #include "Env.h"
@@ -75,13 +76,10 @@ namespace synthese
 	{
 		const std::string StopArea::DATA_STOP_ID("stop_id");
 		const std::string StopArea::DATA_STOP_NAME("stop_name");
-		const std::string StopArea::DATA_CITY_ID("city_id");
 		const std::string StopArea::DATA_CITY_NAME("city_name");
 		const std::string StopArea::DATA_STOP_NAME_13("stop_name_13");
 		const std::string StopArea::DATA_STOP_NAME_26("stop_name_26");
 		const std::string StopArea::DATA_STOP_NAME_FOR_TIMETABLES("stop_name_for_timetables");
-		const std::string StopArea::DATA_X("x");
-		const std::string StopArea::DATA_Y("y");
 
 
 
@@ -529,8 +527,68 @@ namespace synthese
 			const CoordinatesSystem* coordinatesSystem,
 			string prefix
 		) const {
+			pm.insert(
+				prefix + TABLE_COL_ID,
+				getKey()
+			); // For StopAreasList compatibility
+			pm.insert(
+				prefix + StopAreaTableSync::TABLE_COL_NAME,
+				getName()
+			);
+			if(getCity())
+			{
+				pm.insert(
+					prefix + StopAreaTableSync::TABLE_COL_CITYID,
+					getCity()->get<Key>()
+				);
+			}
+			pm.insert(
+				prefix + StopAreaTableSync::TABLE_COL_CONNECTIONTYPE,
+				getAllowedConnection()
+			);
+			pm.insert(
+				prefix + StopAreaTableSync::TABLE_COL_ISCITYMAINCONNECTION,
+				getCity() ? getCity()->includes(*this) : false
+			);
+			pm.insert(
+				prefix + StopAreaTableSync::TABLE_COL_DEFAULTTRANSFERDELAY,
+				getDefaultTransferDelay().total_seconds() / 60
+			);
+			pm.insert(
+				prefix + StopAreaTableSync::TABLE_COL_TRANSFERDELAYS,
+				StopArea::SerializeTransferDelaysMatrix(getTransferDelays())
+			);
+			pm.insert(
+				prefix + StopAreaTableSync::COL_NAME13,
+				getName13()
+			);
+			pm.insert(
+				prefix + StopAreaTableSync::COL_NAME26,
+				getName26()
+			);
+			pm.insert(
+				prefix + StopAreaTableSync::COL_CODE_BY_SOURCE,
+				impex::DataSourceLinks::Serialize(getDataSourceLinks())
+			);
+			pm.insert(
+				prefix + StopAreaTableSync::COL_TIMETABLE_NAME,
+				getTimetableName()
+			);
+			pm.insert(
+				prefix + StopAreaTableSync::COL_HANDICAPPED_COMPLIANCE_ID,
+				(	(getRule(USER_HANDICAPPED) && dynamic_cast<const PTUseRule*>(getRule(USER_HANDICAPPED))) ?
+					static_cast<const PTUseRule*>(getRule(USER_HANDICAPPED))->getKey() :
+					RegistryKeyType(0)
+			)	);
+			if(getLocation())
+			{
+				pm.insert(
+					prefix + TABLE_COL_GEOMETRY,
+					static_pointer_cast<Geometry,Point>(getLocation())
+				);
+			}
+
 			pm.insert(prefix + DATA_STOP_ID, getKey());
-			pm.insert(prefix + "id", getKey()); // For StopAreasList compatibility
 			pm.insert(prefix + DATA_STOP_NAME, getName());
 			pm.insert(prefix + "name", getName()); // For StopAreasList compatibility
 			pm.insert(prefix + DATA_STOP_NAME_13, getName13());
@@ -539,7 +597,6 @@ namespace synthese
 			pm.insert(prefix + DATA_STOP_NAME_FOR_TIMETABLES, getTimetableName());
 			if(getCity())
 			{
-				pm.insert(prefix + DATA_CITY_ID, getCity()->getKey());
 				pm.insert(prefix + "cityId", getCity()->getKey()); // For StopAreasList compatibility
 				pm.insert(prefix + DATA_CITY_NAME, getCity()->getName());
 				pm.insert(prefix + "cityName", getCity()->getName()); // For StopAreasList compatibility
@@ -552,12 +609,12 @@ namespace synthese
 				{
 					stringstream s;
 					s << std::fixed << pg->getX();
-					pm.insert(prefix + DATA_X, s.str());
+					pm.insert(prefix + StopAreaTableSync::COL_X, s.str());
 				}
 				{
 					stringstream s;
 					s << std::fixed << pg->getY();
-					pm.insert(prefix + DATA_Y, s.str());
+					pm.insert(prefix + StopAreaTableSync::COL_Y, s.str());
 				}
 				pm.setGeometry(static_pointer_cast<Geometry,Point>(getPoint()));
 			}
@@ -910,5 +967,28 @@ namespace synthese
 				r.push_back(const_cast<StopPoint*>(stop.second));
 			}
 			return r;
+		}
+
+
+
+		std::string StopArea::SerializeTransferDelaysMatrix( const TransferDelaysMap& matrix )
+		{
+			stringstream delays;
+			bool first(true);
+			BOOST_FOREACH(const StopArea::TransferDelaysMap::value_type& td, matrix)
+			{
+				if(!first) delays << ",";
+				delays << td.first.first << ":" << td.first.second << ":";
+				if(td.second.is_not_a_date_time())
+				{
+					delays << StopAreaTableSync::FORBIDDEN_DELAY_SYMBOL;
+				}
+				else
+				{
+					delays << (td.second.total_seconds() / 60);
+				}
+				first = false;
+			}
+			return delays.str();
 		}
 }	}

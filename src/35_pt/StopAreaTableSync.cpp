@@ -152,23 +152,7 @@ namespace synthese
 			query.addField(object->getDefaultTransferDelay().total_seconds() / 60);
 
 			// Transfer delay matrix
-			stringstream delays;
-			bool first(true);
-			BOOST_FOREACH(const StopArea::TransferDelaysMap::value_type& td, object->getTransferDelays())
-			{
-				if(!first) delays << ",";
-				delays << td.first.first << ":" << td.first.second << ":";
-				if(td.second.is_not_a_date_time())
-				{
-					delays << StopAreaTableSync::FORBIDDEN_DELAY_SYMBOL;
-				}
-				else
-				{
-					delays << (td.second.total_seconds() / 60);
-				}
-				first = false;
-			}
-			query.addField(delays.str());
+			query.addField(StopArea::SerializeTransferDelaysMatrix(object->getTransferDelays()));
 
 			// Name 13
 			query.addField(object->getName13());

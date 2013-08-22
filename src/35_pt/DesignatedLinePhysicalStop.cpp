@@ -22,10 +22,19 @@
 
 #include "DesignatedLinePhysicalStop.hpp"
 
+#include "JourneyPattern.hpp"
+#include "LineStopTableSync.h"
+#include "StopPoint.hpp"
+
+#include <geos/geom/LineString.h>
+
+using namespace boost;
 using namespace std;
 
 namespace synthese
 {
+	using namespace db;
+	
 	namespace pt
 	{
 		DesignatedLinePhysicalStop::DesignatedLinePhysicalStop(
@@ -43,4 +52,54 @@ namespace synthese
 			_scheduleInput(scheduleInput),
 			_reservationNeeded(reservationNeeded)
 		{}
+
+
+
+		void DesignatedLinePhysicalStop::toParametersMap( util::ParametersMap& pm, bool withAdditionalParameters, boost::logic::tribool withFiles /*= boost::logic::indeterminate*/, std::string prefix /*= std::string() */ ) const
+		{
+			if(!getPhysicalStop()) throw Exception("Linestop save error. Missing physical stop");
+			if(!getLine()) throw Exception("Linestop Save error. Missing line");
+
+			pm.insert(TABLE_COL_ID, getKey());
+			pm.insert(
+				LineStopTableSync::COL_PHYSICALSTOPID,
+				getPhysicalStop()->getKey()
+			);
+			pm.insert(
+				LineStopTableSync::COL_LINEID,
+				getLine()->getKey()
+			);
+			pm.insert(
+				LineStopTableSync::COL_RANKINPATH,
+				getRankInPath()
+			);
+			pm.insert(
+				LineStopTableSync::COL_ISDEPARTURE,
+				isDepartureAllowed()
+			);
+			pm.insert(
+				LineStopTableSync::COL_ISARRIVAL,
+				isArrivalAllowed()
+			);
+			pm.insert(
+				LineStopTableSync::COL_METRICOFFSET,
+				getMetricOffset()
+			);
+			pm.insert(
+				LineStopTableSync::COL_SCHEDULEINPUT,
+				getScheduleInput()
+			);
+			pm.insert(
+				LineStopTableSync::COL_INTERNAL_SERVICE,
+				false
+			);
+			pm.insert(
+				LineStopTableSync::COL_RESERVATION_NEEDED,
+				getReservationNeeded()
+			);
+			pm.insert(
+				TABLE_COL_GEOMETRY,
+				static_pointer_cast<geos::geom::Geometry, geos::geom::LineString>(getGeometry())
+			);
+		}
 }	}

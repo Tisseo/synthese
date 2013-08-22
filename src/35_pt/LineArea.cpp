@@ -21,11 +21,15 @@
 */
 
 #include "LineArea.hpp"
+
 #include "AreaGeneratedLineStop.hpp"
 #include "DRTArea.hpp"
+#include "JourneyPattern.hpp"
+#include "LineStopTableSync.h"
 #include "StopArea.hpp"
 
 #include <boost/foreach.hpp>
+#include <geos/geom/LineString.h>
 
 using namespace std;
 using namespace boost;
@@ -33,10 +37,9 @@ using namespace boost;
 
 namespace synthese
 {
+	using namespace db;
 	using namespace graph;
 	using namespace util;
-
-
 
 	namespace pt
 	{
@@ -138,5 +141,53 @@ namespace synthese
 				result.push_back(generatedLineStop.get());
 			}
 			return result;
+		}
+
+		void LineArea::toParametersMap( util::ParametersMap& pm, bool withAdditionalParameters, boost::logic::tribool withFiles /*= boost::logic::indeterminate*/, std::string prefix /*= std::string() */ ) const
+		{
+			if(!getArea()) throw Exception("LineArea save error. Missing physical stop");
+			if(!getLine()) throw Exception("LineArea Save error. Missing line");
+
+			pm.insert(TABLE_COL_ID, getKey());
+			pm.insert(
+				LineStopTableSync::COL_PHYSICALSTOPID,
+				getArea()->getKey()
+			);
+			pm.insert(
+				LineStopTableSync::COL_LINEID,
+				getLine()->getKey()
+			);
+			pm.insert(
+				LineStopTableSync::COL_RANKINPATH,
+				getRankInPath()
+			);
+			pm.insert(
+				LineStopTableSync::COL_ISDEPARTURE,
+				isDepartureAllowed()
+			);
+			pm.insert(
+				LineStopTableSync::COL_ISARRIVAL,
+				isArrivalAllowed()
+			);
+			pm.insert(
+				LineStopTableSync::COL_METRICOFFSET,
+				getMetricOffset()
+			);
+			pm.insert(
+				LineStopTableSync::COL_SCHEDULEINPUT,
+				true
+			);
+			pm.insert(
+				LineStopTableSync::COL_INTERNAL_SERVICE,
+				getInternalService()
+			);
+			pm.insert(
+				TABLE_COL_GEOMETRY,
+				static_pointer_cast<geos::geom::Geometry, geos::geom::LineString>(getGeometry())
+			);
+			pm.insert(
+				LineStopTableSync::COL_RESERVATION_NEEDED,
+				true
+			);
 		}
 }	}

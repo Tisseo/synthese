@@ -165,13 +165,10 @@ namespace synthese
 		public:
 			static const std::string DATA_STOP_ID;
 			static const std::string DATA_STOP_NAME;
-			static const std::string DATA_CITY_ID;
 			static const std::string DATA_CITY_NAME;
 			static const std::string DATA_STOP_NAME_13;
 			static const std::string DATA_STOP_NAME_26;
 			static const std::string DATA_STOP_NAME_FOR_TIMETABLES;
-			static const std::string DATA_X;
-			static const std::string DATA_Y;
 
 			struct Vector:
 				public PointersVectorField<Vector, StopArea>
@@ -429,6 +426,8 @@ namespace synthese
 				);
 
 				virtual SubObjects getSubObjects() const;
+
+				static std::string SerializeTransferDelaysMatrix(const TransferDelaysMap& matrix);
 			//@}
 		};
 }	}

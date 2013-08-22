@@ -432,7 +432,7 @@ namespace synthese
 				os << "<longLatType>" << (ps.hasGeometry() ? _getTridentFromSRID(wgs84ps->getSRID()) : "WGS84") << "</longLatType>" << "\n";
 
 				// we do not provide full addresses right now.
-				os << "<address><countryCode>" << ps.getConnectionPlace()->getCity()->getCode() << "</countryCode></address>";
+				os << "<address><countryCode>" << ps.getConnectionPlace()->getCity()->get<Code>() << "</countryCode></address>";
 
 				if(ps.hasGeometry())
 				{
@@ -641,7 +641,7 @@ namespace synthese
 				os << "<latitude>" << (ps->hasGeometry() ? wgs84ps->getY() : 0) << "</latitude>" << "\n";
 				os << "<longLatType>" << (ps->hasGeometry() ? _getTridentFromSRID(wgs84ps->getSRID()) : "WGS84") << "</longLatType>" << "\n";
 
-				os << "<address><countryCode>" << ps->getConnectionPlace()->getCity()->getCode() << "</countryCode></address>";
+				os << "<address><countryCode>" << ps->getConnectionPlace()->getCity()->get<Code>() << "</countryCode></address>";
 
 				if(ps->hasGeometry())
 				{

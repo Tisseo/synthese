@@ -158,6 +158,14 @@ namespace synthese
 					util::Env& env
 				);
 
+
+				virtual void toParametersMap(
+					util::ParametersMap& map,
+					bool withAdditionalParameters,
+					boost::logic::tribool withFiles = boost::logic::indeterminate,
+					std::string prefix = std::string()
+				) const;
+
 				
 				virtual SubObjects getSubObjects() const;
 			//@}

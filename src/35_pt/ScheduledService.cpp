@@ -25,6 +25,8 @@
 #include "AccessParameters.h"
 #include "CalendarLink.hpp"
 #include "CommercialLine.h"
+#include "DataSourceLinksField.hpp"
+#include "DBConstants.h"
 #include "Edge.h"
 #include "Path.h"
 #include "Registry.h"
@@ -46,6 +48,7 @@ using namespace boost::posix_time;
 namespace synthese
 {
 	using namespace calendar;
+	using namespace db;
 	using namespace impex;
 	using namespace util;
 	using namespace graph;
@@ -681,6 +684,95 @@ namespace synthese
 				r.push_back(link);
 			}
 			return r;
+		}
+
+		void ScheduledService::toParametersMap( util::ParametersMap& map, bool withAdditionalParameters, boost::logic::tribool withFiles /*= boost::logic::indeterminate*/, std::string prefix /*= std::string() */ ) const
+		{
+			Service::toParametersMap(map, withAdditionalParameters, withFiles, prefix);
+
+			// Dates preparation
+			stringstream datesStr;
+			if(getCalendarLinks().empty())
+			{
+				serialize(datesStr);
+			}
+
+			map.insert(TABLE_COL_ID, getKey());
+			map.insert(ScheduledServiceTableSync::COL_SERVICENUMBER, getServiceNumber());
+			map.insert(ScheduledServiceTableSync::COL_SCHEDULES, encodeSchedules());
+			map.insert(
+				ScheduledServiceTableSync::COL_PATHID, 
+				getPath() ? getPath()->getKey() : 0
+			);
+			map.insert(
+				ScheduledServiceTableSync::COL_BIKECOMPLIANCEID,
+				(	getRule(USER_BIKE) && dynamic_cast<const PTUseRule*>(getRule(USER_BIKE)) ?
+					static_cast<const PTUseRule*>(getRule(USER_BIKE))->getKey() :
+					RegistryKeyType(0)
+			)	);
+			map.insert(
+				ScheduledServiceTableSync::COL_HANDICAPPEDCOMPLIANCEID,
+				(	getRule(USER_HANDICAPPED) && dynamic_cast<const PTUseRule*>(getRule(USER_HANDICAPPED)) ?
+					static_cast<const PTUseRule*>(getRule(USER_HANDICAPPED))->getKey() :
+					RegistryKeyType(0)
+			)	);
+			map.insert(
+				ScheduledServiceTableSync::COL_PEDESTRIANCOMPLIANCEID,
+				(	getRule(USER_PEDESTRIAN) && dynamic_cast<const PTUseRule*>(getRule(USER_PEDESTRIAN)) ?
+					static_cast<const PTUseRule*>(getRule(USER_PEDESTRIAN))->getKey() :
+					RegistryKeyType(0)
+			)	);
+			map.insert(ScheduledServiceTableSync::COL_TEAM, getTeam());
+			map.insert(ScheduledServiceTableSync::COL_DATES, datesStr.str());
+			map.insert(ScheduledServiceTableSync::COL_STOPS, encodeStops());
+			map.insert(
+				ScheduledServiceTableSync::COL_DATASOURCE_LINKS,
+				synthese::DataSourceLinks::Serialize(getDataSourceLinks())
+			);
+
+			// Dates to force
+			{
+				stringstream s;
+				bool first(true);
+				BOOST_FOREACH(const date& d, getDatesToForce())
+				{
+					if(first)
+					{
+						first = false;
+					}
+					else
+					{
+						s << ",";
+					}
+					s << to_iso_extended_string(d);
+				}
+				map.insert(
+					ScheduledServiceTableSync::COL_DATES_TO_FORCE,
+					s.str()
+				);
+			}
+
+			// Dates to bypass
+			{
+				stringstream s;
+				bool first(true);
+				BOOST_FOREACH(const date& d, getDatesToBypass())
+				{
+					if(first)
+					{
+						first = false;
+					}
+					else
+					{
+						s << ",";
+					}
+					s << to_iso_extended_string(d);
+				}
+				map.insert(
+					ScheduledServiceTableSync::COL_DATES_TO_BYPASS,
+					s.str()
+				);
+			}
 		}
 	}
 }
