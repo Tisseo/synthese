@@ -240,83 +240,83 @@ namespace synthese
 				optionalReservationPlaces << place->getKey();
 			}
 
-			pm.insert(TABLE_COL_ID, getKey());
+			pm.insert(prefix + TABLE_COL_ID, getKey());
 			pm.insert(
-				CommercialLineTableSync::COL_NETWORK_ID,
+				prefix + CommercialLineTableSync::COL_NETWORK_ID,
 				_getParent() ? _getParent()->getKey() : RegistryKeyType(0)
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_NAME,
+				prefix + CommercialLineTableSync::COL_NAME,
 				getName()
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_SHORT_NAME,
+				prefix + CommercialLineTableSync::COL_SHORT_NAME,
 				getShortName()
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_LONG_NAME,
+				prefix + CommercialLineTableSync::COL_LONG_NAME,
 				getLongName()
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_COLOR,
+				prefix + CommercialLineTableSync::COL_COLOR,
 				getColor() ? getColor()->toXMLColor() : string()
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_STYLE,
+				prefix + CommercialLineTableSync::COL_STYLE,
 				getStyle()
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_IMAGE,
+				prefix + CommercialLineTableSync::COL_IMAGE,
 				getImage()
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_OPTIONAL_RESERVATION_PLACES,
+				prefix + CommercialLineTableSync::COL_OPTIONAL_RESERVATION_PLACES,
 				optionalReservationPlaces.str()
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_CREATOR_ID,
+				prefix + CommercialLineTableSync::COL_CREATOR_ID,
 				synthese::DataSourceLinks::Serialize(getDataSourceLinks())
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_BIKE_USE_RULE,
+				prefix + CommercialLineTableSync::COL_BIKE_USE_RULE,
 				(	getRule(USER_BIKE) && dynamic_cast<const PTUseRule*>(getRule(USER_BIKE)) ?
 					static_cast<const PTUseRule*>(getRule(USER_BIKE))->getKey() :
 					RegistryKeyType(0)
 			)	);
 			pm.insert(
-				CommercialLineTableSync::COL_HANDICAPPED_USE_RULE,
+				prefix + CommercialLineTableSync::COL_HANDICAPPED_USE_RULE,
 				(	getRule(USER_HANDICAPPED) && dynamic_cast<const PTUseRule*>(getRule(USER_HANDICAPPED)) ?
 					static_cast<const PTUseRule*>(getRule(USER_HANDICAPPED))->getKey() :
 					RegistryKeyType(0)
 			)	);
 			pm.insert(
-				CommercialLineTableSync::COL_PEDESTRIAN_USE_RULE,
+				prefix + CommercialLineTableSync::COL_PEDESTRIAN_USE_RULE,
 				(	getRule(USER_PEDESTRIAN) && dynamic_cast<const PTUseRule*>(getRule(USER_PEDESTRIAN)) ?
 					static_cast<const PTUseRule*>(getRule(USER_PEDESTRIAN))->getKey() :
 					RegistryKeyType(0)
 			)	);
 			pm.insert(
-				CommercialLineTableSync::COL_RESERVATION_CONTACT_ID,
+				prefix + CommercialLineTableSync::COL_RESERVATION_CONTACT_ID,
 				getReservationContact() ? getReservationContact()->getKey() : RegistryKeyType(0)
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_CALENDAR_TEMPLATE_ID,
+				prefix + CommercialLineTableSync::COL_CALENDAR_TEMPLATE_ID,
 				getCalendarTemplate() ? getCalendarTemplate()->getKey() : RegistryKeyType(0)
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_MAP_URL,
+				prefix + CommercialLineTableSync::COL_MAP_URL,
 				getMapURL()
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_DOC_URL,
+				prefix + CommercialLineTableSync::COL_DOC_URL,
 				getDocURL()
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_TIMETABLE_ID,
+				prefix + CommercialLineTableSync::COL_TIMETABLE_ID,
 				getTimetableId()
 			);
 			pm.insert(
-				CommercialLineTableSync::COL_DISPLAY_DURATION_BEFORE_FIRST_DEPARTURE,
+				prefix + CommercialLineTableSync::COL_DISPLAY_DURATION_BEFORE_FIRST_DEPARTURE,
 				(	getDisplayDurationBeforeFirstDeparture().is_not_a_date_time() ?
 					string() :
 					lexical_cast<string>(getDisplayDurationBeforeFirstDeparture().total_seconds() / 60)

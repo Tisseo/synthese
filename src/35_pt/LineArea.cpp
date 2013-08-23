@@ -148,45 +148,45 @@ namespace synthese
 			if(!getArea()) throw Exception("LineArea save error. Missing physical stop");
 			if(!getLine()) throw Exception("LineArea Save error. Missing line");
 
-			pm.insert(TABLE_COL_ID, getKey());
+			pm.insert(prefix + TABLE_COL_ID, getKey());
 			pm.insert(
-				LineStopTableSync::COL_PHYSICALSTOPID,
+				prefix + LineStopTableSync::COL_PHYSICALSTOPID,
 				getArea()->getKey()
 			);
 			pm.insert(
-				LineStopTableSync::COL_LINEID,
+				prefix + LineStopTableSync::COL_LINEID,
 				getLine()->getKey()
 			);
 			pm.insert(
-				LineStopTableSync::COL_RANKINPATH,
+				prefix + LineStopTableSync::COL_RANKINPATH,
 				getRankInPath()
 			);
 			pm.insert(
-				LineStopTableSync::COL_ISDEPARTURE,
+				prefix + LineStopTableSync::COL_ISDEPARTURE,
 				isDepartureAllowed()
 			);
 			pm.insert(
-				LineStopTableSync::COL_ISARRIVAL,
+				prefix + LineStopTableSync::COL_ISARRIVAL,
 				isArrivalAllowed()
 			);
 			pm.insert(
-				LineStopTableSync::COL_METRICOFFSET,
+				prefix + LineStopTableSync::COL_METRICOFFSET,
 				getMetricOffset()
 			);
 			pm.insert(
-				LineStopTableSync::COL_SCHEDULEINPUT,
+				prefix + LineStopTableSync::COL_SCHEDULEINPUT,
 				true
 			);
 			pm.insert(
-				LineStopTableSync::COL_INTERNAL_SERVICE,
+				prefix + LineStopTableSync::COL_INTERNAL_SERVICE,
 				getInternalService()
 			);
 			pm.insert(
-				TABLE_COL_GEOMETRY,
+				prefix + TABLE_COL_GEOMETRY,
 				static_pointer_cast<geos::geom::Geometry, geos::geom::LineString>(getGeometry())
 			);
 			pm.insert(
-				LineStopTableSync::COL_RESERVATION_NEEDED,
+				prefix + LineStopTableSync::COL_RESERVATION_NEEDED,
 				true
 			);
 		}

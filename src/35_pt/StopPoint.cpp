@@ -235,12 +235,12 @@ namespace synthese
 			std::string prefix /*= std::string() */
 		) const	{
 
-			pm.insert(TABLE_COL_ID, getKey());
-			pm.insert(StopPointTableSync::COL_NAME, getName());
+			pm.insert(prefix + TABLE_COL_ID, getKey());
+			pm.insert(prefix + StopPointTableSync::COL_NAME, getName());
 
 			// Stop area
 			pm.insert(
-				StopPointTableSync::COL_PLACEID,
+				prefix + StopPointTableSync::COL_PLACEID,
 				(	dynamic_cast<const StopArea*>(getHub()) ?
 					dynamic_cast<const StopArea*>(getHub())->getKey() :
 					RegistryKeyType(0)
@@ -250,29 +250,29 @@ namespace synthese
 			if(hasGeometry())
 			{
 				pm.insert(
-					StopPointTableSync::COL_X,
+					prefix + StopPointTableSync::COL_X,
 					getGeometry()->getX()
 				);
 				pm.insert(
-					StopPointTableSync::COL_Y,
+					prefix + StopPointTableSync::COL_Y,
 					getGeometry()->getY()
 				);
 			}
 			else
 			{
 				pm.insert(
-					StopPointTableSync::COL_X,
+					prefix + StopPointTableSync::COL_X,
 					string()
 				);
 				pm.insert(
-					StopPointTableSync::COL_Y,
+					prefix + StopPointTableSync::COL_Y,
 					string()
 				);
 			}
 
 			// Data source links
 			pm.insert(
-				StopPointTableSync::COL_OPERATOR_CODE,
+				prefix + StopPointTableSync::COL_OPERATOR_CODE,
 				synthese::DataSourceLinks::Serialize(getDataSourceLinks())
 			);
 
@@ -280,29 +280,29 @@ namespace synthese
 			if(getProjectedPoint().getRoadChunk())
 			{
 				pm.insert(
-					StopPointTableSync::COL_PROJECTED_ROAD_CHUNK_ID,
+					prefix + StopPointTableSync::COL_PROJECTED_ROAD_CHUNK_ID,
 					getProjectedPoint().getRoadChunk()->getKey()
 				);
 				pm.insert(
-					StopPointTableSync::COL_PROJECTED_METRIC_OFFSET,
+					prefix + StopPointTableSync::COL_PROJECTED_METRIC_OFFSET,
 					getProjectedPoint().getMetricOffset()
 				);
 			}
 			else
 			{
 				pm.insert(
-					StopPointTableSync::COL_PROJECTED_ROAD_CHUNK_ID,
+					prefix + StopPointTableSync::COL_PROJECTED_ROAD_CHUNK_ID,
 					string()
 				);
 				pm.insert(
-					StopPointTableSync::COL_PROJECTED_METRIC_OFFSET,
+					prefix + StopPointTableSync::COL_PROJECTED_METRIC_OFFSET,
 					string()
 				);
 			}
 
 			// Handicapped compliance
 			pm.insert(
-				StopPointTableSync::COL_HANDICAPPED_COMPLIANCE_ID,
+				prefix + StopPointTableSync::COL_HANDICAPPED_COMPLIANCE_ID,
 				(	getRule(USER_HANDICAPPED) && dynamic_cast<const PTUseRule*>(getRule(USER_HANDICAPPED)) ?
 					static_cast<const PTUseRule*>(getRule(USER_HANDICAPPED))->getKey() :
 					RegistryKeyType(0)
@@ -312,28 +312,28 @@ namespace synthese
 			if(hasGeometry())
 			{
 				pm.insert(
-					TABLE_COL_GEOMETRY,
+					prefix + TABLE_COL_GEOMETRY,
 					static_pointer_cast<geos::geom::Geometry, Point>(getGeometry())
 				);
 			}
 			else
 			{
 				pm.insert(
-					TABLE_COL_GEOMETRY,
+					prefix + TABLE_COL_GEOMETRY,
 					string()
 				);
 			}
 
-			pm.insert(DATA_ID, getKey());
-			pm.insert(DATA_NAME, getName());
+			pm.insert(prefix + DATA_ID, getKey());
+			pm.insert(prefix + DATA_NAME, getName());
 			pm.insert(
-				StopPointTableSync::COL_PLACEID,
+				prefix + StopPointTableSync::COL_PLACEID,
 				(	dynamic_cast<const StopArea*>(getHub()) ?
 					dynamic_cast<const StopArea*>(getHub())->getKey() :
 					RegistryKeyType(0)
 			)	);
 			pm.insert(
-				StopPointTableSync::COL_OPERATOR_CODE,
+				prefix + StopPointTableSync::COL_OPERATOR_CODE,
 				impex::DataSourceLinks::Serialize(getDataSourceLinks())
 			);
 
@@ -341,29 +341,29 @@ namespace synthese
 			if(getProjectedPoint().getRoadChunk())
 			{
 				pm.insert(
-					StopPointTableSync::COL_PROJECTED_ROAD_CHUNK_ID, 
+					prefix + StopPointTableSync::COL_PROJECTED_ROAD_CHUNK_ID, 
 					getProjectedPoint().getRoadChunk()->getKey()
 				);
 				pm.insert(
-					StopPointTableSync::COL_PROJECTED_METRIC_OFFSET,
+					prefix + StopPointTableSync::COL_PROJECTED_METRIC_OFFSET,
 					getProjectedPoint().getMetricOffset()
 				);
 			}
 			else
 			{
 				pm.insert(
-					StopPointTableSync::COL_PROJECTED_ROAD_CHUNK_ID, 
+					prefix + StopPointTableSync::COL_PROJECTED_ROAD_CHUNK_ID, 
 					0
 				);
 				pm.insert(
-					StopPointTableSync::COL_PROJECTED_METRIC_OFFSET,
+					prefix + StopPointTableSync::COL_PROJECTED_METRIC_OFFSET,
 					0
 				);
 			}
 
 			// Handicapped compliance
 			pm.insert(
-				StopPointTableSync::COL_HANDICAPPED_COMPLIANCE_ID,
+				prefix + StopPointTableSync::COL_HANDICAPPED_COMPLIANCE_ID,
 				(	getRule(USER_HANDICAPPED) && dynamic_cast<const PTUseRule*>(getRule(USER_HANDICAPPED)) ?
 					static_cast<const PTUseRule*>(getRule(USER_HANDICAPPED))->getKey() :
 					RegistryKeyType(0)
@@ -372,23 +372,23 @@ namespace synthese
 			// Geometry
 			if(hasGeometry())
 			{
-				pm.insert(TABLE_COL_GEOMETRY, static_pointer_cast<Geometry,Point>(getGeometry()));
+				pm.insert(prefix + TABLE_COL_GEOMETRY, static_pointer_cast<Geometry,Point>(getGeometry()));
 			}
 			else
 			{
-				pm.insert(TABLE_COL_GEOMETRY, string());
+				pm.insert(prefix + TABLE_COL_GEOMETRY, string());
 			}
 
 
 
-			pm.insert(DATA_OPERATOR_CODE, getCodeBySources());
+			pm.insert(prefix + DATA_OPERATOR_CODE, getCodeBySources());
 			if(getGeometry().get())
 			{
 				boost::shared_ptr<Point> gp = coordinatesSystem.convertPoint(*getGeometry());
 				if(gp.get())
 				{
-					pm.insert(DATA_X, gp->getX());
-					pm.insert(DATA_Y, gp->getY());
+					pm.insert(prefix + DATA_X, gp->getX());
+					pm.insert(prefix + DATA_Y, gp->getY());
 				}
 			}
 

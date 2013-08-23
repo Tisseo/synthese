@@ -82,18 +82,18 @@ namespace synthese
 			std::string prefix
 		) const	{
 
-			pm.insert(TABLE_COL_ID, getKey());
-			pm.insert(TransportNetworkTableSync::COL_NAME, getName());
+			pm.insert(prefix + TABLE_COL_ID, getKey());
+			pm.insert(prefix + TransportNetworkTableSync::COL_NAME, getName());
 			pm.insert(
-				TransportNetworkTableSync::COL_CREATOR_ID, 
+				prefix + TransportNetworkTableSync::COL_CREATOR_ID, 
 				synthese::DataSourceLinks::Serialize(getDataSourceLinks())
 			);
 			pm.insert(
-				TransportNetworkTableSync::COL_DAYS_CALENDARS_PARENT_ID,
+				prefix + TransportNetworkTableSync::COL_DAYS_CALENDARS_PARENT_ID,
 				getDaysCalendarsParent() ? getDaysCalendarsParent()->getKey() : RegistryKeyType(0)
 			);
 			pm.insert(
-				TransportNetworkTableSync::COL_PERIODS_CALENDARS_PARENT_ID,
+				prefix + TransportNetworkTableSync::COL_PERIODS_CALENDARS_PARENT_ID,
 				getPeriodsCalendarsParent() ? getPeriodsCalendarsParent()->getKey() : RegistryKeyType(0)
 			);
 

@@ -483,70 +483,70 @@ namespace synthese
 				);
 			}
 
-			pm.insert(TABLE_COL_ID, getKey());
+			pm.insert(prefix + TABLE_COL_ID, getKey());
 			pm.insert(
-				JourneyPatternTableSync::COL_COMMERCIAL_LINE_ID,
+				prefix + JourneyPatternTableSync::COL_COMMERCIAL_LINE_ID,
 				getCommercialLine()->getKey()
 			);
 			pm.insert(
-				JourneyPatternTableSync::COL_NAME,
+				prefix + JourneyPatternTableSync::COL_NAME,
 				getName()
 			);
 			pm.insert(
-				JourneyPatternTableSync::COL_TIMETABLENAME,
+				prefix + JourneyPatternTableSync::COL_TIMETABLENAME,
 				getTimetableName()
 			);
 			pm.insert(
-				JourneyPatternTableSync::COL_DIRECTION,
+				prefix + JourneyPatternTableSync::COL_DIRECTION,
 				getDirection()
 			);
 			pm.insert(
-				JourneyPatternTableSync::COL_DIRECTION_ID,
+				prefix + JourneyPatternTableSync::COL_DIRECTION_ID,
 				getDirectionObj() ? getDirectionObj()->getKey() : RegistryKeyType(0)
 			);
 			pm.insert(
-				JourneyPatternTableSync::COL_ISWALKINGLINE,
+				prefix + JourneyPatternTableSync::COL_ISWALKINGLINE,
 				getWalkingLine()
 			);
 			pm.insert(
-				JourneyPatternTableSync::COL_ROLLINGSTOCKID,
+				prefix + JourneyPatternTableSync::COL_ROLLINGSTOCKID,
 				getRollingStock() ? getRollingStock()->getKey() : RegistryKeyType(0)
 			);
 			pm.insert(
-				JourneyPatternTableSync::COL_BIKECOMPLIANCEID,
+				prefix + JourneyPatternTableSync::COL_BIKECOMPLIANCEID,
 				(	getRule(USER_BIKE) && dynamic_cast<const PTUseRule*>(getRule(USER_BIKE)) ?
 					static_cast<const PTUseRule*>(getRule(USER_BIKE))->getKey() :
 					RegistryKeyType(0)
 			)	);
 			pm.insert(
-				JourneyPatternTableSync::COL_HANDICAPPEDCOMPLIANCEID,
+				prefix + JourneyPatternTableSync::COL_HANDICAPPEDCOMPLIANCEID,
 				(	getRule(USER_HANDICAPPED) && dynamic_cast<const PTUseRule*>(getRule(USER_HANDICAPPED)) ?
 					static_cast<const PTUseRule*>(getRule(USER_HANDICAPPED))->getKey() :
 					RegistryKeyType(0)
 			)	);
 			pm.insert(
-				JourneyPatternTableSync::COL_PEDESTRIANCOMPLIANCEID,
+				prefix + JourneyPatternTableSync::COL_PEDESTRIANCOMPLIANCEID,
 				(	getRule(USER_PEDESTRIAN) && dynamic_cast<const PTUseRule*>(getRule(USER_PEDESTRIAN)) ?
 					static_cast<const PTUseRule*>(getRule(USER_PEDESTRIAN))->getKey() :
 					RegistryKeyType(0)
 			)	);
 			pm.insert(
-				JourneyPatternTableSync::COL_WAYBACK,
+				prefix + JourneyPatternTableSync::COL_WAYBACK,
 				getWayBack()
 			);
 			pm.insert(
-				JourneyPatternTableSync::COL_DATASOURCE_ID,
+				prefix + JourneyPatternTableSync::COL_DATASOURCE_ID,
 				synthese::DataSourceLinks::Serialize(getDataSourceLinks())
 			);
 			pm.insert(
-				JourneyPatternTableSync::COL_MAIN,
+				prefix + JourneyPatternTableSync::COL_MAIN,
 				getMain()
 			);
 			pm.insert(
-				JourneyPatternTableSync::COL_PLANNED_LENGTH,
+				prefix + JourneyPatternTableSync::COL_PLANNED_LENGTH,
 				getPlannedLength()
 			);
-			pm.insert(ATTR_DIRECTION_TEXT, _direction);
+			pm.insert(prefix + ATTR_DIRECTION_TEXT, _direction);
 		}
 
 
