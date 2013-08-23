@@ -24,6 +24,8 @@
 
 #include "CalendarTemplateTableSync.h"
 #include "CommercialLineTableSync.h"
+#include "DataSourceLinksField.hpp"
+#include "DBConstants.h"
 #include "ImportableTableSync.hpp"
 #include "ParametersMap.h"
 #include "TransportNetworkTableSync.h"
@@ -33,6 +35,7 @@ using namespace std;
 namespace synthese
 {
 	using namespace calendar;
+	using namespace db;
 	using namespace util;
 	using namespace graph;
 	using namespace impex;
@@ -78,6 +81,22 @@ namespace synthese
 			boost::logic::tribool withFiles,
 			std::string prefix
 		) const	{
+
+			pm.insert(TABLE_COL_ID, getKey());
+			pm.insert(TransportNetworkTableSync::COL_NAME, getName());
+			pm.insert(
+				TransportNetworkTableSync::COL_CREATOR_ID, 
+				synthese::DataSourceLinks::Serialize(getDataSourceLinks())
+			);
+			pm.insert(
+				TransportNetworkTableSync::COL_DAYS_CALENDARS_PARENT_ID,
+				getDaysCalendarsParent() ? getDaysCalendarsParent()->getKey() : RegistryKeyType(0)
+			);
+			pm.insert(
+				TransportNetworkTableSync::COL_PERIODS_CALENDARS_PARENT_ID,
+				getPeriodsCalendarsParent() ? getPeriodsCalendarsParent()->getKey() : RegistryKeyType(0)
+			);
+
 			pm.insert(prefix + DATA_NETWORK_ID, getKey());
 			pm.insert(prefix + DATA_NAME, getName());
 		}
