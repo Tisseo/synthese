@@ -84,11 +84,12 @@ namespace synthese
 
 
 		StopArea::StopArea(
-			util::RegistryKeyType id
-			, bool allowedConnection/*= CONNECTION_TYPE_FORBIDDEN */
-			, posix_time::time_duration defaultTransferDelay /*= FORBIDDEN_TRANSFER_DELAY  */
+			util::RegistryKeyType id,
+			bool allowedConnection, /*= CONNECTION_TYPE_FORBIDDEN */
+			posix_time::time_duration defaultTransferDelay /*= FORBIDDEN_TRANSFER_DELAY  */
 		):	Registrable(id),
 			NamedPlaceTemplate<StopArea>(),
+			_isMainPlaceOfCity(false),
 			_allowedConnection(allowedConnection),
 			_defaultTransferDelay(defaultTransferDelay)
 		{
@@ -420,34 +421,25 @@ namespace synthese
 
 
 
-		void StopArea::addTransferDelay(
+		void StopArea::_addTransferDelay(
+			TransferDelaysMap& map,
 			TransferDelaysMap::key_type::first_type fromVertex,
 			TransferDelaysMap::key_type::second_type toVertex,
 			boost::posix_time::time_duration transferDelay
 		){
 			assert(transferDelay >= minutes(0) && !transferDelay.is_not_a_date_time());
 
-			_transferDelays[std::make_pair (fromVertex, toVertex)] = transferDelay;
-			_minTransferDelay = posix_time::time_duration(not_a_date_time);
+			map[std::make_pair (fromVertex, toVertex)] = transferDelay;
 		}
 
 
 
-		void StopArea::addForbiddenTransferDelay(
+		void StopArea::_addForbiddenTransferDelay(
+			TransferDelaysMap& map,
 			TransferDelaysMap::key_type::first_type fromVertex,
 			TransferDelaysMap::key_type::second_type toVertex
 		){
-			_transferDelays[std::make_pair (fromVertex, toVertex)] = posix_time::time_duration(not_a_date_time);
-			_minTransferDelay = posix_time::time_duration(not_a_date_time);
-		}
-
-
-
-		void StopArea::clearTransferDelays()
-		{
-			_transferDelays.clear ();
-			_defaultTransferDelay = posix_time::time_duration(not_a_date_time);
-			_minTransferDelay = posix_time::time_duration(not_a_date_time);
+			map[std::make_pair (fromVertex, toVertex)] = posix_time::time_duration(not_a_date_time);
 		}
 
 
@@ -466,19 +458,6 @@ namespace synthese
 		{
 			_isoBarycentre.reset();
 			_physicalStops.erase(physicalStop.getKey());
-		}
-
-
-
-		void StopArea::removeTransferDelay( TransferDelaysMap::key_type::first_type departure, TransferDelaysMap::key_type::second_type arrival )
-		{
-			TransferDelaysMap::iterator it(
-				_transferDelays.find(std::make_pair (departure, arrival))
-			);
-			if(it != _transferDelays.end())
-			{
-				_transferDelays.erase(it);
-			}
 		}
 
 
@@ -548,7 +527,7 @@ namespace synthese
 			);
 			pm.insert(
 				prefix + StopAreaTableSync::TABLE_COL_ISCITYMAINCONNECTION,
-				getCity() ? getCity()->includes(*this) : false
+				_isMainPlaceOfCity
 			);
 			pm.insert(
 				prefix + StopAreaTableSync::TABLE_COL_DEFAULTTRANSFERDELAY,
@@ -749,7 +728,6 @@ namespace synthese
 				)	)	);
 				if(defaultTransferDelay != getDefaultTransferDelay())
 				{
-					clearTransferDelays();
 					setDefaultTransferDelay(defaultTransferDelay);
 					result = true;
 				}
@@ -774,6 +752,7 @@ namespace synthese
 				string transferDelaysStr(
 					record.get<string>(StopAreaTableSync::TABLE_COL_TRANSFERDELAYS)
 				);
+				TransferDelaysMap value;
 				typedef tokenizer<char_separator<char> > tokenizer;
 				char_separator<char> sep1 (",");
 				char_separator<char> sep2 (":");
@@ -790,22 +769,18 @@ namespace synthese
 					const string delay(*(++valueIter));
 					if(delay == StopAreaTableSync::FORBIDDEN_DELAY_SYMBOL)
 					{
-						if(isConnectionAllowed(startStop, endStop))
-						{
-							addForbiddenTransferDelay(startStop, endStop);
-							result = true;
-						}
+						_addForbiddenTransferDelay(value, startStop, endStop);
 					}
 					else
 					{
-						time_duration value(posix_time::minutes(lexical_cast<long>(delay)));
-						if(	!isConnectionAllowed(startStop, endStop) ||
-							getTransferDelay(startStop, endStop) != value)
-						{
-							addTransferDelay(startStop, endStop, value);
-							result = true;
-						}
+						time_duration duration(posix_time::minutes(lexical_cast<long>(delay)));
+						_addTransferDelay(value, startStop, endStop, duration);
 					}
+				}
+				if(value != _transferDelays)
+				{
+					setTransferDelaysMatrix(value);
+					result = true;
 				}
 			}
 
@@ -829,29 +804,17 @@ namespace synthese
 					if(value != getCity())
 					{
 						setCity(value);
-						value->addPlaceToMatcher(env.getEditableSPtr(this));
 						result = true;
 					}
 				}
 
 				// City main connexion
-				bool isCityMain();
 				if(record.isDefined(StopAreaTableSync::TABLE_COL_ISCITYMAINCONNECTION))
 				{
 					bool value(record.getDefault<bool>(StopAreaTableSync::TABLE_COL_ISCITYMAINCONNECTION, false));
-					if(value != (getCity() ? getCity()->includes(*this) : false))
+					if(value != _isMainPlaceOfCity)
 					{
-						if(getCity())
-						{
-							if (value)
-							{
-								const_cast<City*>(getCity())->addIncludedPlace(*this);
-							}
-							else
-							{
-								const_cast<City*>(getCity())->removeIncludedPlace(*this);
-							}
-						}
+						_isMainPlaceOfCity = value;
 						result = true;
 					}
 				}
@@ -912,26 +875,6 @@ namespace synthese
 					}
 				}
 
-				// Registration to all places matcher
-				if(	&env == &Env::GetOfficialEnv() &&
-					getCity()
-				){
-					GeographyModule::GetGeneralAllPlacesMatcher().add(
-						getFullName(),
-						env.getEditableSPtr(this)
-					);
-				}
-
-				// Registration to road places matcher
-				if(	&env == &Env::GetOfficialEnv() &&
-					getCity()
-				){
-					PTModule::GetGeneralStopsMatcher().add(
-						getFullName(),
-						env.getEditableSPtr(this)
-					);
-				}
-
 				// Data source links (at the end of the load to avoid registration of objects which are removed later by an exception)
 				if(record.isDefined(StopAreaTableSync::COL_CODE_BY_SOURCE))
 				{
@@ -950,6 +893,7 @@ namespace synthese
 						{
 							setDataSourceLinksWithoutRegistration(value);
 						}
+						result = true;
 					}
 				}
 //			}
@@ -990,5 +934,82 @@ namespace synthese
 				first = false;
 			}
 			return delays.str();
+		}
+
+
+
+		synthese::LinkedObjectsIds StopArea::getLinkedObjectsIds( const Record& record ) const
+		{
+			LinkedObjectsIds result;
+
+			// City Id
+			RegistryKeyType cityId(
+				record.getDefault<RegistryKeyType>(StopAreaTableSync::TABLE_COL_CITYID, 0)
+			);
+			if(cityId > 0)
+			{
+				result.push_back(cityId);
+			}
+
+			// Handicapped use rule
+			RegistryKeyType handicappedComplianceId(
+				record.getDefault<RegistryKeyType>(
+					StopAreaTableSync::COL_HANDICAPPED_COMPLIANCE_ID,
+					0
+			)	);
+			if(handicappedComplianceId > 0)
+			{
+				result.push_back(handicappedComplianceId);
+			}
+
+			return result;
+		}
+
+
+
+		void StopArea::link( util::Env& env, bool withAlgorithmOptimizations /*= false*/ )
+		{
+			if(getCity())
+			{
+				// Registration to city places matcher
+				getCity()->addPlaceToMatcher(env.getEditableSPtr(this));
+
+				if(	&env == &Env::GetOfficialEnv()
+				){
+					// Registration to all places matcher
+					GeographyModule::GetGeneralAllPlacesMatcher().add(
+						getFullName(),
+						env.getEditableSPtr(this)
+					);
+
+					// Registration to road places matcher
+					PTModule::GetGeneralStopsMatcher().add(
+						getFullName(),
+						env.getEditableSPtr(this)
+					);
+				}
+			}
+
+			if(&env == &Env::GetOfficialEnv())
+			{
+				setDataSourceLinksWithRegistration(getDataSourceLinks());
+			}
+
+			if (_isMainPlaceOfCity && getCity())
+			{
+				const_cast<City*>(getCity())->addIncludedPlace(*this);
+			}
+			else
+			{
+				const_cast<City*>(getCity())->removeIncludedPlace(*this);
+			}
+		}
+
+
+
+		void StopArea::setTransferDelaysMatrix( const TransferDelaysMap& value )
+		{
+			_transferDelays = value;
+			_minTransferDelay = posix_time::time_duration(not_a_date_time);
 		}
 }	}

@@ -698,7 +698,6 @@ namespace synthese
 						if(cline)
 						{
 							setNetwork(cline->getNetwork());
-							cline->addPath(this);
 						}
 						else
 						{
@@ -887,5 +886,18 @@ namespace synthese
 				_calendar = value;
 			}
 			return *_calendar;
+		}
+
+		synthese::LinkedObjectsIds JourneyPattern::getLinkedObjectsIds( const Record& record ) const
+		{
+			return LinkedObjectsIds();
+		}
+
+		void JourneyPattern::link( util::Env& env, bool withAlgorithmOptimizations /*= false*/ )
+		{
+			if(getCommercialLine())
+			{
+				const_cast<CommercialLine*>(getCommercialLine())->addPath(this);
+			}
 		}
 }	}

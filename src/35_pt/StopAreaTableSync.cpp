@@ -125,7 +125,15 @@ namespace synthese
 			Env& env,
 			LinkLevel linkLevel
 		){
+			if(linkLevel > util::FIELDS_ONLY_LOAD_LEVEL)
+			{
+				DBModule::LoadObjects(cp->getLinkedObjectsIds(*rows), env, linkLevel);
+			}
 			cp->loadFromRecord(*rows, env);
+			if(linkLevel > util::FIELDS_ONLY_LOAD_LEVEL)
+			{
+				cp->link(env, linkLevel == util::ALGORITHMS_OPTIMIZATION_LOAD_LEVEL);
+			}
 		}
 
 
@@ -205,13 +213,6 @@ namespace synthese
 		template<> void OldLoadSavePolicy<StopAreaTableSync,StopArea>::Unlink(
 			StopArea* cp
 		){
-			// Handicapped compliance
-			RuleUser::Rules rules(RuleUser::GetEmptyRules());
-			rules[USER_PEDESTRIAN - USER_CLASS_CODE_OFFSET] = AllowedUseRule::INSTANCE.get();
-			rules[USER_BIKE - USER_CLASS_CODE_OFFSET] = AllowedUseRule::INSTANCE.get();
-			rules[USER_HANDICAPPED - USER_CLASS_CODE_OFFSET] = ForbiddenUseRule::INSTANCE.get();
-			cp->setRules(rules);
-
 			// City
 			City* city(const_cast<City*>(cp->getCity()));
 			if (city != NULL)

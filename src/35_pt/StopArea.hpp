@@ -200,6 +200,7 @@ namespace synthese
 
 			//! @name Transfer parameters
 			//@{
+				bool					_isMainPlaceOfCity;
 				bool					_allowedConnection;
 				TransferDelaysMap		_transferDelays; //!< Transfer delays between vertices (in minutes)
 				boost::posix_time::time_duration	_defaultTransferDelay;
@@ -243,26 +244,22 @@ namespace synthese
 				void setTimetableName(const std::string& value){ _timetableName = value; }
 				void setAllowedConnection(bool value) { _allowedConnection = value; }
 				void setLocation(const boost::shared_ptr<geos::geom::Point>& value){ _location = value; }
+				void setTransferDelaysMatrix(const TransferDelaysMap& value);
 			//@}
 
 			//! @name Update methods.
 			//@{
 				void addPhysicalStop(const pt::StopPoint& physicalStop);
 
-				void addTransferDelay(
+				static void _addTransferDelay(
+					TransferDelaysMap& map,
 					TransferDelaysMap::key_type::first_type departure,
 					TransferDelaysMap::key_type::second_type arrival,
 					boost::posix_time::time_duration transferDelay
 				);
 
-				void addForbiddenTransferDelay(
-					TransferDelaysMap::key_type::first_type departure,
-					TransferDelaysMap::key_type::second_type arrival
-				);
-
-				void clearTransferDelays ();
-
-				void removeTransferDelay(
+				static void _addForbiddenTransferDelay(
+					TransferDelaysMap& map,
 					TransferDelaysMap::key_type::first_type departure,
 					TransferDelaysMap::key_type::second_type arrival
 				);
@@ -420,10 +417,16 @@ namespace synthese
 				/// Return true if StopArea is contained in a DRTArea
 				bool isInDRT() const;
 
+				virtual LinkedObjectsIds getLinkedObjectsIds(
+					const Record& record
+				) const;
+
 				virtual bool loadFromRecord(
 					const Record& record,
 					util::Env& env
 				);
+
+				virtual void link(util::Env& env, bool withAlgorithmOptimizations = false);
 
 				virtual SubObjects getSubObjects() const;
 

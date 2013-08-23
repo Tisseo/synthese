@@ -449,7 +449,6 @@ namespace synthese
 			}
 
 			// Path
-			bool pathUpdated(false);
 			if(record.isDefined(ScheduledServiceTableSync::COL_PATHID))
 			{
 				util::RegistryKeyType pathId(
@@ -469,7 +468,6 @@ namespace synthese
 						LineStopTableSync::Search(env, pathId);
 					}
 					result = true;
-					pathUpdated = true;
 				}
 			}
 
@@ -629,27 +627,6 @@ namespace synthese
 			}
 
 
-			// Registration in path
-			if( pathUpdated &&
-				getPath() &&
-				getPath()->getPathGroup())
-			{
-				getPath()->addService(
-					*this,
-					&env == &Env::GetOfficialEnv()
-				);
-				updatePathCalendar();
-			}
-
-			// Registration in the line
-//			if(linkLevel == ALGORITHMS_OPTIMIZATION_LOAD_LEVEL)
-			{
-				if(	pathUpdated &&
-					getRoute() &&
-					getRoute()->getCommercialLine()
-				){
-					getRoute()->getCommercialLine()->registerService(*this);
-			}	}
 
 			// Data source links (at the end of the load to avoid registration of objects which are removed later by an exception)
 			if(record.isDefined(ScheduledServiceTableSync::COL_DATASOURCE_LINKS))
@@ -773,6 +750,44 @@ namespace synthese
 					s.str()
 				);
 			}
+		}
+
+
+
+		synthese::LinkedObjectsIds ScheduledService::getLinkedObjectsIds( const Record& record ) const
+		{
+			return LinkedObjectsIds();
+		}
+
+
+
+		void ScheduledService::link( util::Env& env, bool withAlgorithmOptimizations /*= false*/ )
+		{
+			// Registration in path
+			if( getPath() &&
+				getPath()->getPathGroup())
+			{
+				getPath()->addService(
+					*this,
+					&env == &Env::GetOfficialEnv()
+				);
+				updatePathCalendar();
+			}
+
+			// Registration in the line
+//			if(linkLevel == ALGORITHMS_OPTIMIZATION_LOAD_LEVEL)
+			{
+				if(	getRoute() &&
+					getRoute()->getCommercialLine()
+				){
+					getRoute()->getCommercialLine()->registerService(*this);
+			}	}
+
+			if(&env == &Env::GetOfficialEnv())
+			{
+				setDataSourceLinksWithRegistration(getDataSourceLinks());
+			}
+
 		}
 	}
 }

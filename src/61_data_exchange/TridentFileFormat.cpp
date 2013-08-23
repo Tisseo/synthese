@@ -2049,11 +2049,16 @@ namespace synthese
 							continue;
 						}
 
-						const_cast<StopArea*>(startStop->getConnectionPlace())->addTransferDelay(
+						StopArea::TransferDelaysMap value(
+							startStop->getConnectionPlace()->getTransferDelays()
+						);
+						StopArea::_addTransferDelay(
+							value,
 							startStop->getKey(),
 							endStop->getKey(),
 							FromXsdDuration(durationNode.getText())
 						);
+						const_cast<StopArea*>(startStop->getConnectionPlace())->setTransferDelaysMatrix(value);
 					}
 					else
 					{

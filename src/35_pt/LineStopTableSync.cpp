@@ -139,7 +139,15 @@ namespace synthese
 			Env& env,
 			LinkLevel linkLevel
 		){
+			if(linkLevel > util::FIELDS_ONLY_LOAD_LEVEL)
+			{
+				DBModule::LoadObjects(ls->getLinkedObjectsIds(*rows), env, linkLevel);
+			}
 			ls->loadFromRecord(*rows, env);
+			if(linkLevel > util::FIELDS_ONLY_LOAD_LEVEL)
+			{
+				ls->link(env, linkLevel == util::ALGORITHMS_OPTIMIZATION_LOAD_LEVEL);
+			}
 		}
 
 
@@ -206,7 +214,7 @@ namespace synthese
 					object.getPhysicalStop()->getHub()->clearAndPropagateUsefulTransfer(PTModule::GRAPH_ID);
 				}
 
-				object.clearPhysicalStop();
+				object.clearPhysicalStopLinks();
 			}
 			else if(dynamic_cast<LineArea*>(obj))
 			{

@@ -481,12 +481,6 @@ namespace synthese
 				if(place != getConnectionPlace())
 				{
 					setHub(place);
-
-					if(place)
-					{
-						place->addPhysicalStop(*this);
-					}
-
 					result = true;
 				}
 			}
@@ -517,7 +511,6 @@ namespace synthese
 					if(chunk)
 					{
 						setProjectedPoint(Address(*chunk, metricOffset));
-						chunk->getFromCrossing()->addReachableVertex(this);
 					}
 					else
 					{
@@ -568,5 +561,22 @@ namespace synthese
 				}
 //			}
 			return result;
+		}
+
+		synthese::LinkedObjectsIds StopPoint::getLinkedObjectsIds( const Record& record ) const
+		{
+			return LinkedObjectsIds();
+		}
+
+		void StopPoint::link( util::Env& env, bool withAlgorithmOptimizations /*= false*/ )
+		{
+			if(getConnectionPlace())
+			{
+				const_cast<StopArea*>(getConnectionPlace())->addPhysicalStop(*this);
+			}
+			if(getProjectedPoint().getRoadChunk())
+			{
+				getProjectedPoint().getRoadChunk()->getFromCrossing()->addReachableVertex(this);
+			}
 		}
 }	}

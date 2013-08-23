@@ -187,4 +187,33 @@ namespace synthese
 			}
 			return r;
 		}
+
+
+
+		synthese::LinkedObjectsIds TransportNetwork::getLinkedObjectsIds( const Record& record ) const
+		{
+			LinkedObjectsIds result;
+			{
+				RegistryKeyType id(
+					record.getDefault<RegistryKeyType>(
+						TransportNetworkTableSync::COL_DAYS_CALENDARS_PARENT_ID,
+						0
+				)	);
+				if(id) result.push_back(id);
+			}
+			{
+				RegistryKeyType id(
+					record.getDefault<RegistryKeyType>(
+						TransportNetworkTableSync::COL_PERIODS_CALENDARS_PARENT_ID,
+						0
+				)	);
+				if(id) result.push_back(id);
+			}
+			return result;
+		}
+
+		void TransportNetwork::link( util::Env& env, bool withAlgorithmOptimizations /*= false*/ )
+		{
+
+		}
 }	}

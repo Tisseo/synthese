@@ -118,7 +118,7 @@ namespace synthese
 
 			BOOST_FOREACH(GeneratedLineStops::value_type& generatedLineStop, _generatedLineStops)
 			{
-				generatedLineStop->clearPhysicalStop();
+				generatedLineStop->clearPhysicalStopLinks();
 			}
 			_generatedLineStops.clear();
 
