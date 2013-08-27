@@ -245,8 +245,8 @@ namespace synthese
 					}
 					else
 					{
-						rObject = directTableSync.newObject();
-						// Forbidden for inheritance classes
+						rObject = directTableSync.newObject(map);
+						// Should never happen
 						if(!rObject.get())
 						{
 							throw synthese::Exception("Forbidden table");

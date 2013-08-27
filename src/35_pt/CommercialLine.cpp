@@ -897,6 +897,12 @@ namespace synthese
 			SubObjects r;
 			BOOST_FOREACH(Path* path, getPaths())
 			{
+				// Avoid sublines
+				if(dynamic_cast<JourneyPatternCopy*>(path))
+				{
+					continue;
+				}
+
 				r.push_back(path);
 			}
 			return r;

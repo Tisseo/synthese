@@ -121,12 +121,13 @@ namespace synthese
 
 		template<>
 		boost::shared_ptr<LineStop> InheritanceLoadSavePolicy<LineStopTableSync,LineStop>::GetNewObject(
-			const DBResultSPtr& row
+			const Record& row
 		){
 			return
-				(decodeTableId(row->getLongLong(LineStopTableSync::COL_PHYSICALSTOPID)) == StopPointTableSync::TABLE.ID) ?
-				boost::shared_ptr<LineStop>(new DesignatedLinePhysicalStop(row->getKey())) :
-				boost::shared_ptr<LineStop>(new LineArea(row->getKey()))
+				(	decodeTableId(row.getDefault<RegistryKeyType>(LineStopTableSync::COL_PHYSICALSTOPID, 0)) == StopPointTableSync::TABLE.ID) ?
+					boost::shared_ptr<LineStop>(new DesignatedLinePhysicalStop(row.getDefault<RegistryKeyType>(TABLE_COL_ID, 0))) :
+					boost::shared_ptr<LineStop>(new LineArea(row.getDefault<RegistryKeyType>(TABLE_COL_ID, 0))
+				)
 			;
 		}
 

@@ -859,6 +859,15 @@ namespace synthese
 			{
 				r.push_back(service);
 			}
+
+			// Services of the sublines
+			BOOST_FOREACH(const SubLines::value_type& subline, _subLines)
+			{
+				BOOST_FOREACH(Service* service, subline->getServices())
+				{
+					r.push_back(service);
+				}
+			}
 			return r;
 
 		}
