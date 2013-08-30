@@ -273,9 +273,17 @@ namespace synthese
 					// Load properties of the current object
 					// Placed after the load of the sub objects to prevent bad link
 					// in case of link to a sub object
-					if(rObject->loadFromRecord(map, _env))
+					try
 					{
-						_objectsToSave.push_back(rObject.get());
+						if(rObject->loadFromRecord(map, _env))
+						{
+							_objectsToSave.push_back(rObject.get());
+						}
+					}
+					catch(...) // Avoid break of the package installation because of bad value in new data
+							   // The object update will be ignored
+					{
+						
 					}
 
 					// Removal detection
