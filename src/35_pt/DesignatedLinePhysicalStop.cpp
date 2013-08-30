@@ -97,9 +97,25 @@ namespace synthese
 				prefix + LineStopTableSync::COL_RESERVATION_NEEDED,
 				getReservationNeeded()
 			);
-			pm.insert(
-				prefix + TABLE_COL_GEOMETRY,
-				static_pointer_cast<geos::geom::Geometry, geos::geom::LineString>(getGeometry())
-			);
+
+			if(hasGeometry())
+			{
+				boost::shared_ptr<geos::geom::Geometry> projected(getGeometry());
+				if(	CoordinatesSystem::GetStorageCoordinatesSystem().getSRID() !=
+					static_cast<CoordinatesSystem::SRID>(getGeometry()->getSRID())
+				){
+					projected = CoordinatesSystem::GetStorageCoordinatesSystem().convertGeometry(*getGeometry());
+				}
+
+				geos::io::WKTWriter writer;
+				pm.insert(
+					prefix + TABLE_COL_GEOMETRY,
+					writer.write(projected.get())
+				);
+			}
+			else
+			{
+				pm.insert(prefix + TABLE_COL_GEOMETRY, string());
+			}
 		}
 }	}

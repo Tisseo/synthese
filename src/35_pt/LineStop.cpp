@@ -222,9 +222,13 @@ namespace synthese
 						LineStopTableSync::COL_LINEID,
 						0
 				)	);
-				if(lineId > 0)
+				if(lineId > 0) try
 				{
 					value = JourneyPatternTableSync::GetEditable(lineId, env).get();
+				}
+				catch(ObjectNotFoundException<JourneyPattern>&)
+				{
+					Log::GetInstance().warn("Bad value " + lexical_cast<string>(lineId) + " for journey pattern in line stop " + lexical_cast<string>(getKey()));
 				}
 				if(value != getLine())
 				{
@@ -276,10 +280,15 @@ namespace synthese
 						util::RegistryKeyType fromPhysicalStopId(
 							record.getDefault<RegistryKeyType>(LineStopTableSync::COL_PHYSICALSTOPID, 0)
 						);
-						StopPoint* value(
-							StopPointTableSync::GetEditable(fromPhysicalStopId, env).get()
-						);
-
+						StopPoint* value(NULL);
+						if(fromPhysicalStopId) try
+						{
+							value = StopPointTableSync::GetEditable(fromPhysicalStopId, env).get();
+						}
+						catch(ObjectNotFoundException<StopPoint>&)
+						{
+							Log::GetInstance().warn("Bad value " + lexical_cast<string>(fromPhysicalStopId) + " for stop in line stop " + lexical_cast<string>(getKey()));
+						}
 						if(dls.getPhysicalStop() != value)
 						{
 							dls.setPhysicalStop(*value);

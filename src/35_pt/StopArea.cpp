@@ -561,9 +561,17 @@ namespace synthese
 			)	);
 			if(getLocation())
 			{
+				boost::shared_ptr<geos::geom::Geometry> projected(getLocation());
+				if(	CoordinatesSystem::GetStorageCoordinatesSystem().getSRID() !=
+					static_cast<CoordinatesSystem::SRID>(getLocation()->getSRID())
+				){
+					projected = CoordinatesSystem::GetStorageCoordinatesSystem().convertGeometry(*getLocation());
+				}
+
+				geos::io::WKTWriter writer;
 				pm.insert(
 					prefix + TABLE_COL_GEOMETRY,
-					static_pointer_cast<Geometry,Point>(getLocation())
+					writer.write(projected.get())
 				);
 			}
 
