@@ -259,7 +259,8 @@ namespace synthese
 							throw synthese::Exception("Forbidden table");
 						}
 						rObject->setKey(key);
-						if(!_env.contains(*rObject))
+						const RegistryBase& registry(directTableSync.getRegistry(_env));
+						if( !registry.contains(rObject->getKey()))
 						{
 							_env.addRegistrable(rObject);
 						}
