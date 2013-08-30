@@ -236,7 +236,6 @@ namespace synthese
 
 					// Update or creation
 					boost::shared_ptr<Registrable> rObject;
-					bool failedUpdate(false);
 					if(directTableSync.contains(key))
 					{
 						try
@@ -249,7 +248,6 @@ namespace synthese
 						catch(...) // Avoid break of the package installation because of bad value in existing data
 							       // In case of exception, the object will be considered as created
 						{
-							failedUpdate = true;
 						}
 					}
 					if(!rObject.get())
@@ -261,7 +259,7 @@ namespace synthese
 							throw synthese::Exception("Forbidden table");
 						}
 						rObject->setKey(key);
-						if(!failedUpdate)
+						if(!_env.contains(*rObject))
 						{
 							_env.addRegistrable(rObject);
 						}
