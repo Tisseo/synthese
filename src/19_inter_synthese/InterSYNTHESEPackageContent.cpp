@@ -238,10 +238,17 @@ namespace synthese
 					boost::shared_ptr<Registrable> rObject;
 					if(directTableSync.contains(key))
 					{
-						rObject = directTableSync.getEditableRegistrable(
-							key,
-							_env
-						);
+						try
+						{
+							rObject = directTableSync.getEditableRegistrable(
+								key,
+								_env
+							);
+						}
+						catch(...) // Avoid break of the package installation because of bad value in existing data
+							       // In case of exception, the object will be considered as created
+						{
+						}
 					}
 					else
 					{
