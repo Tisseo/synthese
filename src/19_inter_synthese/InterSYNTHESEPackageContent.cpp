@@ -250,7 +250,7 @@ namespace synthese
 						{
 						}
 					}
-					else
+					if(!rObject.get())
 					{
 						rObject = directTableSync.newObject(map);
 						// Should never happen
