@@ -49,10 +49,10 @@ namespace synthese
 			const date& lastDate,
 			date_duration step
 		):	Registrable(0),
-			_firstActiveDate(firstDate),
-			// last active date cannot be constructed at this time
 			_markedDates(firstDate, lastDate, step),
-			_mutex(new recursive_mutex)
+			_mutex(new recursive_mutex),
+			_firstActiveDate(firstDate)
+			// last active date cannot be constructed at this time
 		{
 		}
 
@@ -63,8 +63,8 @@ namespace synthese
 		):	Registrable(0),
 			_markedDates(other._markedDates),
 			_firstActiveDate(other._firstActiveDate),
-			_lastActiveDate(other._lastActiveDate),
 			_calendarLinks(other._calendarLinks),
+			_lastActiveDate(other._lastActiveDate),
 			_mutex(new recursive_mutex)
 		{}
 

@@ -500,7 +500,6 @@ namespace synthese
 			else if(key == FILE_ECKDATEN)
 			{
 				// This file should already loaded at parameters reading
-
 			} // 2 : Nodes
 			else if(key == FILE_BITFELD)
 			{

@@ -642,7 +642,7 @@ namespace synthese
 								seqEnd - itColStart == lastColSet.second - lastColSet.first
 							){
 								bool ok(true);
-								for(size_t curSetColRank(0); curSetColRank<=seqEnd - itColStart; ++curSetColRank)
+								for(size_t curSetColRank(0); curSetColRank<=(size_t)(seqEnd - itColStart); ++curSetColRank)
 								{
 									if(	!(itColStart+curSetColRank)->isLike(*(lastColSet.first + curSetColRank), delta)
 									){
