@@ -248,6 +248,11 @@ namespace synthese
 						catch(...) // Avoid break of the package installation because of bad value in existing data
 							       // In case of exception, the object will be considered as created
 						{
+							const RegistryBase& registry(directTableSync.getRegistry(_env));
+							if( registry.contains(key))
+							{
+								rObject = registry.getEditableObject(key);
+							}
 						}
 					}
 					if(!rObject.get())
@@ -283,6 +288,7 @@ namespace synthese
 						{
 							_objectsToSave.push_back(rObject.get());
 						}
+						rObject->link(_env, false);
 					}
 					catch(...) // Avoid break of the package installation because of bad value in new data
 							   // The object update will be ignored

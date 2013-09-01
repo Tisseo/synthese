@@ -986,12 +986,18 @@ namespace synthese
 
 			BOOST_FOREACH(const NonConcurrencyRule* rule, rules)
 			{
-				CommercialLine* priorityLine(rule->getPriorityLine());
-				const CommercialLine::Paths& paths(priorityLine->getPaths());
+				// Avoid non defined rules
+				if(!rule->get<PriorityLine>())
+				{
+					continue;
+				}
+
+				CommercialLine& priorityLine(*rule->get<PriorityLine>());
+				const CommercialLine::Paths& paths(priorityLine.getPaths());
 				ptime minStartTime(date, getDepartureBeginScheduleToIndex(false, departureEdge.getRankInPath()));
-				minStartTime -= rule->getDelay();
+				minStartTime -= rule->get<Delay>();
 				ptime maxStartTime(date, getDepartureEndScheduleToIndex(false, departureEdge.getRankInPath()));
-				maxStartTime += rule->getDelay();
+				maxStartTime += rule->get<Delay>();
 
 				// Loop on all vertices of the starting place
 				BOOST_FOREACH(const StopArea::PhysicalStops::value_type& itStartStop, startStops)
@@ -1041,9 +1047,9 @@ namespace synthese
 									if(endEdge->getHub() == arrivalHub)
 									{
 										time_period timePeriod(
-													serviceInstance.getDepartureDateTime() - rule->getDelay(),
+													serviceInstance.getDepartureDateTime() - rule->get<Delay>(),
 													serviceInstance.getDepartureDateTime() +
-													serviceInstance.getServiceRange() + rule->getDelay()
+													serviceInstance.getServiceRange() + rule->get<Delay>()
 													);
 										if(excludeRanges.size() && timePeriod.intersects(excludeRanges.back()))
 										{
