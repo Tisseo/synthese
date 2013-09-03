@@ -586,6 +586,15 @@ namespace synthese
 			Schedules::const_iterator ita(arrival.begin());
 			BOOST_FOREACH(const Edge* edge, _path->getEdges())
 			{
+				// Detect inconsistent sizes
+				if( i >= _departureSchedules.size() ||
+					i >= _arrivalSchedules.size() ||
+					itd == departure.end() ||
+					ita == arrival.end()
+				){
+					return false;
+				}
+
 				if(!static_cast<const LineStop*>(edge)->getScheduleInput())
 				{
 					++i;
