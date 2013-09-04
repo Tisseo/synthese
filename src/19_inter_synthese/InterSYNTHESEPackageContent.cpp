@@ -26,6 +26,7 @@
 #include "DBModule.h"
 #include "DBTableSync.hpp"
 #include "DBTransaction.hpp"
+#include "Importer.hpp"
 #include "InterSYNTHESEPackage.hpp"
 
 #include <boost/property_tree/json_parser.hpp>
@@ -329,18 +330,28 @@ namespace synthese
 		/// Deletes the removed objects too.
 		//////////////////////////////////////////////////////////////////////////
 		/// @retval transaction the transaction to populate
-		void InterSYNTHESEPackageContent::save( DBTransaction& transaction ) const
-		{
+		void InterSYNTHESEPackageContent::save(
+			DBTransaction& transaction,
+			boost::optional<const impex::Importer&> importer
+		) const	{
 			// Deletions
 			BOOST_FOREACH(RegistryKeyType id, _objectsToRemove)
 			{
 				transaction.addDeleteStmt(id);
+				if(importer)
+				{
+					importer->_logDebug("Delete "+ lexical_cast<string>(id));
+				}
 			}
 
 			// Insertions
 			BOOST_FOREACH(const Registrable* object, _objectsToSave)
 			{
 				DBModule::SaveObject(*object, transaction);
+				if(importer)
+				{
+					importer->_logDebug("Save "+ lexical_cast<string>(object->getKey()));
+				}
 			}
 		}
 }	}
