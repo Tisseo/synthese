@@ -104,6 +104,8 @@ namespace synthese
 			virtual bool isAuthorized(const server::Session* session) const;
 
 			virtual std::string getOutputMimeType() const;
+
+			void setImporter(const boost::shared_ptr<Importer>& value){ _importer = value; }
 		};
 }	}
 

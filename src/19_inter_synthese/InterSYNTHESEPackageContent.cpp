@@ -176,6 +176,7 @@ namespace synthese
 			_package->set<Objects>(
 				_loadObjects(_objects, contentMap)
 			);
+			_objectsToSave.push_back(_package.get());
 		}
 
 
