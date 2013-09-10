@@ -214,7 +214,8 @@ namespace synthese
 				repoTypes.push_back(make_pair(INTER_SYNTHESE_REPO, "Inter-SYNTHESE"));
 				repoTypes.push_back(make_pair(SVN_REPO, "Subversion"));
 				StaticFunctionRequest<PackagesService> svnRequest(request, true);
-				svnRequest.getFunction()->setPackageToInstall(optional<string>());
+				optional<string> undefinedPackage;
+				svnRequest.getFunction()->setPackageToInstall(undefinedPackage);
 				HTMLForm f(svnRequest.getHTMLForm());
 				p << f.open();
 				p << "Type : " << f.getSelectInput(PARAMETER_REPO_TYPE, repoTypes, optional<RepositoryType>(_repoType));
