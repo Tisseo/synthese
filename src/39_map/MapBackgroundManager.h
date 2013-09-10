@@ -1,6 +1,8 @@
 #ifndef SYNTHESE_MAP_MAPBACKGROUNDMANAGER_H
 #define SYNTHESE_MAP_MAPBACKGROUNDMANAGER_H
 
+#define BOOST_FILESYSTEM_VERSION 2
+
 #include <string>
 #include <vector>
 #include <map>

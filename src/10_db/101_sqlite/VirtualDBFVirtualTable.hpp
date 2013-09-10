@@ -23,6 +23,8 @@
 #ifndef SYNTHESE_db_VirtualDBFVirtualTable_hpp__
 #define SYNTHESE_db_VirtualDBFVirtualTable_hpp__
 
+#define BOOST_FILESYSTEM_VERSION 2
+
 #include "SQLiteVirtualTable.hpp"
 
 #include <boost/filesystem/path.hpp>

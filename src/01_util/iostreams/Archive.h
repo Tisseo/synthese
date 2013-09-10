@@ -23,6 +23,8 @@
 #ifndef SYNTHESE_UTIL_ARCHIVE_H
 #define SYNTHESE_UTIL_ARCHIVE_H
 
+#define BOOST_FILESYSTEM_VERSION 2
+
 
 #include <iostream>
 

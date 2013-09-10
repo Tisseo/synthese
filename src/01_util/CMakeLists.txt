@@ -40,7 +40,6 @@ ObjectNotFoundInRegistryException.h
 ParametersMap.cpp
 ParametersMap.h
 PlainCharFilter.h
-random_device.cpp
 Registrable.cpp
 Registrable.h
 Registry.h

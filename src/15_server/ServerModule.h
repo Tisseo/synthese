@@ -29,11 +29,14 @@
 #ifndef SYNTHESE_ServerModule_H__
 #define SYNTHESE_ServerModule_H__
 
+#define BOOST_FILESYSTEM_VERSION 2
+
 #include <boost/asio.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/optional.hpp>
 
 #undef GetObject // due to WinGDI.h
 #undef VERSION // due to mysql.h

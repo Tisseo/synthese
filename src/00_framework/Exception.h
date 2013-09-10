@@ -25,6 +25,8 @@
 #ifndef SYNTHESE_UTIL_EXCEPTION_H
 #define SYNTHESE_UTIL_EXCEPTION_H
 
+#define BOOST_FILESYSTEM_VERSION 2
+
 #include <string>
 #include <iostream>
 

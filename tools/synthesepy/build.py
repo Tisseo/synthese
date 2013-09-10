@@ -38,7 +38,7 @@ from synthesepy import utils
 
 log = logging.getLogger(__name__)
 
-BOOST_VER = '1.42'
+BOOST_VER = '1.49'
 REQUIRED_BOOST_MODULES = [
     'date_time', 'filesystem', 'iostreams', 'program_options',
     'regex', 'system', 'test', 'thread']
@@ -258,8 +258,8 @@ class Builder(object):
         self._download(url, '44d667c142d7cda120332623eab69f40')
         created_dir = self._extract(url, self.env.c.thirdparty_dir)
 
-        url = 'http://switch.dl.sourceforge.net/project/boost/boost/1.42.0/boost_1_42_0.zip'
-        self._download(url, 'ceb78ed309c867e49dc29f60be841b64')
+        url = 'http://switch.dl.sourceforge.net/project/boost/boost/1.49.0/boost_1_49_0.zip'
+        self._download(url, '854dcbbff31b896c85c38247060b7713')
         created_dir = self._extract(url, self.env.c.thirdparty_dir)
 
         self.boost_dir = join(self.env.c.thirdparty_dir, created_dir)

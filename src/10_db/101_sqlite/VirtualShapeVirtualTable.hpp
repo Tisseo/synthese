@@ -23,6 +23,8 @@
 #ifndef SYNTHESE_db_VirtualShapeVirtualTable_hpp__
 #define SYNTHESE_db_VirtualShapeVirtualTable_hpp__
 
+#define BOOST_FILESYSTEM_VERSION 2
+
 #include "CoordinatesSystem.hpp"
 #include "SQLiteVirtualTable.hpp"
 

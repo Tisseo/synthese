@@ -23,6 +23,8 @@
 #ifndef SYNTHESE_algorithm_AlgorithmLogger_hpp__
 #define SYNTHESE_algorithm_AlgorithmLogger_hpp__
 
+#define BOOST_FILESYSTEM_VERSION 2
+
 #include "AlgorithmTypes.h"
 #include "HTMLTable.h"
 #include "JourneysResult.h"
