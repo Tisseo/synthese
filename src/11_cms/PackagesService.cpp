@@ -408,9 +408,8 @@ namespace synthese
 								p << t.col() << (installed ? "OUI" : "NON");
 
 								// Action
-								installRequest.getFunction()->setPackageToInstall(
-									optional<string>("http://" + host +":" + port + "/"+ packageNode.second.get(Code::FIELD.name, string()))
-								);
+								optional<string> packageURL("http://" + host +":" + port + "/"+ packageNode.second.get(Code::FIELD.name, string()));
+								installRequest.getFunction()->setPackageToInstall(packageURL);;
 								p << t.col() << HTMLModule::getHTMLLink(installRequest.getURL(), "Installer", "Etes-vous sûr de vouloir installer le paquet "+ packageName);
 							}	
 
