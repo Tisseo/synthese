@@ -1,4 +1,4 @@
-
+﻿
 //////////////////////////////////////////////////////////////////////////
 ///	ServicesCSVFileFormat class implementation.
 ///	@file ServicesCSVFileFormat.cpp
@@ -401,6 +401,8 @@ namespace synthese
 								rollingStock,
 								serviceDetail.stops,
 								dataSource,
+								true,
+								true,
 								true,
 								true
 						)	);
