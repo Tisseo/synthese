@@ -146,7 +146,7 @@ namespace synthese
 				}
 				if(	(!value && getGeometry()) ||
 					(value && !getGeometry()) ||
-					(value && getGeometry() && value->equalsExact(getGeometry().get()))
+					(value && getGeometry() && !value->equalsExact(getGeometry().get()))
 				){
 					setGeometry(value);
 					result = true;

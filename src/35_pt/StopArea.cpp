@@ -876,7 +876,7 @@ namespace synthese
 					}
 					if(	(!point.get() && getLocation().get()) ||
 						(point.get() && !getLocation().get()) ||
-						(point.get() && getLocation().get() && point->equalsExact(getLocation().get()))
+						(point.get() && getLocation().get() && !point->equalsExact(getLocation().get()))
 					){
 						setLocation(point);
 						result = true;
