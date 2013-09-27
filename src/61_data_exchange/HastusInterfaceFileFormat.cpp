@@ -91,7 +91,7 @@ namespace synthese
 
 	namespace data_exchange
 	{
-		const string HastusInterfaceFileFormat::Importer_::PARAMETER_TRANSPORT_NETWORK_ID = "network_id";
+		const string HastusInterfaceFileFormat::Importer_::PARAMETER_TRANSPORT_NETWORK_ID = "net";
 		const string HastusInterfaceFileFormat::Importer_::PARAMETER_FILE_NAME_IS_A_CALENDAR = "file_name_is_a_calendar";
 
 
@@ -501,7 +501,9 @@ namespace synthese
 						servedStops,
 						dataSource,
 						true, // Remove old codes
-						false // Don't update metric offsets on update because default metric offset are approximations
+						false, // Don't update metric offsets on update because default metric offset are approximations
+						true,
+						true
 				)	);
 				if(route == NULL)
 				{

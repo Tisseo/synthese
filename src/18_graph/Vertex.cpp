@@ -109,7 +109,12 @@ namespace synthese
 			assert(edge->getParentPath());
 
 			pair<Edges::iterator, Edges::iterator> range(_arrivalEdges.equal_range(edge->getParentPath()));
-			assert(range.first != _arrivalEdges.end() && range.first->first == edge->getParentPath());
+			//assert(range.first != _arrivalEdges.end() && range.first->first == edge->getParentPath());
+			if (range.first != _arrivalEdges.end() && range.first->first == edge->getParentPath())
+			{
+				// May happen if edge was already removed
+				return;
+			}
 
 			vector<Edges::iterator> toDelete;
 			for(Edges::iterator it(range.first); it!= range.second; ++it)
@@ -133,7 +138,12 @@ namespace synthese
 			assert(edge->getParentPath());
 
 			pair<Edges::iterator, Edges::iterator> range(_departureEdges.equal_range(edge->getParentPath()));
-			assert(range.first != _departureEdges.end() && range.first->first == edge->getParentPath());
+			//assert(range.first != _departureEdges.end() && range.first->first == edge->getParentPath());
+			if (range.first != _departureEdges.end() && range.first->first == edge->getParentPath())
+			{
+				// May happen if edge was already removed
+				return;
+			}
 
 			vector<Edges::iterator> toDelete;
 			for(Edges::iterator it(range.first); it!= range.second; ++it)
