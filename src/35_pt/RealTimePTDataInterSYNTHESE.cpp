@@ -247,4 +247,11 @@ namespace synthese
 			}
 			return result.str();
 		}
+
+
+
+		ptime RealTimePTDataInterSYNTHESE::Content::getExpirationTime() const
+		{
+			return _service.getNextRTUpdate();
+		}
 }	}
