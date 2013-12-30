@@ -12,7 +12,7 @@ CMS, real time data updating, and operations optimization.
 
 ## Copyright and license
 
-SYNTHESE is copyright 2014 Open-transport.org
+SYNTHESE is copyright 2014 [Open-transport.org] [website]
 
 Licensed under the **[GNU Public Licence, Version 2.0] [license]** you may not use this software except in compliance with the License.
 
