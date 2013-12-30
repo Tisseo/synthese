@@ -1,9 +1,15 @@
+# SYNTHESE
+
+<img src="https://github.com/Open-Transport/synthese/wiki/images/synthese-carre-160.png" alt="SYNTHESE logo" title="SYNTHESE" align="right" />
+
 SYNTHESE is a public transportation server.
 
 It provides network modelling, passenger information, DRT reservation,
 CMS, real time data updating, and operations optimization.
 
-Visit our Web site to get the compilation and installation
-instructions:
-https://extranet.rcsmobility.com/projects/synthese/wiki/Home
+
+**To find out more, please check out the [Snowplow website] [website] and the [Snowplow wiki] [wiki].**
+
+[website]: http://open-transport.org
+[wiki]: https://github.com/Open-Transport/synthese/wiki
 
